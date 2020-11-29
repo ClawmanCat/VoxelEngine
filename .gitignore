@@ -1,0 +1,6 @@
+out/
+.idea/
+.vs/
+.vscode/
+
+cmake.lock

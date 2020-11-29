@@ -1,0 +1,15 @@
+[generators]
+cmake
+
+[requires]
+boost/1.74.0
+magic_enum/0.6.6
+sdl2/2.0.12@bincrafters/stable
+glm/0.9.9.8
+glew/2.1.0
+ctti/0.0.1@manu343726/testing
+range-v3/0.11.0
+
+[options]
+boost:header_only=True
+sdl2:iconv=False
