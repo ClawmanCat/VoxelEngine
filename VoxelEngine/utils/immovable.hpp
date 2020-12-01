@@ -5,7 +5,7 @@
 #include <boost/preprocessor.hpp>
 
 
-namespace ve::meta {
+namespace ve {
     struct immovable {
         immovable(void) = default;
         
@@ -16,5 +16,5 @@ namespace ve::meta {
         immovable& operator=(immovable&&) = delete;
     };
     
-    #define ve_make_immovable [[no_unique_address]] ve::meta::immovable BOOST_PP_CAT(ve_impl_immovable_obj_, __LINE__)
+    #define ve_make_immovable [[no_unique_address]] ve::immovable BOOST_PP_CAT(ve_impl_immovable_obj_, __LINE__)
 }

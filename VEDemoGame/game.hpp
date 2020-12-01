@@ -4,6 +4,8 @@
 
 #include <VoxelEngine/dependent/game.hpp>
 #include <VoxelEngine/dependent/actor_id.hpp>
+#include <VoxelEngine/graphics/render/texture/aligned_texture_atlas.hpp>
+
 
 
 namespace demo_game {
@@ -25,6 +27,8 @@ namespace demo_game {
     private:
         // Guaranteed to be set by on_actor_id_provided before any other method is called.
         static inline ve::actor_id id = 0;
+        
+        static inline ve::aligned_texture_atlas<>* atlas = nullptr;
     };
 }
 

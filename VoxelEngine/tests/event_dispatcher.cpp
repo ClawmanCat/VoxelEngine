@@ -90,12 +90,10 @@ int test_multi_threaded(void) {
 int main() {
     int result_code = 0;
     
-    constexpr std::tuple bool_values = { true, false };
-    template for (constexpr bool threadsafe : bool_values) {
-        template for (constexpr bool direct : bool_values) {
-            result_code |= test_single_threaded<threadsafe, direct>();
-        }
-    }
+    result_code |= test_single_threaded<true,  true>();
+    result_code |= test_single_threaded<false, true>();
+    result_code |= test_single_threaded<true,  false>();
+    result_code |= test_single_threaded<false, false>();
     
     result_code |= test_multi_threaded();
     

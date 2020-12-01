@@ -36,6 +36,7 @@ namespace ve {
     }
     
     
+    // TODO: Use universal reference & forward.
     inline std::string join_strings(const std::vector<std::string>& vec, std::string_view separator = "\n") {
         std::size_t size = 0;
         for (const auto& str : vec) size += str.size();
@@ -50,6 +51,20 @@ namespace ve {
     }
     
     
+    // TODO: Use universal reference & forward.
+    inline std::vector<std::string> split_string(const std::string& str, std::string_view separator = "\n") {
+        std::vector<std::string> result;
+        
+        std::size_t last = 0;
+        for (std::size_t next = str.find(separator); next != std::string::npos; next = str.find(separator, last)) {
+            result.push_back(str.substr(last, next - last));
+        }
+    
+        result.push_back(str.substr(last, std::string::npos));
+        return result;
+    }
+    
+    
     template <typename Value, typename Container>
     constexpr inline bool contains(const Value& value, const Container& ctr) {
         return std::find(ctr.begin(), ctr.end(), value) != ctr.end();
@@ -59,6 +74,12 @@ namespace ve {
     template <typename Value, typename... Values>
     constexpr inline bool contains(const Value& value, const Values&... values) {
         return contains(value, std::array { values... });
+    }
+    
+    
+    template <typename Pred, typename Container>
+    constexpr inline bool contains_if(const Pred& pred, const Container& ctr) {
+        return std::find_if(ctr.begin(), ctr.end(), pred) != ctr.end();
     }
     
     

@@ -3,7 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/dependent/plugin.hpp>
 #include <VoxelEngine/dependent/actor_id.hpp>
-#include <VoxelEngine/utils/meta/immovable.hpp>
+#include <VoxelEngine/utils/immovable.hpp>
 
 #include <VoxelEngine/platform/platform_include.hpp>
 #include platform_include(load_library.hpp)

@@ -5,6 +5,7 @@
 #include <VoxelEngine/utils/meta/traits/glm_traits.hpp>
 #include <VoxelEngine/utils/meta/traits/any_of.hpp>
 #include <VoxelEngine/utils/meta/traits/always_false.hpp>
+#include <VoxelEngine/graphics/render/texture/texture.hpp>
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
@@ -15,8 +16,26 @@
 
 namespace ve::generic_uniform {
     namespace detail {
-        template <typename T> void set_uniform_impl(GLint index, const T& value) {
+        template <typename T> void set_uniform_impl(GLint index, const T& value, u32& state) {
             static_assert(meta::always_false_v<T>, "Unsupported uniform type.");
+        }
+        
+        
+        template <typename T> requires std::is_same_v<T, texture>
+        inline void set_uniform_impl(GLint index, const T& value, u32& state) {
+            VE_DEBUG_ONLY(
+                GLint num_tex_units = 0;
+                glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &num_tex_units);
+                
+                VE_ASSERT(num_tex_units > (i32) state);
+            );
+            
+            
+            glActiveTexture(GL_TEXTURE0 + state);
+            glBindTexture(GL_TEXTURE_2D, value.id);
+            glUniform1i(index, state);
+            
+            state++;
         }
         
         
@@ -26,7 +45,7 @@ namespace ve::generic_uniform {
         
         
         template <typename T> requires (meta::scalar_types::template contains<T>())
-        inline void set_uniform_impl(GLint index, const T& value) {
+        inline void set_uniform_impl(GLint index, const T& value, u32& state) {
             VE_IMPL_SCALAR_TYPEMAP(i,  GLint,    i8, i16, i32, i64);
             VE_IMPL_SCALAR_TYPEMAP(ui, GLuint,   u8, u16, u32, u64);
             VE_IMPL_SCALAR_TYPEMAP(f,  GLfloat,  f32);
@@ -55,7 +74,7 @@ namespace ve::generic_uniform {
         )
         
         template <typename T> requires meta::glm_traits<T>::is_vector
-        inline void set_uniform_impl(GLint index, const T& value) {
+        inline void set_uniform_impl(GLint index, const T& value, u32& state) {
             VE_IMPL_VECTOR_TYPEMAP(i,  GLint,    i8, i16, i32, i64);
             VE_IMPL_VECTOR_TYPEMAP(ui, GLuint,   u8, u16, u32, u64);
             VE_IMPL_VECTOR_TYPEMAP(f,  GLfloat,  f32);
@@ -88,17 +107,20 @@ namespace ve::generic_uniform {
         )
         
         template <typename T> requires meta::glm_traits<T>::is_matrix
-        inline void set_uniform_impl(GLint index, const T& value) {
+        inline void set_uniform_impl(GLint index, const T& value, u32& state) {
             VE_IMPL_MATRIX_TYPEMAP(f,  GLfloat,  f32);
             VE_IMPL_MATRIX_TYPEMAP(d,  GLdouble, f64);
         }
     }
     
     
-    template <typename T> inline void set_uniform(GLuint program, const char* name, const T& value) {
+    // State is required to decide what texture unit to bind each texture to.
+    // Initialize it to zero before setting the uniforms associated with a single glDraw* call.
+    template <typename T> inline void set_uniform(GLuint program, const char* name, const T& value, u32& state) {
         return detail::set_uniform_impl(
             glGetUniformLocation(program, name),
-            value
+            value,
+            state
         );
     }
 }

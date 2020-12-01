@@ -15,12 +15,13 @@ namespace ve::io::paths {
     ve_init_order(0) const inline fs::path PATH_SHADERS                  = PATH_ASSETS / "shaders/";
     ve_init_order(0) const inline fs::path PATH_TEXTURES                 = PATH_ASSETS / "textures/";
     ve_init_order(0) const inline fs::path PATH_SOUNDS                   = PATH_ASSETS / "sounds/";
+    ve_init_order(0) const inline fs::path PATH_TILE_TEXTURES            = PATH_TEXTURES / "tiles/";
     
     
     inline const auto& get_required_paths(void) {
         const static std::array paths {
             PATH_LOGS, PATH_SETTINGS, PATH_PLUGINS, PATH_ASSETS,
-            PATH_SHADERS, PATH_TEXTURES, PATH_SOUNDS
+            PATH_SHADERS, PATH_TEXTURES, PATH_SOUNDS, PATH_TILE_TEXTURES
         };
         
         return paths;

@@ -127,7 +127,7 @@ namespace ve {
     
         vec3f calculate_right(void) const {
             return glm::rotate(
-                glm::normalize(glm::cross((vec3f) directions::UP, *forwards)),
+                glm::normalize(glm::cross(*forwards, (vec3f) directions::UP)),
                 get_roll(),
                 *forwards
             );

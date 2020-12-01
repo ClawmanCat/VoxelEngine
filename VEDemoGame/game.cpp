@@ -7,8 +7,11 @@
 #include <VoxelEngine/graphics/render/shader/shader_library.hpp>
 #include <VoxelEngine/graphics/render/target/layerstack_target.hpp>
 #include <VoxelEngine/graphics/render/graphics_pipeline.hpp>
+#include <VoxelEngine/graphics/render/texture/aligned_texture_atlas.hpp>
 #include <VoxelEngine/graphics/layerstack.hpp>
 #include <VoxelEngine/graphics/window_manager.hpp>
+#include <VoxelEngine/utils/io/io.hpp>
+#include <VoxelEngine/utils/io/paths.hpp>
 #include <VoxelEngine/utils/color.hpp>
 #include <VoxelEngine/utils/logger.hpp>
 
@@ -21,22 +24,39 @@ namespace demo_game {
     
     void game::on_post_init(void) noexcept {
         // Below is example code to render a cube to the screen.
-        using vertex = ve::vertex::flat::color_vertex_3d;
-        using colors = ve::colors;
+        using vertex = ve::vertex::flat::texture_vertex_3d;
+        
+        // Initialize texture atlas.
+        atlas = new ve::aligned_texture_atlas { };
         
         // Create a pipeline to render the cube with.
         auto pipeline = std::make_unique<ve::graphics_pipeline>();
-    
+        
+        // Load textures.
+        std::array<ve::subtexture, 3> textures;
+        
+        char ch = 'A';
+        for (auto& st : textures) {
+            std::string name = "test_texture_"s + ch + ".png";
+            
+            auto id = *atlas->add_subtexture(*ve::io::read_png(ve::io::paths::PATH_TILE_TEXTURES / name));
+            st = *atlas->get_subtexture(id);
+            
+            ++ch;
+        }
+        
+        
+        
         // Create a mesh for the cube and add it to the pipeline.
-        auto [vertices, indices] = ve::meshes::flat_indexed_colored_cube(
-            std::array { ve::colors::ORANGE, colors::GREEN, colors::YELLOW, colors::BLACK, colors::BLUE, colors::BROWN },
+        auto [vertices, indices] = ve::meshes::flat_indexed_textured_cube(
+            std::array { textures[0], textures[0], textures[1], textures[1], textures[2], textures[2] },
             ve::vec3f { 0, 0, 1 }
         );
     
         ve::vertex_array<vertex> buffer { std::span(vertices), std::span(indices) };
     
         pipeline->add_buffer(
-            ve::shader_library::instance().get_or_load("flat_color_3d"s),
+            ve::shader_library::instance().get_or_load("flat_texture_3d"s),
             std::make_unique<ve::vertex_array<vertex>>(std::move(buffer))
         );
         
@@ -70,6 +90,7 @@ namespace demo_game {
     
         // Add the camera to the pipeline.
         pipeline->set_global_uniform_fn("camera"s, camera_fn);
+        pipeline->set_global_uniform_val("tile_texture"s, atlas->get_texture());
     
         // Create a layer in the layerstack for the pipeline to draw to.
         ve::layerstack_target tgt {

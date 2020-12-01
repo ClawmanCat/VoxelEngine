@@ -2,7 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utils/io/paths.hpp>
-#include <VoxelEngine/utils/meta/immovable.hpp>
+#include <VoxelEngine/utils/immovable.hpp>
 #include <VoxelEngine/graphics/render/shader/shader_program.hpp>
 #include <VoxelEngine/graphics/render/shader/shader_compiler.hpp>
 

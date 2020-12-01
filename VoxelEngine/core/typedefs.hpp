@@ -8,6 +8,7 @@
 #define GLM_FORCE_SIZE_T_LENGTH
 #include <glm/glm.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
+#include <glm/gtx/hash.hpp>
 
 #include <boost/preprocessor.hpp>
 

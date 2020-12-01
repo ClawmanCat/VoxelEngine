@@ -19,6 +19,12 @@
 }
 
 
+#define ve_such_that(x, pred)                               \
+[&] (const auto& x) {                                       \
+    return pred;                                            \
+}
+
+
 namespace ve {
     const inline auto no_op    = [](auto...) { };
     const inline auto identity = [](auto&& v) -> decltype(auto) { return std::forward<decltype(v)>(v); };

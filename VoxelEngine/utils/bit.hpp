@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 
 #include <type_traits>
+#include <bit>
 
 
 namespace ve {
@@ -30,5 +31,25 @@ namespace ve {
     template <typename T> requires std::is_integral_v<T>
     [[nodiscard]] constexpr inline T clear_msb(T value) noexcept {
         return value & ~(T(1) << bit_count<T>() - 1);
+    }
+    
+    
+    // Checks if a number is a power of two.
+    template <typename T> requires std::is_integral_v<T>
+    [[nodiscard]] constexpr inline bool is_power_of_2(T value) noexcept {
+        return std::popcount(value) == 1;
+    }
+    
+    
+    // Gets the first power of two larger than the given value.
+    template <typename T> requires std::is_integral_v<T>
+    [[nodiscard]] constexpr inline T next_power_of_2(T value) noexcept {
+        --value;
+        
+        for (T i = T(1); i < sizeof(T) * 8; i <<= 1) {
+            value |= value >> i;
+        }
+        
+        return ++value;
     }
 }

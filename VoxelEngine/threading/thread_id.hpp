@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utils/meta/immovable.hpp>
+#include <VoxelEngine/utils/immovable.hpp>
 
 #include <atomic>
 

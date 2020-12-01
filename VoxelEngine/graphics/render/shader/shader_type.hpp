@@ -11,7 +11,7 @@
 
 namespace ve {
     enum class shader_type {
-        VERTEX, TESS_CONTROL, TESS_EVAL, GEOMETRY, FRAGMENT, COMPUTE
+        VERTEX, TESS_CONTROL, TESS_EVAL, GEOMETRY, FRAGMENT, COMPUTE, UTILITY
     };
     
     enum class shader_pipeline_type {
@@ -32,6 +32,7 @@ namespace ve {
         shader_info { shader_type::TESS_EVAL,    GL_TESS_EVALUATION_SHADER, ".teval.glsl", shader_pipeline_type::OPTIONAL  },
         shader_info { shader_type::GEOMETRY,     GL_GEOMETRY_SHADER,        ".geo.glsl",   shader_pipeline_type::OPTIONAL  },
         shader_info { shader_type::FRAGMENT,     GL_FRAGMENT_SHADER,        ".frag.glsl",  shader_pipeline_type::REQUIRED  },
-        shader_info { shader_type::COMPUTE,      GL_COMPUTE_SHADER,         ".comp.glsl",  shader_pipeline_type::FORBIDDEN }
+        shader_info { shader_type::COMPUTE,      GL_COMPUTE_SHADER,         ".comp.glsl",  shader_pipeline_type::FORBIDDEN },
+        shader_info { shader_type::UTILITY,      GL_INVALID_ENUM,           ".util.glsl",  shader_pipeline_type::FORBIDDEN }
     };
 }

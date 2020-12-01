@@ -9,6 +9,8 @@ glm/0.9.9.8
 glew/2.1.0
 ctti/0.0.1@manu343726/testing
 range-v3/0.11.0
+lodepng/cci.20200615
+ctre/3.3.2
 
 [options]
 boost:header_only=True

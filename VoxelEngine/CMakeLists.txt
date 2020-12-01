@@ -12,6 +12,9 @@ create_target(
     PUBLIC CONAN_PKG::glew
     PUBLIC CONAN_PKG::ctti
     PUBLIC CONAN_PKG::range-v3
+    PUBLIC CONAN_PKG::lodepng
+    PUBLIC CONAN_PKG::ctre
 )
 
+# Copies the resource directories (assets, etc.) when VoxelEngine is built.
 add_dependencies(VoxelEngine COPY_OUT_DIRS)

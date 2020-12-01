@@ -4,6 +4,7 @@
 #include <VoxelEngine/graphics/render/buffer/vertex_array.hpp>
 #include <VoxelEngine/graphics/render/shader/shader_program.hpp>
 #include <VoxelEngine/graphics/render/generic_uniform.hpp>
+#include <VoxelEngine/graphics/render/texture/texture.hpp>
 
 #include <functional>
 #include <vector>
@@ -24,7 +25,8 @@ namespace ve {
                 GLuint id = shader->get_id();
     
                 // Set global uniforms.
-                for (const auto& [name, setter] : uniforms) setter(id, name);
+                u32 uniform_state = 0;
+                for (const auto& [name, setter] : uniforms) setter(id, name, uniform_state);
                 
                 // Set local uniforms & draw buffers.
                 for (auto& array : vertex_arrays) array->draw(id);
@@ -38,8 +40,8 @@ namespace ve {
         void set_global_uniform_val(String&& name, T&& value) {
             uniforms.insert_or_assign(
                 std::forward<String>(name),
-                [value = std::forward<T>(value)](GLuint program, const std::string& name) {
-                    generic_uniform::set_uniform(program, name.c_str(), value);
+                [value = std::forward<T>(value)](GLuint program, const std::string& name, u32& state) {
+                    generic_uniform::set_uniform(program, name.c_str(), value, state);
                 }
             );
         }
@@ -50,8 +52,8 @@ namespace ve {
         void set_global_uniform_fn(String&& name, Producer&& producer) {
             uniforms.insert_or_assign(
                 std::forward<String>(name),
-                [producer = std::forward<Producer>(producer)](GLuint program, const std::string& name) {
-                    generic_uniform::set_uniform(program, name.c_str(), producer());
+                [producer = std::forward<Producer>(producer)](GLuint program, const std::string& name, u32& state) {
+                    generic_uniform::set_uniform(program, name.c_str(), producer(), state);
                 }
             );
         }
@@ -72,7 +74,7 @@ namespace ve {
             }
         }
     private:
-        using uniform_fn = std::function<void(GLuint, const std::string&)>;
+        using uniform_fn = std::function<void(GLuint, const std::string&, u32&)>;
         
         
         hash_map<shared<shader_program>, std::vector<unique<vertex_array_base>>> buffers;

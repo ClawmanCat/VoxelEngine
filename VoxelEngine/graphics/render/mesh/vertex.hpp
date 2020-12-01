@@ -23,7 +23,7 @@ namespace ve::vertex {
     
         template <std::size_t N> struct texture_vertex {
             vec<N, float> position;
-            vec2us uv;
+            vec2f uv;
     
             VE_GEN_ATTRIB_FN(texture_vertex, position, uv)
         };

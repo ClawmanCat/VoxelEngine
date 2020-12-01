@@ -38,6 +38,7 @@ namespace ve {
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             
             glEnable(GL_DEPTH_TEST);
+            glEnable(GL_TEXTURE_2D);
             
             VE_DEBUG_ONLY(
                 glEnable(GL_DEBUG_OUTPUT);

@@ -5,7 +5,7 @@
 #include <VoxelEngine/input/button_state.hpp>
 #include <VoxelEngine/input/mouse_button.hpp>
 #include <VoxelEngine/input/mouse_state.hpp>
-#include <VoxelEngine/utils/meta/immovable.hpp>
+#include <VoxelEngine/utils/immovable.hpp>
 #include <VoxelEngine/event/delayed_prioritized_event_dispatcher.hpp>
 
 #include <SDL.h>
