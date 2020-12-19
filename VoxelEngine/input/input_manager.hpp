@@ -32,6 +32,9 @@ namespace ve {
         hash_map<SDL_Keycode, key_state>     keyboard_state;
         hash_map<mouse_button, button_state> button_states;
         
+        // The currently focused window.
+        std::optional<u32> focused_window_id = std::nullopt;
+        
         // Mouse state for the current tick, the previous tick,
         // the last tick in which the mouse was not moving and the last tick in which the mouse moved.
         mouse_state current, previous, last_stopped_state, last_moving_state;

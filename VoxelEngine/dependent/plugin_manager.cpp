@@ -1,4 +1,5 @@
 #include <VoxelEngine/dependent/plugin_manager.hpp>
+#include <VoxelEngine/dependent/resource_owner_registry.hpp>
 #include <VoxelEngine/utils/logger.hpp>
 #include <VoxelEngine/utils/functional.hpp>
 #include <VoxelEngine/utils/char_convert.hpp>
@@ -107,8 +108,9 @@ namespace ve {
         }
     
         data_storage.on_unloaded_fn.value_or(no_op)(plugin_id);
+        resource_owner_registry::instance().on_actor_destroyed(plugin_id);
+        
         unload_library(data_storage.handle);
-    
         
         VE_LOG_INFO("Successfully unloaded plugin "s + data_storage.info->name);
         return true;

@@ -5,6 +5,7 @@
 #include <VoxelEngine/utils/meta/if_constexpr.hpp>
 #include <VoxelEngine/utils/meta/traits/null_type.hpp>
 #include <VoxelEngine/graphics/render/mesh/vertex_attribute.hpp>
+#include <VoxelEngine/graphics/render/uniform_storage.hpp>
 
 #include <GL/glew.h>
 #include <magic_enum.hpp>
@@ -13,11 +14,11 @@
 
 
 namespace ve {
-    struct vertex_array_base {
+    struct vertex_array_base : public uniform_storage {
         vertex_array_base(void) : id(threadsafe_counter<vertex_array_base>::next()) {}
         
         virtual ~vertex_array_base(void) = default;
-        virtual void draw(GLuint program) = 0;
+        virtual void draw(GLuint program, u32& uniform_state) = 0;
         
         [[nodiscard]] u64 get_id(void) const noexcept { return id; }
     private:
@@ -123,7 +124,9 @@ namespace ve {
         
     
         // Draws the buffer using the currently bound program.
-        virtual void draw(GLuint program) override {
+        virtual void draw(GLuint program, u32& uniform_state) override {
+            bind_uniforms(program, uniform_state);
+            
             glBindVertexArray(vao);
             
             glBindBuffer(VERTEX_BUFFER, vbo);

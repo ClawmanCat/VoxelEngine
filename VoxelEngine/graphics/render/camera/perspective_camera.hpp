@@ -2,6 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utils/cached.hpp>
+#include <VoxelEngine/utils/caching_mutators.hpp>
 #include <VoxelEngine/utils/direction.hpp>
 #include <VoxelEngine/utils/math_utils.hpp>
 #include <VoxelEngine/utils/functional.hpp>
@@ -11,30 +12,6 @@
 
 #include <functional>
 #include <cmath>
-
-
-#define VE_IMPL_INVALIDATE(Rep, Data, Elem) Elem.invalidate();
-
-#define VE_IMPL_INVALIDATE_ALL(...)                                             \
-BOOST_PP_SEQ_FOR_EACH(                                                          \
-    VE_IMPL_INVALIDATE,                                                         \
-    _,                                                                          \
-    BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)                                       \
-)
-
-#define VE_IMPL_GET_SET_INVALIDATE_NVT(name, value, transform, ...)             \
-[[nodiscard]] auto get_##name(void) const {                                     \
-    return value;                                                               \
-}                                                                               \
-                                                                                \
-void set_##name(auto&& val) {                                                   \
-    VE_IMPL_INVALIDATE_ALL(__VA_ARGS__)                                         \
-                                                                                \
-    this->value = transform(std::forward<decltype(val)>(val));                  \
-}
-
-#define VE_IMPL_GET_SET_INVALIDATE_NV(name, value, ...) VE_IMPL_GET_SET_INVALIDATE_NVT(name, value, ve::identity, __VA_ARGS__)
-#define VE_IMPL_GET_SET_INVALIDATE_V(value, ...) VE_IMPL_GET_SET_INVALIDATE_NV(value, value, __VA_ARGS__)
 
 
 namespace ve {
@@ -63,12 +40,12 @@ namespace ve {
         }
     
     
-        void move  (const vec3f& delta) { position += delta; VE_IMPL_INVALIDATE_ALL(camera_matrix) }
-        void scale (const vec3f& delta) { scaling  *= delta; VE_IMPL_INVALIDATE_ALL(camera_matrix) }
+        void move(const vec3f& delta) { position += delta; VE_IMPL_INVALIDATE_ALL(camera_matrix); }
+        void zoom(const vec3f& delta) { scaling  *= delta; VE_IMPL_INVALIDATE_ALL(camera_matrix); }
         
         void rotate(const vec3f& delta) {
             rotation += ve_vec_transform(x, fmodf(x, 2 * pi))(delta);
-            VE_IMPL_INVALIDATE_ALL(camera_matrix, forwards, right, up)
+            VE_IMPL_INVALIDATE_ALL(camera_matrix, forwards, right, up);
         }
     
         
@@ -103,14 +80,14 @@ namespace ve {
         [[nodiscard]] mat4f get_matrix  (void) const { return camera_matrix; }
     private:
         mat4f calculate_perspective_matrix(void) const {
-            //return glm::infinitePerspective(fov, aspect_ratio, near);
-            return glm::perspective(fov, aspect_ratio, 0.001f, 100.0f);
+            return glm::infinitePerspective(fov, aspect_ratio, near);
+            // return glm::perspective(fov, aspect_ratio, 0.001f, 100.0f);
         }
     
     
         mat4f calculate_camera_matrix(void) const {
             mat4f mat = glm::lookAt(position, position + *forwards, { 0, 1, 0 });
-            // mat = glm::rotate(mat, get_roll(), *forwards);
+            mat = glm::rotate(mat, get_roll(), *forwards);
             
             return (*perspective_matrix) * mat;
         }
@@ -127,7 +104,7 @@ namespace ve {
     
         vec3f calculate_right(void) const {
             return glm::rotate(
-                glm::normalize(glm::cross(*forwards, (vec3f) directions::UP)),
+                glm::normalize(glm::cross(*forwards, (vec3f) direction_vector(direction::UP))),
                 get_roll(),
                 *forwards
             );

@@ -6,7 +6,7 @@
 
 
 namespace ve {
-    inline void on_fatal_error(const char* msg = "No information available.") {
+    inline void on_fatal_error(const std::string& msg = "No information available.") {
         throw std::runtime_error(msg);
     }
 }

@@ -1,5 +1,6 @@
 #include <VoxelEngine/input/input_manager.hpp>
 #include <VoxelEngine/input/input_event.hpp>
+#include <VoxelEngine/graphics/window.hpp>
 #include <VoxelEngine/graphics/window_manager.hpp>
 #include <VoxelEngine/threading/shared_lock_guard.hpp>
 #include <VoxelEngine/utils/meta/if_constexpr.hpp>
@@ -40,6 +41,7 @@ namespace ve {
         event_t evnt;
         evnt.old_state = old_state;
         evnt.new_state = new_state;
+        evnt.window_id = e.window.windowID;
     
         self.get_dispatcher().dispatch_event(std::move(evnt));
         
@@ -70,27 +72,35 @@ namespace ve {
             std::lock_guard lock { mtx };
             
             
-            for (const auto& [key, state] : keyboard_state) {
-                if (!state.is_down) continue;
-                
-                key_hold_event evnt;
-                evnt.state = state;
-                
-                dispatcher.dispatch_event(std::move(evnt));
-            }
-            
-            for (const auto& [button, state] : button_states) {
-                if (!state.is_down) continue;
-                
-                mouse_hold_event evnt;
-                evnt.state = state;
-                
-                dispatcher.dispatch_event(std::move(evnt));
+            if (focused_window_id.has_value()) {
+                u32 window_id = focused_window_id.value();
+    
+                for (const auto& [key, state] : keyboard_state) {
+                    if (!state.is_down) continue;
+        
+                    key_hold_event evnt;
+                    evnt.state     = state;
+                    evnt.window_id = window_id;
+        
+                    dispatcher.dispatch_event(std::move(evnt));
+                }
+    
+                for (const auto& [button, state] : button_states) {
+                    if (!state.is_down) continue;
+        
+                    mouse_hold_event evnt;
+                    evnt.state     = state;
+                    evnt.window_id = window_id;
+        
+                    dispatcher.dispatch_event(std::move(evnt));
+                }
             }
             
             
             SDL_Event e;
             while (SDL_PollEvent(&e)) {
+                u32 window_id = e.window.windowID;
+                
                 switch (e.type) {
                     case SDL_KEYDOWN: {
                         // SDL_KEYDOWN is also triggered on key hold.
@@ -100,8 +110,9 @@ namespace ve {
     
                         
                         key_typed_event evnt;
-                        evnt.state = keyboard_state[e.key.keysym.sym];
-    
+                        evnt.state     = keyboard_state[e.key.keysym.sym];
+                        evnt.window_id = window_id;
+                        
                         dispatcher.dispatch_event(std::move(evnt));
                         
                         
@@ -128,22 +139,31 @@ namespace ve {
                         break;
                     }
                     case SDL_WINDOWEVENT: {
+                        if (e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
+                            focused_window_id = window_id;
+                        } else if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST && focused_window_id == window_id) {
+                            focused_window_id = std::nullopt;
+                        }
+                        
+                        
                         switch (e.window.event) {
-                            case SDL_WINDOWEVENT_MAXIMIZED:    { dispatcher.dispatch_event(window_maximized_event{});           break; }
-                            case SDL_WINDOWEVENT_MINIMIZED:    { dispatcher.dispatch_event(window_minimized_event{});           break; }
-                            case SDL_WINDOWEVENT_RESTORED:     { dispatcher.dispatch_event(window_restored_event{});            break; }
-                            case SDL_WINDOWEVENT_HIDDEN:       { dispatcher.dispatch_event(window_hidden_event{});              break; }
-                            case SDL_WINDOWEVENT_SHOWN:        { dispatcher.dispatch_event(window_shown_event{});               break; }
-                            case SDL_WINDOWEVENT_EXPOSED:      { dispatcher.dispatch_event(window_exposed_event{});             break; }
-                            case SDL_WINDOWEVENT_FOCUS_GAINED: { dispatcher.dispatch_event(window_gain_keyboard_focus_event{}); break; }
-                            case SDL_WINDOWEVENT_FOCUS_LOST:   { dispatcher.dispatch_event(window_lose_keyboard_focus_event{}); break; }
-                            case SDL_WINDOWEVENT_ENTER:        { dispatcher.dispatch_event(window_gain_mouse_focus_event{});    break; }
-                            case SDL_WINDOWEVENT_LEAVE:        { dispatcher.dispatch_event(window_lose_mouse_focus_event{});    break; }
+                            case SDL_WINDOWEVENT_MAXIMIZED:    { dispatcher.dispatch_event(window_maximized_event{ window_id });           break; }
+                            case SDL_WINDOWEVENT_MINIMIZED:    { dispatcher.dispatch_event(window_minimized_event{ window_id });           break; }
+                            case SDL_WINDOWEVENT_RESTORED:     { dispatcher.dispatch_event(window_restored_event{ window_id });            break; }
+                            case SDL_WINDOWEVENT_HIDDEN:       { dispatcher.dispatch_event(window_hidden_event{ window_id });              break; }
+                            case SDL_WINDOWEVENT_SHOWN:        { dispatcher.dispatch_event(window_shown_event{ window_id });               break; }
+                            case SDL_WINDOWEVENT_EXPOSED:      { dispatcher.dispatch_event(window_exposed_event{ window_id });             break; }
+                            case SDL_WINDOWEVENT_FOCUS_GAINED: { dispatcher.dispatch_event(window_gain_keyboard_focus_event{ window_id }); break; }
+                            case SDL_WINDOWEVENT_FOCUS_LOST:   { dispatcher.dispatch_event(window_lose_keyboard_focus_event{ window_id }); break; }
+                            case SDL_WINDOWEVENT_ENTER:        { dispatcher.dispatch_event(window_gain_mouse_focus_event{ window_id });    break; }
+                            case SDL_WINDOWEVENT_LEAVE:        { dispatcher.dispatch_event(window_lose_mouse_focus_event{ window_id });    break; }
+                            case SDL_WINDOWEVENT_CLOSE:        { dispatcher.dispatch_event(window_closed_event { window_id });             break; }
                             case SDL_WINDOWEVENT_SIZE_CHANGED: {
                                 static vec2i prev_size = { };
                                 
                                 dispatcher.dispatch_event(window_resized_event {
-                                    std::exchange(prev_size, window_manager::instance().get_window_size()),
+                                    window_id,
+                                    std::exchange(prev_size, { e.window.data1, e.window.data2 }),
                                     prev_size
                                 });
                                 
@@ -152,9 +172,14 @@ namespace ve {
                             case SDL_WINDOWEVENT_MOVED: {
                                 static vec2i prev_pos   = { };
                                 static u32 prev_display = 0;
-                                
-                                auto current_pos = window_manager::instance().get_window_position();
+    
+                                window::window_position current_pos = {
+                                    .position = { e.window.data1, e.window.data2 },
+                                    .display  = e.window.windowID
+                                };
+    
                                 dispatcher.dispatch_event(window_moved_event {
+                                    window_id,
                                     std::exchange(prev_pos, current_pos.position),
                                     prev_pos,
                                     std::exchange(prev_display, current_pos.display),
@@ -168,8 +193,7 @@ namespace ve {
                         break;
                     }
                     case SDL_QUIT: {
-                        dispatcher.dispatch_event(window_closed_event { });
-                        
+                        // Fired when the last window is closed.
                         engine::exit();
                         break;
                     }

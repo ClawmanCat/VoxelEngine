@@ -117,10 +117,9 @@ namespace ve::generic_uniform {
     // State is required to decide what texture unit to bind each texture to.
     // Initialize it to zero before setting the uniforms associated with a single glDraw* call.
     template <typename T> inline void set_uniform(GLuint program, const char* name, const T& value, u32& state) {
-        return detail::set_uniform_impl(
-            glGetUniformLocation(program, name),
-            value,
-            state
-        );
+        GLint location = glGetUniformLocation(program, name);
+        if (location == -1) return;
+        
+        detail::set_uniform_impl(location, value, state);
     }
 }

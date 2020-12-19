@@ -11,7 +11,17 @@ ctti/0.0.1@manu343726/testing
 range-v3/0.11.0
 lodepng/cci.20200615
 ctre/3.3.2
+entt/3.5.2
 
 [options]
 boost:header_only=True
 sdl2:iconv=False
+glew:shared=True
+
+[imports]
+bin, *.dll -> ./bin
+lib, *.dll -> ./bin
+bin, *.dylib -> ./bin
+lib, *.dylib -> ./bin
+bin, *.so -> ./bin
+lib, *.so -> ./lib

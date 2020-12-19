@@ -24,8 +24,9 @@
 namespace ve::events {
     // An event handler that processes events directly as they come in and runs events according to their priority.
     template <
-        bool threadsafe   = true,
-        typename Priority = priority
+        bool threadsafe           = true,
+        typename Priority         = priority,
+        Priority default_priority = Priority::NORMAL
     > class immediate_prioritized_event_dispatcher {
     public:
         template <event_class Event> void dispatch_event(const Event& evnt) {
@@ -55,7 +56,7 @@ namespace ve::events {
     
     
         template <event_class Event, universal<event_handler> Handler>
-        u64 add_handler(Handler&& handler, Priority p) {
+        u64 add_handler(Handler&& handler, Priority p = default_priority) {
             auto handler_id = handler.get_id();
             
             // Make sure not to lock if this thread already owns the mutex.

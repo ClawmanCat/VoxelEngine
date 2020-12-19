@@ -30,10 +30,11 @@ namespace ve::events {
     //    (e.g. calling dispatch_event and process_events from different threads.)
     // threadsafe_handlers: safely allow adding event handlers from multiple threads.
     template <
-        bool threadsafe_dispatch = true,
-        bool threadsafe_handlers = true,
-        priority_mode mode       = priority_mode::PER_EVENT,
-        typename Priority        = priority
+        bool threadsafe_dispatch  = true,
+        bool threadsafe_handlers  = true,
+        priority_mode mode        = priority_mode::PER_EVENT,
+        typename Priority         = priority,
+        Priority default_priority = Priority::NORMAL
     > class delayed_prioritized_event_dispatcher {
     public:
         void process_events(void) {
@@ -98,7 +99,7 @@ namespace ve::events {
         
         
         template <event_class Event, universal<event_handler> Handler>
-        u64 add_handler(Handler&& handler, Priority p) {
+        u64 add_handler(Handler&& handler, Priority p = default_priority) {
             const auto event_id   = ctti::type_id<Event>();
             const auto handler_id = handler.get_id();
             

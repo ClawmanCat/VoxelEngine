@@ -5,7 +5,7 @@
 #include <VoxelEngine/dependent/game.hpp>
 #include <VoxelEngine/dependent/actor_id.hpp>
 #include <VoxelEngine/graphics/render/texture/aligned_texture_atlas.hpp>
-
+#include <VoxelEngine/graphics/render/graphics_pipeline.hpp>
 
 
 namespace demo_game {
@@ -20,15 +20,10 @@ namespace demo_game {
         
         static void on_actor_id_provided(ve::actor_id id) noexcept;
         [[nodiscard]] static const ve::game_info* get_info(void) noexcept;
-        
-        [[nodiscard]] static ve::actor_id get_id(void) noexcept {
-            return game::id;
-        }
     private:
-        // Guaranteed to be set by on_actor_id_provided before any other method is called.
-        static inline ve::actor_id id = 0;
-        
         static inline ve::aligned_texture_atlas<>* atlas = nullptr;
+        static inline ve::u32 window_id = 0;
+        static inline ve::shared<ve::graphics_pipeline> pipeline = { };
     };
 }
 
@@ -36,10 +31,6 @@ namespace demo_game {
 namespace ve::game_callbacks {
     // Callbacks will be called by the engine to initialize the game.
     
-    // Called before any of the other callbacks to provide the game with an actor id.
-    void on_actor_id_provided(ve::actor_id id) {
-        demo_game::game::on_actor_id_provided(id);
-    }
     
     // Can be called at any point to request game information.
     const ve::game_info* get_game_info(void) {

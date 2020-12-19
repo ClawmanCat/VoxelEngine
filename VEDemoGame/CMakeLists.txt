@@ -7,3 +7,6 @@ create_target(
     # Dependencies:
     PUBLIC VoxelEngine
 )
+
+# Indicates that the game is being built, and not some dependency like a plugin.
+target_compile_definitions(VEDemoGame PRIVATE VE_BUILD_GAME)

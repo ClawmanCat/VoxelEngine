@@ -150,6 +150,12 @@ namespace ve {
     concept stringlike = universal<std::string> || std::is_same_v<DT, std::string_view> || std::is_same_v<DT, const char*>;
     
     
+    // Used for extracting ()-wrapped macro arguments. (types only.)
+    template <typename> struct unwrap {};
+    template <typename X> struct unwrap<X(void)> { using type = void; };
+    template <typename X, typename Y> struct unwrap<X(Y)> { using type = Y; };
+    
+    
     // GLM
     #define VE_SCALAR_TYPE_SEQ \
     ((i8, b))((u8, ub))((i16, s))((u16, us))((i32, i))((u32, ui))((i64, l))((u64, ul))((f32, f))((f64, d))((bool, bl))

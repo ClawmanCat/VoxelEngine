@@ -9,13 +9,6 @@ file(LOCK ${CMAKE_SOURCE_DIR} DIRECTORY GUARD FILE)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_options(/EHsc /clang:-fbracket-depth=1024)
-add_compile_options(/clang:-Wall /clang:-Wextra)      # -Wpedantic will trigger ~4000 warnings in library code.
-add_compile_options(/clang:-Wno-deprecated-volatile)  # Mute warnings emitted by GLM.
-add_compile_options(/clang:-Wno-unknown-attributes)   # Mute warnings due to lack of C++20 attribute support.
-add_compile_options(/clang:-Wno-unused-private-field) # Unused members are used to disable move & copy on some objects.
-add_compile_options(/clang:-Wno-unused-parameter)
-
 # Output to out directory.
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out/${CMAKE_BUILD_TYPE}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out/${CMAKE_BUILD_TYPE}/lib)
@@ -33,6 +26,10 @@ set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/out")
 # Make sure symbols are exported on Windows.
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
+# Load compiler settings profile.
+include(clang_cl_profile)
+set_compiler_profile()
+
 # Run Conan
 include(run_conan)
 run_conan()
@@ -45,6 +42,14 @@ add_custom_target(
         COPY_OUT_DIRS ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/out_dirs
+            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
+
+# Copy shared libraries from conan folder to binary folder.
+add_custom_target(
+        COPY_SHARED_LIBS ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/out/conan/bin
             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
 

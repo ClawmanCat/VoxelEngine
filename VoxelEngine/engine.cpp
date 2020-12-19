@@ -6,6 +6,7 @@
 #include <VoxelEngine/utils/logger.hpp>
 #include <VoxelEngine/utils/io/paths.hpp>
 #include <VoxelEngine/utils/io/io.hpp>
+#include <VoxelEngine/graphics/window.hpp>
 #include <VoxelEngine/graphics/window_manager.hpp>
 #include <VoxelEngine/graphics/layerstack.hpp>
 #include <VoxelEngine/input/input_manager.hpp>
@@ -18,7 +19,6 @@
 
 
 namespace ve {
-    const actor_id engine::engine_actor_id = next_actor_id();
     const version  engine::engine_version  = {
         "PreAlpha",
         VOXELENGINE_VERSION_MAJOR,
@@ -34,6 +34,7 @@ namespace ve {
         try {
             while (true) {
                 static engine::state prev_state = engine::engine_state;
+                
                 if (engine::engine_state != prev_state) {
                     dispatcher.dispatch_event(engine_state_change_event {
                         prev_state,
@@ -92,7 +93,6 @@ namespace ve {
     
     
     void engine::on_init(void) {
-        game_callbacks::on_actor_id_provided(next_actor_id());
         game_callbacks::on_game_pre_init();
         dispatcher.dispatch_event(engine_pre_init_event { });
         
@@ -103,12 +103,10 @@ namespace ve {
         io::create_required_paths();
         
         // Initialize libraries.
+        dispatcher.dispatch_event(engine_pre_sdl_init_event { });
         SDL_SetMainReady();
         SDL_Init(SDL_INIT_EVERYTHING);
-        
-        // Create window.
-        // TODO: Replace this with event.
-        window_manager::instance().create(game_callbacks::get_game_info()->name.c_str());
+        dispatcher.dispatch_event(engine_post_sdl_init_event { });
         
         // Load plugins.
         for (const auto& elem : fs::directory_iterator(io::paths::PATH_PLUGINS)) {
@@ -131,9 +129,9 @@ namespace ve {
         
         input_manager::instance().update(engine::tick_count);
         
-        window_manager::instance().on_frame_start();
-        layerstack::instance().draw();
-        window_manager::instance().on_frame_end();
+        for (const auto& [owner, window] : window_manager::instance()) {
+            window->draw();
+        }
         
         game_callbacks::on_game_post_loop();
         dispatcher.dispatch_event(engine_post_loop_event { });

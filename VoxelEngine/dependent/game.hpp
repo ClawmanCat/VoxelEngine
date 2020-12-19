@@ -20,8 +20,6 @@ namespace ve {
         // Implemented by the game, called by the engine.
         // All of these are required.
         
-        // Called before any of the other callbacks to provide the game with an actor id.
-        extern void on_actor_id_provided(actor_id id);
         
         // Can be called at any point to request game information.
         extern const game_info* get_game_info(void);

@@ -14,7 +14,13 @@ create_target(
     PUBLIC CONAN_PKG::range-v3
     PUBLIC CONAN_PKG::lodepng
     PUBLIC CONAN_PKG::ctre
+    PUBLIC CONAN_PKG::entt
 )
 
 # Copies the resource directories (assets, etc.) when VoxelEngine is built.
 add_dependencies(VoxelEngine COPY_OUT_DIRS)
+# Copies the required shared libraries when VoxelEngine is built.
+add_dependencies(VoxelEngine COPY_SHARED_LIBS)
+
+# Indicates that the engine is being built, and not some dependency like a plugin.
+target_compile_definitions(VoxelEngine PRIVATE VE_BUILD_ENGINE)

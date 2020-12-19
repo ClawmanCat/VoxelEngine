@@ -12,7 +12,7 @@ namespace ve {
         layerstack_target(void) = default;
         
         template <universal<std::string> String>
-        layerstack_target(String&& name, unique<graphics_pipeline>&& provider) :
+        layerstack_target(String&& name, shared<graphics_pipeline>&& provider) :
             render_target(std::move(provider)),
             name(std::forward<String>(name))
         {}

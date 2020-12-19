@@ -101,6 +101,6 @@ namespace ve::events {
         std::array<i64, num_priorities> indices;
         
     public:
-        VE_MAKE_ITERATABLE(storage);
+        ve_make_iteratable(storage);
     };
 }

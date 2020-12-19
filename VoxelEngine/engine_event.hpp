@@ -22,6 +22,9 @@ namespace ve {
     VE_IMPL_ENGINE_EVENT(immediate_exit)
     VE_IMPL_ENGINE_EVENT(uncaught_error)
     
+    VE_IMPL_ENGINE_EVENT(pre_sdl_init)
+    VE_IMPL_ENGINE_EVENT(post_sdl_init)
+    
     
     struct engine_state_change_event : public ve::events::event {
         engine_state_change_event(engine::state prev, engine::state current)

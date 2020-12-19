@@ -15,9 +15,7 @@ namespace ve {
     public:
         using dispatcher_t = events::immediate_prioritized_event_dispatcher<>;
         
-        static const actor_id engine_actor_id;
-        static const version  engine_version;
-        
+        static const version engine_version;
         
         enum class state {
             UNINITIALIZED, INITIALIZING, RUNNING, EXITING, EXITED

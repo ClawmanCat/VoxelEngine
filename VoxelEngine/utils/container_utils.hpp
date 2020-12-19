@@ -19,6 +19,17 @@ namespace ve {
     }
     
     
+    // Constructs a reverse iterator from a normal iterator and vice versa.
+    template <typename It>
+    constexpr inline auto invert_iterator(It it) {
+        if constexpr (requires { it.base(); }) {
+            return it.base();
+        } else {
+            return std::make_reverse_iterator(it);
+        }
+    }
+    
+    
     template <typename T, std::size_t N, typename Fn>
     constexpr inline std::array<T, N> create_filled_array(Fn&& fn) {
         return detail::filled_array<T, N>(
@@ -28,11 +39,24 @@ namespace ve {
     }
     
     
-    template <typename Vec>
-    inline void swap_erase(Vec& vector, typename Vec::iterator where) {
+    template <typename Vec, typename It>
+    inline void swap_erase(Vec& vector, It where) {
         if (vector.empty()) return;
-        if (vector.size() > 1 && where + 1 != vector.end()) std::swap(*where, vector.back());
+        if (where + 1 != vector.end()) std::swap(*where, vector.back());
         vector.pop_back();
+    }
+    
+    
+    template <typename Vec, typename It>
+    inline auto swap_erase_get(Vec& vector, It where) {
+        VE_ASSERT(!vector.empty());
+        
+        auto value = (where + 1 != vector.end())
+            ? std::exchange(*where, std::move(vector.back()))
+            : std::move(vector.back());
+        
+        vector.pop_back();
+        return value;
     }
     
     
@@ -141,5 +165,35 @@ namespace ve {
         result[index] = value;
         
         return result;
+    }
+    
+    
+    template <typename T>
+    constexpr inline void append(std::vector<T>& a, std::vector<T>&& b) {
+        a.insert(a.end(), std::make_move_iterator(b.begin()), std::make_move_iterator(b.end()));
+    }
+    
+    
+    template <typename T>
+    constexpr inline void append(std::vector<T>& a, const std::vector<T>& b) {
+        a.insert(a.end(), b.begin(), b.end());
+    }
+    
+    
+    template <typename Ctr, typename... Ctrs>
+    constexpr inline auto join(Ctr&& ctr, Ctrs&&... ctrs) {
+        if constexpr (requires { ctr.reserve(0); }) {
+            ctr.reserve(ctr.size() + (ctrs.size() + ...));
+        }
+        
+        ([&](auto&& c) {
+            if constexpr (std::is_rvalue_reference_v<decltype(c)>) {
+                ctr.insert(ctr.end(), std::make_move_iterator(c.begin()), std::make_move_iterator(c.end()));
+            } else {
+                ctr.insert(ctr.end(), c.begin(), c.end());
+            }
+        }(std::forward<Ctrs>(ctrs)), ...);
+        
+        return std::forward<Ctr>(ctr);
     }
 }
