@@ -21,9 +21,6 @@
 #include <VoxelEngine/engine_event.hpp>
 
 
-#include <VoxelEngine/world/world.hpp>
-
-
 namespace demo_game {
     void game::on_pre_init(void) noexcept {
         ve::engine::get_dispatcher().add_handler<ve::engine_post_sdl_init_event>(

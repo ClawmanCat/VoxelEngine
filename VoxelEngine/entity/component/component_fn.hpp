@@ -143,20 +143,12 @@ const static inline ve::meta::null_type BOOST_PP_CAT(ve_impl_regvar_01_, __LINE_
         id,                                                                                 \
         ve::script_component {                                                              \
             BOOST_PP_STRINGIZE(cls::name),                                                  \
-                                                                                            \
-            ctti::type_id<ve::unwrap<void(return_type)>::type>(),                           \
-                                                                                            \
-            join(                                                                           \
-                std::vector<ctti::type_id_t> { ctti::type_id<const_kw cls*>() },            \
-                ve::meta::function_traits<                                                  \
-                    decltype(&cls::BOOST_PP_SEQ_CAT((ve_impl_)(name)(_default_impl)))       \
-                >::argument_types                                                           \
-                    ::template expand_inside<ve::detail::args_to_ctti_vector>               \
-                    ::value                                                                 \
-            ),                                                                              \
-                                                                                            \
-            (void*) [](const_kw cls* self, VE_IMPL_VARARGS_TO_KV(__VA_ARGS__)) {            \
-                self->BOOST_PP_SEQ_CAT((ve_impl_)(name)(_default_impl))                     \
+            (Fn<                                                                            \
+                ve::unwrap<void(return_type)>::type,                                        \
+                const_kw cls*,                                                              \
+                VE_IMPL_VARARGS_TO_K(__VA_ARGS__)                                           \
+            >) [](const_kw cls* self, VE_IMPL_VARARGS_TO_KV(__VA_ARGS__)) {                 \
+                return self->BOOST_PP_SEQ_CAT((ve_impl_)(name)(_default_impl))              \
                     (VE_IMPL_VARARGS_TO_V(__VA_ARGS__));                                    \
             }                                                                               \
         }                                                                                   \

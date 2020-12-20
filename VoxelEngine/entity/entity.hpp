@@ -49,6 +49,8 @@ namespace ve {
         // If an entity is dynamic, one or more of its component methods have been replaced by one from the registry.
         bool is_dynamic(void) const { return dynamic; }
         void set_dynamic(bool dynamic) { this->dynamic = dynamic; }
+        
+        entt::entity get_id(void) const { return id; }
     protected:
         entt::registry* owner;
         entt::entity id;
