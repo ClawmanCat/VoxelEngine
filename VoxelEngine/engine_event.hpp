@@ -2,35 +2,15 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/event/event.hpp>
-#include <VoxelEngine/engine.hpp>
-
-#include <array>
-
-
-#define VE_IMPL_ENGINE_EVENT(name) \
-struct engine_##name##_event : public ve::events::event {};
+#include <VoxelEngine/engine_state.hpp>
 
 
 namespace ve {
-    VE_IMPL_ENGINE_EVENT(pre_init)
-    VE_IMPL_ENGINE_EVENT(post_init)
-    VE_IMPL_ENGINE_EVENT(pre_loop)
-    VE_IMPL_ENGINE_EVENT(post_loop)
-    VE_IMPL_ENGINE_EVENT(pre_exit)
-    VE_IMPL_ENGINE_EVENT(post_exit)
-    VE_IMPL_ENGINE_EVENT(delayed_exit)
-    VE_IMPL_ENGINE_EVENT(immediate_exit)
-    VE_IMPL_ENGINE_EVENT(uncaught_error)
-    
-    VE_IMPL_ENGINE_EVENT(pre_sdl_init)
-    VE_IMPL_ENGINE_EVENT(post_sdl_init)
-    
-    
-    struct engine_state_change_event : public ve::events::event {
-        engine_state_change_event(engine::state prev, engine::state current)
-            : old_state(prev), new_state(current)
-        {}
-        
-        engine::state old_state, new_state;
+    struct engine_state_change : public event {
+        engine_state old_state, new_state;
     };
+    
+    struct engine_tick_begin : public event { u64 tick; };
+    struct engine_tick_end   : public event { u64 tick; };
+    struct engine_exit_begin : public event { };
 }

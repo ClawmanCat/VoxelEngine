@@ -13,5 +13,5 @@ void main() {
     gl_Position = transform * vec4(position, 1);
     gl_Position = camera * gl_Position;
 
-    frag_color = vec4(color) / 255;
+    frag_color = vec4(color) / 255.0f;
 }

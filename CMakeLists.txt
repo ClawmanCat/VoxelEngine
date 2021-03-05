@@ -2,6 +2,20 @@ cmake_minimum_required(VERSION 3.12)
 project("VoxelEngine")
 
 
+# For testing purposes, it is often useful to control what flags get passed to the compiler,
+# rather than relying on the current CMake profile.
+option(CLEAR_FLAGS "Clear compiler flags for the current profile." OFF)
+
+if (${CLEAR_FLAGS})
+    set(CMAKE_CXX_FLAGS_DEBUG "")
+    set(CMAKE_CXX_FLAGS_RELEASE "")
+endif()
+
+
+# This flag is used in ./cmake/create_target.cmake to generate test targets if it is enabled.
+option(ENABLE_TESTING "Enable VoxelEngine tests." OFF)
+
+
 # Prevent running CMake concurrently.
 file(LOCK ${CMAKE_SOURCE_DIR} DIRECTORY GUARD FILE)
 

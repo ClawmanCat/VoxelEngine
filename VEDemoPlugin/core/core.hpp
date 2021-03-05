@@ -1,5 +1,3 @@
 #pragma once
 
-#include <VEDemoPlugin/core/plugin_api.hpp>
-
-#include <cassert>
+#define plugin_api extern "C"

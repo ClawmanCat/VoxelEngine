@@ -1,44 +1,58 @@
 #pragma once
 
 #include <VEDemoPlugin/core/core.hpp>
-
-#include <VoxelEngine/dependent/actor_id.hpp>
+#include <VoxelEngine/dependent/actor.hpp>
 #include <VoxelEngine/dependent/plugin.hpp>
-
-#include <optional>
 
 
 namespace demo_plugin {
     class plugin {
     public:
-        // Noexcept is required for all plugin_api methods.
-        static void on_loaded(ve::actor_id id) noexcept;
-        static void on_unloaded(ve::actor_id id) noexcept;
-        [[nodiscard]] static const ve::plugin_info* get_info(void) noexcept;
-        
-        
-        [[nodiscard]] static std::optional<ve::actor_id> get_id(void) noexcept {
-            return plugin::id;
+        static void on_loaded(ve::actor_id id) {
+            plugin::id = id;
         }
+        
+        
+        static void on_unloaded(void) {}
+        
+        
+        [[nodiscard]] static const ve::plugin_info* get_info(void) {
+            static const ve::plugin_info info {
+                .name                 = "VoxelEngine Demo Plugin",
+                .internal_name        = "meloncat.demo_plugin",
+                .description          = { "Example plugin to demonstrate basic functionality." },
+                .authors              = { "ClawmanCat" },
+                .plugin_version       = {
+                    "PreAlpha",
+                    VEDEMOGAME_VERSION_MAJOR,
+                    VEDEMOGAME_VERSION_MINOR,
+                    VEDEMOGAME_VERSION_PATCH
+                },
+                .allow_dynamic_load   = true,
+                .allow_dynamic_unload = true
+            };
+            
+            return &info;
+        }
+        
+        
+        static ve::actor_id get_id(void) { return plugin::id; }
+    
     private:
-        static inline std::optional<ve::actor_id> id = std::nullopt;
+        static inline ve::actor_id id = ve::no_actor_id;
     };
 }
 
 
-// Called before plugin load to get information about the plugin.
-// This method is required for the plugin to be loaded.
+// Callbacks for the game engine.
 plugin_api const ve::plugin_info* get_plugin_info(void) {
     return demo_plugin::plugin::get_info();
 }
 
-
-// Called when the plugin is loaded / unloaded. You should store the provided actor_id.
-// These are both optional but you should probably still implement them.
 plugin_api void on_plugin_load(ve::actor_id id) {
     demo_plugin::plugin::on_loaded(id);
 }
 
-plugin_api void on_plugin_unload(ve::actor_id id) {
-    demo_plugin::plugin::on_unloaded(id);
+plugin_api void on_plugin_unload(void) {
+    demo_plugin::plugin::on_unloaded();
 }

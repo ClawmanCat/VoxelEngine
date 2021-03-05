@@ -27,7 +27,7 @@ macro(create_target target_name target_type major minor patch)
     target_compile_definitions(${target_name} PUBLIC "${name_capitalized}_VERSION_PATCH=${patch}")
 
     # Add tests if there is a test folder for this target and testing is enabled.
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests" AND DEFINED ENABLE_TESTING)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests" AND ${ENABLE_TESTING})
         set(STOP_UNUSED_VAR_WARNING ${ENABLE_TESTING})
 
         include(CTest)

@@ -1,62 +1,46 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/dependent/actor_id.hpp>
-#include <VoxelEngine/event/immediate_prioritized_event_dispatcher.hpp>
+#include <VoxelEngine/utility/version.hpp>
+#include <VoxelEngine/event/event_dispatcher.hpp>
+#include <VoxelEngine/engine_state.hpp>
 
 #include <vector>
 #include <string>
-#include <optional>
-#include <cstdlib>
+#include <string_view>
 
 
 namespace ve {
     class engine {
     public:
-        using dispatcher_t = events::immediate_prioritized_event_dispatcher<>;
+        [[noreturn]] static void main(i32 argc, char** argv);
+        static void request_exit(i32 exit_code = 0, bool immediate = false);
+    
+        VE_GET_STATIC_CREF(engine_version)
+        VE_GET_STATIC_CREF(args)
+        VE_GET_STATIC_MREF(dispatcher)
+        VE_GET_STATIC_VAL(state)
+        VE_GET_STATIC_VAL(tick_count)
         
-        static const version engine_version;
-        
-        enum class state {
-            UNINITIALIZED, INITIALIZING, RUNNING, EXITING, EXITED
-        };
-        
-        
-        // Run the engine with the given command line parameters.
-        [[noreturn]] static void main(u32 argc, char** argv) noexcept;
-        
-        // Stops the engine.
-        // If immediate is set to true, the engine will exit immediately, and this function does not return.
-        // If immediate is set to false, the engine will exit after the current loop finishes.
-        static void exit(i32 exit_code = 0, bool immediate = false);
-        
-        
-        [[nodiscard]] static const std::vector<std::string>& get_args(void) noexcept {
-            return engine::args;
-        }
-        
-        [[nodiscard]] static engine::state get_state(void) noexcept {
-            return engine::engine_state;
-        }
-        
-        [[nodiscard]] static u64 get_tick_count(void) noexcept {
-            return engine::tick_count;
-        }
-        
-        [[nodiscard]] static dispatcher_t& get_dispatcher(void) noexcept {
-            return dispatcher;
-        }
+        VE_GET_SET_STATIC_VAL(client_target_dt)
+        VE_GET_SET_STATIC_VAL(server_target_dt)
     private:
+        static inline version engine_version = { "PreAlpha", 0, 0, 1 };
         static inline std::vector<std::string> args = {};
-        static inline state engine_state            = state::UNINITIALIZED;
-        static inline std::optional<i32> exit_code  = std::nullopt;
-        static inline u64 tick_count                = 0;
-        static inline dispatcher_t dispatcher       = {};
+        
+        static inline noncancellable_event_dispatcher dispatcher;
+        static inline engine_state state = engine_state::UNINITIALIZED;
+        static inline optional<i32> exit_code = nullopt;
+        
+        static inline u64 tick_count = 0;
+        static inline microseconds client_target_dt = (1s / 60);
+        static inline microseconds server_target_dt = (1s / 60);
         
         
-        static void on_init(void);
-        static void on_loop(void);
+        static void init(void);
+        static void tick(void);
+        [[noreturn]] static void exit(void);
         
-        [[noreturn]] static void on_exit(void);
+        static void set_state(engine_state state);
     };
 }

@@ -1,166 +1,97 @@
 #include <VoxelEngine/engine.hpp>
 #include <VoxelEngine/engine_event.hpp>
-#include <VoxelEngine/threading/threadsafe.hpp>
 #include <VoxelEngine/dependent/game.hpp>
-#include <VoxelEngine/dependent/plugin_manager.hpp>
-#include <VoxelEngine/utils/logger.hpp>
-#include <VoxelEngine/utils/io/paths.hpp>
-#include <VoxelEngine/utils/io/io.hpp>
-#include <VoxelEngine/graphics/window.hpp>
-#include <VoxelEngine/graphics/window_manager.hpp>
-#include <VoxelEngine/graphics/layerstack.hpp>
+#include <VoxelEngine/utility/utility.hpp>
+#include <VoxelEngine/utility/logger.hpp>
+#include <VoxelEngine/utility/thread/make_nonconcurrent.hpp>
+#include <VoxelEngine/utility/io/io.hpp>
 #include <VoxelEngine/input/input_manager.hpp>
 
-#include <SDL.h>
-#include <magic_enum.hpp>
+#include <VoxelEngine/graphics/graphics.hpp>
+#include graphics_include(window/window_registry.hpp)
 
-#include <exception>
-#include <filesystem>
+#include <magic_enum.hpp>
 
 
 namespace ve {
-    const version  engine::engine_version  = {
-        "PreAlpha",
-        VOXELENGINE_VERSION_MAJOR,
-        VOXELENGINE_VERSION_MINOR,
-        VOXELENGINE_VERSION_PATCH
-    };
+    void engine::set_state(engine_state state) {
+        engine_state prev_state = std::exchange(engine::state, state);
+        
+        dispatcher.dispatch_event(engine_state_change {
+            .old_state = prev_state,
+            .new_state = engine::state
+        });
+    }
     
     
-    [[noreturn]] void engine::main(u32 argc, char** argv) noexcept {
+    void engine::main(i32 argc, char** argv) {
         engine::args = std::vector<std::string> { argv, argv + argc };
         
-        
-        try {
-            while (true) {
-                static engine::state prev_state = engine::engine_state;
-                
-                if (engine::engine_state != prev_state) {
-                    dispatcher.dispatch_event(engine_state_change_event {
-                        prev_state,
-                        engine::engine_state
-                    });
-                    
-                    prev_state = engine::engine_state;
-                }
-                
-                switch (engine::engine_state) {
-                    case state::UNINITIALIZED: {
-                        engine::on_init();
-                        break;
-                    }
-                    case state::RUNNING: {
-                        engine::on_loop();
-                        break;
-                    }
-                    case state::EXITING: {
-                        engine::on_exit();
-                        break;
-                    }
-                    default:
-                        VE_LOG_FATAL(
-                            "The engine was in an invalid state and will be terminated: "s +
-                            std::string(magic_enum::enum_name(engine::engine_state))
-                        );
-                        
-                        throw std::runtime_error("Invalid engine state");
-                }
+        while (true) {
+            VE_ASSERT(
+                one_of(engine::state, engine_state::UNINITIALIZED, engine_state::RUNNING, engine_state::EXITING),
+                "Invalid engine state: "s + magic_enum::enum_name(engine::state)
+            );
+            
+            switch (engine::state) {
+                case engine_state::UNINITIALIZED:
+                    engine::init();
+                    break;
+                case engine_state::RUNNING:
+                    engine::tick();
+                    break;
+                case engine_state::EXITING:
+                    engine::exit();
+                    break;
+                default: VE_UNREACHABLE;
             }
-        } catch (const std::exception& e) {
-            VE_LOG_FATAL("Uncaught exception: "s + e.what());
-        } catch (...) {
-            VE_LOG_FATAL("Uncaught exception. No further information is available.");
         }
-    
-        dispatcher.dispatch_event(engine_uncaught_error_event { });
-        engine::exit(-1, true);
-        engine::on_exit(); // Unreachable, but suppresses warning.
     }
     
     
-    void engine::exit(i32 exit_code, bool immediate) {
-        ve_threadsafe_function;
+    void engine::request_exit(i32 exit_code, bool immediate) {
+        ve_make_nonconcurrent;
         
-        VE_LOG_INFO((immediate ? "Immediate"s : "Delayed"s) + " exit requested with code " + std::to_string(exit_code) + ".");
-        engine::engine_state = state::EXITING;
-        engine::exit_code    = exit_code;
+        engine::exit_code = exit_code;
+        set_state(engine_state::EXITING);
         
-        if (immediate) dispatcher.dispatch_event(engine_immediate_exit_event { });
-        else dispatcher.dispatch_event(engine_delayed_exit_event { });
-        
-        if (immediate) engine::on_exit();
+        if (immediate) engine::exit();
     }
     
     
-    void engine::on_init(void) {
+    void engine::init(void) {
         game_callbacks::on_game_pre_init();
-        dispatcher.dispatch_event(engine_pre_init_event { });
+        set_state(engine_state::INITIALIZING);
         
-        engine::engine_state = state::INITIALIZING;
-        VE_LOG_INFO("Beginning initialization phase...");
-        
-        // Create required directories.
+        // Make sure all required directories exist.
         io::create_required_paths();
         
-        // Initialize libraries.
-        dispatcher.dispatch_event(engine_pre_sdl_init_event { });
-        SDL_SetMainReady();
-        SDL_Init(SDL_INIT_EVERYTHING);
-        dispatcher.dispatch_event(engine_post_sdl_init_event { });
-        
-        // Load plugins.
-        for (const auto& elem : fs::directory_iterator(io::paths::PATH_PLUGINS)) {
-            if (elem.is_regular_file() && elem.path().extension() == library_extension) {
-                plugin_manager::instance().load_plugin(elem.path(), false);
-            }
-        }
-        
-        engine::engine_state = state::RUNNING;
-        VE_LOG_INFO("Finished initialization phase...");
-        
+        set_state(engine_state::RUNNING);
         game_callbacks::on_game_post_init();
-        dispatcher.dispatch_event(engine_post_init_event { });
     }
     
     
-    void engine::on_loop(void) {
+    void engine::tick(void) {
         game_callbacks::on_game_pre_loop();
-        dispatcher.dispatch_event(engine_pre_loop_event { });
+        dispatcher.dispatch_event(engine_tick_begin { .tick = engine::tick_count });
         
         input_manager::instance().update(engine::tick_count);
+        graphics::window_registry::instance().draw_all();
         
-        for (const auto& [owner, window] : window_manager::instance()) {
-            window->draw();
-        }
-        
-        game_callbacks::on_game_post_loop();
-        dispatcher.dispatch_event(engine_post_loop_event { });
-        
+        dispatcher.dispatch_event(engine_tick_end { .tick = engine::tick_count });
         ++engine::tick_count;
+        game_callbacks::on_game_post_loop();
     }
     
     
-    [[noreturn]] void engine::on_exit(void) {
-        try {
-            game_callbacks::on_game_pre_exit();
-            dispatcher.dispatch_event(engine_pre_exit_event { });
-    
-            VE_LOG_INFO("Beginning exit phase...");
-    
-    
-            // Unload plugins.
-            plugin_manager::instance().unload_all_plugins(false);
-            VE_ASSERT(plugin_manager::instance().get_loaded_plugins().size() == 0);
-    
-    
-            engine::engine_state = state::EXITED;
-            VE_LOG_INFO("Finished exit phase...");
-    
-            game_callbacks::on_game_post_exit();
-            dispatcher.dispatch_event(engine_post_exit_event { });
-        } catch (...) {
-            VE_LOG_ERROR("An error occurred during engine termination. The engine may not have exited correctly.");
-        }
+    void engine::exit(void) {
+        game_callbacks::on_game_pre_exit();
+        dispatcher.dispatch_event(engine_exit_begin { });
+        
+        // Exit code here.
+        
+        set_state(engine_state::EXITED);
+        game_callbacks::on_game_post_exit();
         
         std::exit(engine::exit_code.value_or(-1));
     }

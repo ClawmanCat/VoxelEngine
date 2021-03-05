@@ -2,16 +2,19 @@
 cmake
 
 [requires]
-boost/1.74.0
+boost/1.75.0
+abseil/20200923.3
 magic_enum/0.6.6
 sdl2/2.0.12@bincrafters/stable
 glm/0.9.9.8
 glew/2.1.0
 ctti/0.0.1@manu343726/testing
-range-v3/0.11.0
 lodepng/cci.20200615
 ctre/3.3.2
 entt/3.5.2
+tl-optional/1.0.0
+tl-expected/1.0.0
+range-v3/0.11.0
 
 [options]
 boost:header_only=True
