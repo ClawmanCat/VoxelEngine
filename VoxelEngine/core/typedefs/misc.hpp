@@ -124,4 +124,10 @@ namespace ve {
             }(value<Indices>{}), ...);
         }(std::make_index_sequence<boost::pfr::tuple_size_v<Cls>>());
     }
+    
+    
+    // Shorthand for decltype(old) { old }.
+    template <typename T> T copy(const T& v) {
+        return T { v };
+    }
 }

@@ -11,7 +11,8 @@
 #define ve_equal_on_field(field)     [](const auto& a, const auto& b) { return a.field == b.field; }
 #define ve_different_on_field(field) [](const auto& a, const auto& b) { return a.field != b.field; }
 
-#define ve_get_field(field) [&](const auto& elem) { return elem.field; }
+#define ve_get_field(field)     [&](const auto& elem) { return elem.field; }
+#define ve_get_field_ref(field) [&](auto& elem) -> auto& { return elem.field; }
 #define ve_tf_field(name, fn) [&](const auto& name) { return fn; }
 
 #define ve_produce(value) [](auto... args) { return value; }

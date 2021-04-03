@@ -1,8 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
-#include <VoxelEngine/platform/graphics/opengl/texture/texture_utils.hpp>
+#include <VoxelEngine/platform/graphics/graphics.hpp>
 #include <VoxelEngine/dependent/resource_owner.hpp>
 #include <VoxelEngine/utility/io/io.hpp>
 
@@ -13,6 +12,7 @@ namespace ve::graphics {
         shared<texture> tex;
         vec2f uv;       // Normalized
         vec2f size;     // Normalized
+        u8 index = 0;
     };
     
     

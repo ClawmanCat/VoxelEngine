@@ -16,11 +16,20 @@
 #include <absl/container/flat_hash_set.h>
 #include <absl/container/node_hash_map.h>
 #include <absl/container/node_hash_set.h>
-#include <absl/container/btree_map.h>
-#include <absl/container/btree_set.h>
 #include <absl/hash/hash.h>
 #include <tl/optional.hpp>
 #include <tl/expected.hpp>
+
+
+// Abseil's btree performs a comparison with mismatched signs.
+// There is nothing we can do about this, so just mute the warning.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-compare"
+
+#include <absl/container/btree_map.h>
+#include <absl/container/btree_set.h>
+
+#pragma clang diagnostic pop
 
 
 namespace ve {
@@ -62,6 +71,20 @@ namespace ve {
     
     template <typename K, std::size_t PreAlloc = 8, typename Cmp = std::less<K>>
     using small_flat_set = boost::container::small_flat_set<K, PreAlloc, Cmp>;
+    
+    
+    template <typename K, typename V, typename Cmp = std::less<K>>
+    using flat_multimap = boost::container::flat_multimap<K, V, Cmp>;
+    
+    template <typename K, typename Cmp = std::less<K>>
+    using flat_multiset = boost::container::flat_multiset<K, Cmp>;
+    
+    template <typename K, typename V, std::size_t PreAlloc = 8, typename Cmp = std::less<K>>
+    using small_flat_multimap = boost::container::small_flat_multimap<K, V, PreAlloc, Cmp>;
+    
+    template <typename K, std::size_t PreAlloc = 8, typename Cmp = std::less<K>>
+    using small_flat_multiset = boost::container::small_flat_multiset<K, PreAlloc, Cmp>;
+    
     
     template <typename T, std::size_t PreAlloc = 8>
     using small_vector = boost::container::small_vector<T, PreAlloc>;

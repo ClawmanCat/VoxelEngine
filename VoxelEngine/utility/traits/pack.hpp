@@ -4,6 +4,8 @@
 #include <VoxelEngine/utility/traits/null_type.hpp>
 #include <VoxelEngine/utility/traits/is_of_template.hpp>
 
+#include <boost/pfr.hpp>
+
 
 namespace ve::meta {
     namespace detail {
@@ -147,4 +149,19 @@ namespace ve::meta {
     
     
     template <typename T> concept type_pack = is_of_template_v<pack, T>;
+    
+    
+    namespace detail {
+        template <typename T, std::size_t Next = 0>
+        consteval inline auto make_data_member_pack(void) {
+            if constexpr (Next >= boost::pfr::tuple_size_v<T>) {
+                return pack<>{};
+            } else {
+                return typename decltype(make_data_member_pack<T, Next + 1>())
+                    ::template prepend<boost::pfr::tuple_element_t<Next, T>>{};
+            }
+        }
+    }
+    
+    template <typename T> using data_member_pack = decltype(detail::make_data_member_pack<T>());
 }

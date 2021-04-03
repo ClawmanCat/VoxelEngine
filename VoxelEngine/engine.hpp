@@ -21,6 +21,7 @@ namespace ve {
         VE_GET_STATIC_MREF(dispatcher)
         VE_GET_STATIC_VAL(state)
         VE_GET_STATIC_VAL(tick_count)
+        VE_GET_STATIC_VAL(last_tick_time)
         
         VE_GET_SET_STATIC_VAL(client_target_dt)
         VE_GET_SET_STATIC_VAL(server_target_dt)
@@ -33,6 +34,7 @@ namespace ve {
         static inline optional<i32> exit_code = nullopt;
         
         static inline u64 tick_count = 0;
+        static inline time_point last_tick_time = steady_clock::now();
         static inline microseconds client_target_dt = (1s / 60);
         static inline microseconds server_target_dt = (1s / 60);
         

@@ -4,6 +4,7 @@
 #include <VoxelEngine/platform/graphics/opengl/buffer/buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/buffer_utils.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/attribute.hpp>
+#include <VoxelEngine/platform/graphics/opengl/buffer/vertex.hpp>
 
 #include <GL/glew.h>
 
@@ -14,7 +15,7 @@ namespace ve::graphics {
     // Vertex buffer with indexing. (i.e. each vertex may be drawn multiple times, controlled by the index buffer.)
     template <typename Vertex, typename Index = u32> class indexed_vertex_buffer : public buffer {
     public:
-        indexed_vertex_buffer(GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+        explicit indexed_vertex_buffer(GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
             vao(0), vbo(), ebo(), primitive(primitive)
         {
             glGenVertexArrays(1, &vao);
@@ -36,11 +37,19 @@ namespace ve::graphics {
         }
     
     
-        indexed_vertex_buffer(span<Vertex> auto&& vertices, span<Index> auto&& indices, GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+        explicit indexed_vertex_buffer(std::span<const Vertex> vertices, std::span<const Index> indices, GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
             indexed_vertex_buffer(primitive, storage_mode)
         {
             update_vertices(vertices);
             update_indices(indices);
+        }
+        
+        
+        explicit indexed_vertex_buffer(const indexed_mesh<Vertex, Index>& mesh, GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+            indexed_vertex_buffer(primitive, storage_mode)
+        {
+            update_vertices(mesh.vertices);
+            update_indices(mesh.indices);
         }
     
     
@@ -95,11 +104,11 @@ namespace ve::graphics {
         }
         
         
-        void update_vertices(span<Vertex> auto&& elements, std::size_t where = 0) {
+        void update_vertices(std::span<const Vertex> elements, std::size_t where = 0) {
             detail::buffer_store(vao, elements, where, vbo);
         }
     
-        void update_indices(span<Index> auto&& elements, std::size_t where = 0) {
+        void update_indices(std::span<const Index> elements, std::size_t where = 0) {
             detail::buffer_store(vao, elements, where, ebo);
         }
     

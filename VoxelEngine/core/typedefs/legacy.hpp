@@ -7,7 +7,7 @@
 namespace std {
     template <typename T> class result_of {};
     
-    template <typename Fn, typename... Args> class result_of<Fn(Args...)> {
+    template <typename Fn, typename... Args> struct result_of<Fn(Args...)> {
         using type = std::invoke_result_t<Fn, Args...>;
     };
     

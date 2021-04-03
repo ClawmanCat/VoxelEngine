@@ -1,8 +1,8 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/platform/graphics/opengl/texture/texture_atlas.hpp>
-#include <VoxelEngine/platform/graphics/opengl/texture/generative_texture_atlas.hpp>
+#include <VoxelEngine/graphics/texture/texture_atlas.hpp>
+#include <VoxelEngine/graphics/texture/aligned_texture_atlas.hpp>
 
 
 namespace ve::graphics {
@@ -12,7 +12,7 @@ namespace ve::graphics {
     class generative_texture_atlas : public texture_atlas<generative_texture_atlas<Atlas>> {
     public:
         // Args are used to generate new atlases.
-        template <typename... Args> requires requires (Args&... args) { Atlas { args... }; }
+        template <typename... Args>
         explicit generative_texture_atlas(Args&&... args) {
             generator = [...args = std::forward<Args>(args)]() {
                 return Atlas { args... };
@@ -61,7 +61,10 @@ namespace ve::graphics {
             );
             
             storage.push_back({ generator(), tex_size(size()) });
-            return storage.back().atlas.add_texture(img, owner);
+            
+            auto st = storage.back().atlas.add_texture(img, owner);
+            if (st) st->index = storage.size() - 1;
+            return st;
         }
     
     

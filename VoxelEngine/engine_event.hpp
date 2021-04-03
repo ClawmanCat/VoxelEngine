@@ -10,7 +10,7 @@ namespace ve {
         engine_state old_state, new_state;
     };
     
-    struct engine_tick_begin : public event { u64 tick; };
-    struct engine_tick_end   : public event { u64 tick; };
+    struct engine_tick_begin : public event { u64 tick; microseconds dt; };
+    struct engine_tick_end   : public event { u64 tick; microseconds dt; };
     struct engine_exit_begin : public event { };
 }

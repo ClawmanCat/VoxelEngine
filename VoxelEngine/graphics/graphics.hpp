@@ -1,7 +1,6 @@
 #pragma once
 
+// Include cross-API headers.
+#include <VoxelEngine/graphics/graphics_sih.hpp>
+// Include API-specific headers.
 #include <VoxelEngine/platform/graphics/graphics.hpp>
-
-#include <VoxelEngine/graphics/camera/perspective_camera.hpp>
-#include <VoxelEngine/graphics/mesh/colored_cube.hpp>
-#include <VoxelEngine/graphics/mesh/textured_cube.hpp>

@@ -11,6 +11,13 @@
 #endif
 
 
+#if defined(VE_COMPILER_CLANG) || defined(VE_COMPILER_GCC)
+    #define VE_PURE __attribute__((const))
+#else
+    #define VE_PURE
+#endif
+
+
 // Forces initialization order for a static variable.
 // Prefer using local statics where possible.
 #define ve_init_order(Priority) __attribute__((init_priority(Priority + 101)))

@@ -11,7 +11,7 @@ glew/2.1.0
 ctti/0.0.1@manu343726/testing
 lodepng/cci.20200615
 ctre/3.3.2
-entt/3.5.2
+entt/3.6.0
 tl-optional/1.0.0
 tl-expected/1.0.0
 range-v3/0.11.0

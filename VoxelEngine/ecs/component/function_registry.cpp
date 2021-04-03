@@ -5,18 +5,6 @@
 
 
 namespace ve {
-    function_registry::function_registry(const fs::path& save_folder) {
-        fs::path path = save_folder / "functions.dat";
-        
-        if (fs::exists(path)) {
-            auto bytes = *io::read_data(path);
-            (*this) = from_bytes(std::span { bytes.begin(), bytes.end() });
-            
-            VE_LOG_DEBUG("Loaded "s + std::to_string(functions.size()) + " function mappings from disk.");
-        }
-    }
-    
-    
     void function_registry::on_actor_created(actor_id id) {
         auto it = functions_by_owner.find(
             plugin_loader::instance().get_plugin_info(id).internal_name
@@ -51,75 +39,53 @@ namespace ve {
     
     
     std::vector<u8> function_registry::to_bytes(void) const {
-        std::vector<u8> result;
-        result.reserve(40 * functions.size() + sizeof(u64));
-      
-        auto store = [&] <typename T> (const T& v, std::size_t size = sizeof(T)) {
-            std::size_t current_size = result.size();
-            
-            result.resize(current_size + size);
-            memcpy(&result[current_size], &v, size);
-        };
-
+        push_serializer serializer { 40 * functions.size() + sizeof(u64) };
         
-        store(next_id);
-        
+        serializer.push(next_id);
+    
         for (const auto& [mangled_name, owner_name, ptr, id] : functions | views::values) {
-            store(mangled_name.size());
-            store(mangled_name[0], mangled_name.size());
-
-            store(owner_name.size());
-            store(owner_name[0], owner_name.size());
+            serializer.push(mangled_name.size());
+            serializer.push(mangled_name[0], mangled_name.size());
             
-            store(id);
+            serializer.push(owner_name.size());
+            serializer.push(owner_name[0], owner_name.size());
+            
+            serializer.push(id);
         }
         
-        
-        return result;
+        return std::move(serializer.bytes);
     }
     
     
     function_registry function_registry::from_bytes(std::span<u8> bytes) {
+        pop_deserializer deserializer { bytes };
         function_registry result;
         
-        auto load = [&] <typename T> (T& target, std::size_t size = sizeof(T)) {
-            memcpy(&target, &bytes[0], size);
-            bytes = bytes.subspan(size);
-        };
+        deserializer.pop_into(result.next_id);
         
-        
-        load(result.next_id);
-        
-        while (!bytes.empty()) {
+        while (!deserializer.bytes.empty()) {
             function_info info;
             
-            u64 mangled_name_len;
-            load(mangled_name_len);
+            for (auto name : { &function_info::mangled_name, &function_info::owner_name }) {
+                auto name_length = deserializer.pop<std::size_t>();
+                
+                (info.*name).resize(name_length);
+                deserializer.pop_into((info.*name)[0], name_length);
+            }
             
-            info.mangled_name.resize(mangled_name_len);
-            load(info.mangled_name[0], mangled_name_len);
-
+            deserializer.pop_into(info.id);
+    
             
-            u64 owner_name_len;
-            load(owner_name_len);
-
-            info.owner_name.resize(owner_name_len);
-            load(info.owner_name[0], owner_name_len);
-            
-            
-            load(info.id);
-            
-            
+            // Get the function pointer if this is a function from the engine or the game.
             if (one_of(info.owner_name, "__engine__", "__game__")) {
                 info.fn_ptr = demangle::get_function(info.mangled_name.c_str());
             }
             
-            
+            // Store the info in all required mappings.
             auto& stored_info = result.functions.insert({ info.id, std::move(info) }).first->second;
             result.functions_by_ptr.insert({ stored_info.fn_ptr, &stored_info });
             result.functions_by_owner[stored_info.owner_name].push_back(&stored_info);
         }
-        
         
         return result;
     }

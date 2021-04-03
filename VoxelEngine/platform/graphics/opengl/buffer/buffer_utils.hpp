@@ -47,7 +47,7 @@ namespace ve::graphics::detail {
     
     // Stores the provided objects at the provided position in the buffer. Expands storage if necessary.
     template <typename Stored>
-    inline void buffer_store(GLuint vao, span<Stored> auto&& data, std::size_t where, buffer_storage<Stored>& storage) {
+    inline void buffer_store(GLuint vao, std::span<const Stored> data, std::size_t where, buffer_storage<Stored>& storage) {
         VE_ASSERT(where <= storage.size, "Cannot insert into buffer at position which would cause uninitialized elements to be drawn.");
         
         if (data.size() == 0) return;

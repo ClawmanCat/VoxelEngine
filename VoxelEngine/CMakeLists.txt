@@ -1,4 +1,5 @@
 include(create_target)
+include(single_include_generator)
 
 create_target(
     VoxelEngine
@@ -31,3 +32,15 @@ target_compile_definitions(VoxelEngine PRIVATE VE_BUILD_ENGINE)
 
 # The graphics API to be used by the engine. Possible values are 'opengl' and 'vulkan'.
 target_compile_definitions(VoxelEngine PUBLIC VE_GRAPHICS_API=opengl)
+
+
+# Generate headers for including subsets of the engine.
+generate_si_header(VoxelEngine platform/graphics/opengl graphics.hpp)
+generate_si_header(VoxelEngine graphics graphics_sih.hpp graphics/graphics.hpp)
+
+generate_si_header(VoxelEngine core core.hpp)
+generate_si_header(VoxelEngine ecs ecs.hpp)
+generate_si_header(VoxelEngine voxel voxel.hpp)
+generate_si_header(VoxelEngine utility/serialize serialize.hpp)
+generate_si_header(VoxelEngine utility/traits traits.hpp)
+

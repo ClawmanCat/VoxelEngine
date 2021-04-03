@@ -61,4 +61,9 @@ namespace ve::meta {
             return constexpr_strcmp(shape, buffer);
         }
     };
+    
+    
+    template <typename T> concept vector = glm_traits<T>::is_vector;
+    template <typename T> concept matrix = glm_traits<T>::is_matrix;
+    template <typename T> concept tensor = glm_traits<T>::is_tensor;
 }

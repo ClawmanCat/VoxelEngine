@@ -5,6 +5,7 @@
 #include <VoxelEngine/utility/traits/pack.hpp>
 #include <VoxelEngine/ecs/component/component.hpp>
 #include <VoxelEngine/ecs/component/named_component.hpp>
+#include <VoxelEngine/side/side.hpp>
 
 #include <ctti/type_id.hpp>
 
@@ -42,7 +43,7 @@ namespace ve {
     };
     
     
-    template <component_side Side = component_side::SERVER>
+    template <side Side = side::SERVER>
     class function_component : public component<function_component<Side>, Side, component_serialization_mode::BINARY> {
     public:
         template <typename Ret, typename... Args>
@@ -84,6 +85,6 @@ namespace ve {
     };
     
     
-    template <meta::string_arg Name, component_side Side>
+    template <meta::string_arg Name, side Side>
     using named_function_component = named_component<Name, function_component<Side>>;
 }

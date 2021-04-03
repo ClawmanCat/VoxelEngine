@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/serializable.hpp>
+#include <VoxelEngine/utility/serialize/serialize.hpp>
 #include <VoxelEngine/dependent/resource_owner.hpp>
 #include <VoxelEngine/platform/demangle/demangle.hpp>
 
@@ -14,7 +14,6 @@ namespace ve {
     {
     public:
         function_registry(void) = default;
-        explicit function_registry(const fs::path& save_folder);
         
         ve_move_only(function_registry);
         

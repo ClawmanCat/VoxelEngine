@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/typedefs/misc.hpp>
 
 #include <boost/preprocessor.hpp>
+#include <boost/functional/hash.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <absl/hash/hash.h>
 
@@ -65,8 +66,36 @@ struct std::hash<T> {
     }
 };
 
+template <typename T> requires requires (T t, std::size_t h) { h = t.hash(); }
+struct boost::hash<T> {
+    std::size_t operator()(const T& val) const {
+        return val.hash();
+    }
+};
 
-#define VE_IMPL_HASH_COMBINE(Rep, Data, Elem) boost::hash_combine(seed, this->Elem);
+
+// Allow overloading the hash operator from within the ve namespace.
+namespace ve {
+    template <typename T> struct hash {};
+}
+
+template <typename T> requires requires (T t, std::size_t h) { h = ve::hash<T>{}(t); }
+struct std::hash<T> {
+    std::size_t operator()(const T& val) const {
+        return ve::hash<T>{}(val);
+    }
+};
+
+template <typename T> requires requires (T t, std::size_t h) { h = ve::hash<T>{}(t); }
+struct boost::hash<T> {
+    std::size_t operator()(const T& val) const {
+        return ve::hash<T>{}(val);
+    }
+};
+
+
+#define VE_IMPL_HASH_COMBINE(Rep, Data, Elem) \
+boost::hash_combine(seed, std::hash<decltype(this->Elem)>{}(this->Elem));
 
 #define ve_hashable(...)                                \
 [[nodiscard]] std::size_t hash(void) const {            \
@@ -156,6 +185,20 @@ VE_IMPL_OVERLOAD_NON_CONST(                                                 \
 )
 
 
+#define ve_iterate_as(member)                                               \
+[[nodiscard]] typename decltype(member)::iterator                           \
+begin(void) { return member.begin(); }                                      \
+                                                                            \
+[[nodiscard]] typename decltype(member)::iterator                           \
+end(void) { return member.end(); }                                          \
+                                                                            \
+[[nodiscard]] typename decltype(member)::const_iterator                     \
+cbegin(void) const { return member.cbegin(); }                              \
+                                                                            \
+[[nodiscard]] typename decltype(member)::const_iterator                     \
+cend(void) const { return member.cend(); }
+
+
 // Wrap the given variable.
 #define VE_WRAP_MEMBER(value)                                           \
 operator decltype(value)& (void) { return value; }                      \
@@ -166,6 +209,29 @@ const decltype(value)& operator*(void) const { return value; }          \
                                                                         \
 decltype(value)* operator->(void) { return &value; }                    \
 const decltype(value)* operator->(void) const { return &value; }
+
+
+// Allow bitwise operations on the given enum.
+// Note: this is only required for enum classes, normal enums allow these operations by default.
+#define VE_BITWISE_ENUM(enum_t)                                         \
+VE_BITWISE_ENUM_IMPL(enum_t, std::underlying_type_t<enum_t>)
+
+#define VE_BITWISE_ENUM_IMPL(enum_t, ul_t)                              \
+constexpr enum_t operator|(enum_t a, enum_t b) {                        \
+    return enum_t(ul_t(a) | ul_t(b));                                   \
+}                                                                       \
+                                                                        \
+constexpr enum_t operator&(enum_t a, enum_t b) {                        \
+    return enum_t(ul_t(a) & ul_t(b));                                   \
+}                                                                       \
+                                                                        \
+constexpr void operator|=(enum_t& a, enum_t b) {                        \
+    a = (a | b);                                                        \
+}                                                                       \
+                                                                        \
+constexpr void operator&=(enum_t& a, enum_t b) {                        \
+    a = (a & b);                                                        \
+}
 
 
 namespace ve {
@@ -182,18 +248,9 @@ namespace ve {
     }
     
     
-    // Bitwise operations on enums.
-    template <typename Enum> requires std::is_enum_v<Enum>
-    constexpr inline Enum operator|(Enum a, Enum b) {
-        using utype = std::underlying_type_t<Enum>;
-        
-        return (Enum) ((utype) a | (utype) b);
-    }
-    
-    template <typename Enum> requires std::is_enum_v<Enum>
-    constexpr inline Enum operator&(Enum a, Enum b) {
-        using utype = std::underlying_type_t<Enum>;
-        
-        return (Enum) ((utype) a & (utype) b);
-    }
+    template <> struct hash<fs::path> {
+        std::size_t operator()(const fs::path& path) const {
+            return fs::hash_value(fs::canonical(path));
+        }
+    };
 }

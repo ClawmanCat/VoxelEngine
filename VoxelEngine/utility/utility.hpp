@@ -107,4 +107,18 @@ namespace ve {
             ? std::forward<Default>(default_value)
             : *it;
     }
+    
+    
+    template <typename T, std::size_t N, typename Pred> requires std::is_invocable_r_v<T, Pred, std::size_t>
+    constexpr inline std::array<T, N> filled_array(Pred generator) {
+        return [&] <std::size_t... Indices> (std::index_sequence<Indices...>) {
+            return std::array { generator(Indices)... };
+        }(std::make_index_sequence<N>());
+    }
+    
+    
+    template <typename T, std::size_t N>
+    constexpr inline std::array<T, N> filled_array(const T& value) {
+        return filled_array<T, N>([&](std::size_t) { return value; });
+    }
 }

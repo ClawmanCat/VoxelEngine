@@ -1,7 +1,8 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/platform/graphics/opengl/texture/texture_atlas.hpp>
+#include <VoxelEngine/graphics/texture/texture_atlas.hpp>
+#include <VoxelEngine/platform/graphics/graphics.hpp>
 
 
 namespace ve::graphics {

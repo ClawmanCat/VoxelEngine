@@ -41,7 +41,7 @@ set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/out")
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Load compiler settings profile.
-include(clang_cl_profile)
+include(clang_profile)
 set_compiler_profile()
 
 # Run Conan

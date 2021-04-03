@@ -17,6 +17,15 @@ macro(create_target target_name target_type major minor patch)
 
     # Add dependencies.
     target_link_libraries(${target_name} ${ARGN})
+    # Mute warnings from dependencies.
+    foreach(dependency IN ITEMS ${ARGN})
+        if (${dependency} MATCHES "[PUBLIC|PRIVATE]")
+            continue()
+        endif()
+
+        get_target_property(dependency_includes ${dependency} INCLUDE_DIRECTORIES)
+        target_include_directories(${target_name} SYSTEM ${dependency_includes})
+    endforeach()
     # Prevent linker language errors on header only libraries.
     set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 

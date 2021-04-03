@@ -1,13 +1,14 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/serializable.hpp>
+#include <VoxelEngine/utility/serialize/serialize.hpp>
 #include <VoxelEngine/utility/traits/string_arg.hpp>
 #include <VoxelEngine/utility/traits/null_type.hpp>
 #include <VoxelEngine/utility/traits/pack.hpp>
 #include <VoxelEngine/utility/traits/always_false.hpp>
 #include <VoxelEngine/ecs/component/component.hpp>
 #include <VoxelEngine/ecs/component/named_component.hpp>
+#include <VoxelEngine/side/side.hpp>
 
 #include <type_traits>
 
@@ -71,7 +72,7 @@ namespace ve {
     // A component for wrapping simple values.
     template <
         typename T,
-        component_side Side              = component_side::SERVER,
+        side Side              = side::SERVER,
         component_serialization_mode CSM = component_serialization_mode::BINARY,
         // If a serializer S is provided, it should implement S::to_bytes(T) and S::from_bytes(T).
         // (Note: this is different from just implementing binary_serializable.)
@@ -96,7 +97,7 @@ namespace ve {
     template <
         meta::string_arg Name,
         typename T,
-        component_side Side              = component_side::SERVER,
+        side Side                        = side::SERVER,
         component_serialization_mode CSM = component_serialization_mode::BINARY,
         typename Serializer              = meta::null_type
     > using named_value_component = named_component<Name, value_component<T, Side, CSM, Serializer>>;

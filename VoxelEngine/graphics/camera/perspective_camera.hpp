@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/cached.hpp>
+#include <VoxelEngine/utility/container/cached.hpp>
 #include <VoxelEngine/utility/functional.hpp>
 #include <VoxelEngine/utility/math.hpp>
 #include <VoxelEngine/utility/direction.hpp>
