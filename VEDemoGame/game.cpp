@@ -67,9 +67,9 @@ namespace demo_game {
         float dz = (-move_speed * im.is_pressed(SDLK_s))      + (+move_speed * im.is_pressed(SDLK_w));
         
         game::camera.move(
-            game::camera.get_right()    * dx +
-            game::camera.get_up()       * dy +
-            game::camera.get_forwards() * dz
+            game::camera.get_right()                           * dx +
+            ve::vec3f(ve::direction_vector(ve::direction::UP)) * dy +
+            game::camera.get_forwards()                        * dz
         );
     }
     

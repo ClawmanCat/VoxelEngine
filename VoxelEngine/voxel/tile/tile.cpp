@@ -41,9 +41,8 @@ namespace ve {
         std::size_t sides_meshed = 0;
         
         for (std::size_t i = 0; i < num_directions; ++i) {
-            direction dir = direction(1 << i);
-            // TODO: Fix occlusion mapping!
-            // if (bool(occluded_sides & dir)) continue;
+            auto dir = direction(1 << i);
+            if (bool(occluded_sides & dir)) continue;
             
             
             // TODO: Use missing texture if texture cannot be found.

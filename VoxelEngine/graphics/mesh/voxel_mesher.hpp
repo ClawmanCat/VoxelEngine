@@ -58,7 +58,9 @@ namespace ve::graphics {
             
             
             // Find occluded sides.
-            auto occludes = [&](const vec3i& neighbour, const vec3i& pos) {
+            auto occludes = [&](const vec3i& pos, direction dir) {
+                const vec3i neighbour = pos + direction_vector(dir);
+                
                 // Assume positions outside the chunk to not be occluded.
                 // TODO: Change this.
                 if (glm::any(neighbour < 0 || neighbour >= (i32) voxel_settings::chunk_size)) {
@@ -68,13 +70,15 @@ namespace ve::graphics {
                 const auto& td = chnk[neighbour];
                 if (td == void_type_td) return false;
                 
+                return true;
+                
                 const auto* t = tile_registry::instance().get_tile(td);
-                return t->occludes_side(heading(neighbour, pos));
+                return t->occludes_side(opposing(dir));
             };
             
             direction occluded = direction::NONE;
             for (auto dir : direction{}) {
-                if (occludes(pos + (vec3i) direction_vector(dir), pos)) occluded |= dir;
+                if (occludes(pos, dir)) occluded |= dir;
             }
             
             

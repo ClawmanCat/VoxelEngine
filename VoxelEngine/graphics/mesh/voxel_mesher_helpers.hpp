@@ -15,17 +15,18 @@ namespace ve::graphics {
     // Calls pred(positions, uvs) for every face of the cube in the order specified in directions.
     template <typename Pred> requires std::is_invocable_v<Pred, const std::array<vec3f, 4>&, const std::array<vec2f, 4>&>
     constexpr inline void enumerate_cube_faces(Pred pred) {
+        // Same order as ve::direction.
         constexpr std::array axis_orderings {
-            std::array { &vec3f::y, &vec3f::x, &vec3f::z },
             std::array { &vec3f::z, &vec3f::x, &vec3f::y },
+            std::array { &vec3f::y, &vec3f::x, &vec3f::z },
             std::array { &vec3f::x, &vec3f::z, &vec3f::y }
         };
         
         constexpr std::array uv_orderings {
-            vec2f { 1, 1 }, vec2f { 1, 0 }, vec2f { 0, 1 }, vec2f { 0, 0 }
+            vec2f { 0, 0 }, vec2f { 0, 1 }, vec2f { 1, 0 }, vec2f { 1, 1 }
         };
     
-        constexpr std::array offsets = { 0.0f, 1.0f };
+        constexpr std::array offsets = { 1.0f, 0.0f };
         
         
         std::size_t vertex_index = 0;
@@ -42,9 +43,12 @@ namespace ve::graphics {
                         position.*second = second_offset;
                         position.*third  = third_offset;
                         
-                        // Front (3) and left (4) sides have flipped UVs.
+                        // Back (0) and left (5) sides have flipped UVs.
                         std::size_t uv_face = face_index;
-                        if (in<std::size_t>(vertex_index, 3u * 4, 5u * 4)) uv_face = (uv_face + 2) % 4;
+                        if (
+                            in<std::size_t>(vertex_index, 0u * 4, 1u * 4) ||
+                            in<std::size_t>(vertex_index, 5u * 4, 6u * 4)
+                        ) uv_face = (uv_face + 2) % 4;
                         
                         uvs[face_index] = uv_orderings[uv_face];
                         
