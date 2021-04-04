@@ -73,17 +73,14 @@ namespace ve {
     
     template <typename Vec, typename Pred>
     constexpr static void spatial_iterate(const Vec& center, const Vec& radius, Pred pred) {
-        constexpr bool pred_requires_index = std::is_invocable_v<Pred, Vec, std::size_t>;
-        
-        
         auto iterate_dim = [&] <std::size_t Dim> (auto& self, Vec& pos) {
             for (typename Vec::value_type i = center[Dim] - radius[Dim]; i <= center[Dim] + radius[Dim]; ++i) {
+                pos[Dim] = i;
+                
                 if constexpr (Dim + 1 < meta::glm_traits<Vec>::size) {
-                    pos[Dim] = i;
                     self.template operator()<Dim + 1>(self, pos);
                 } else {
-                    if constexpr (pred_requires_index) pred(pos, Dim);
-                    else pred(pos);
+                    pred(pos);
                 }
             }
         };

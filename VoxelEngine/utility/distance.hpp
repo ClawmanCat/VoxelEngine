@@ -68,5 +68,16 @@ namespace ve::distance_functions {
     
             return result;
         }
+    
+    
+        [[nodiscard]] constexpr bool within(const Vec& a, const Vec& b, typename Vec::value_type distance) const {
+            bool in_range = true;
+            
+            foreach_dimension<Vec>([&](std::size_t i){
+                in_range &= std::abs(b[i] - a[i]) < distance;
+            });
+            
+            return in_range;
+        }
     };
 }
