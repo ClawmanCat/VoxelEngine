@@ -12,6 +12,7 @@ endfunction()
 function(set_compiler_profile)
     add_compile_options(/EHsc)                  # TODO: Disable exceptions & RTTI.
     set_clang_option(-fbracket-depth=1024)
+    set_clang_option(-ftemplate-backtrace-limit=0)
 
     # Enable extra warnings.
     set_clang_option(-Wall)

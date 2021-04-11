@@ -80,6 +80,14 @@ namespace ve {
             ));
             
             T& entity = static_cast<T&>(**it);
+            
+            entity.template set_component<named_value_component<
+                    "static_address",
+                    void*,
+                    ve::side::SERVER, // TODO: Changeme
+                    component_serialization_mode::NONE
+            >>(&entity);
+            
             entity.init(std::forward<Args>(args)...);
             
             return entity;

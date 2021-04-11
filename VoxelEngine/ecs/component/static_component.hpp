@@ -13,16 +13,6 @@
 #include <boost/preprocessor.hpp>
 
 
-// IDEs will typically struggle with these macros, so simplify them to just their interface.
-// Note: VE_IDE_PASS can be used as a parameter for Clangd to disable its errors for this file as well.
-#if defined(__INTELLISENSE__) || defined(__JETBRAINS_IDE__) || defined(VE_IDE_PASS)
-    #define VE_COMPONENT(name, type, ...) VE_UNWRAP(type) name { __VA_ARGS__ }
-    #define VE_PROPER_COMPONENT(name, type, ...) VE_UNWRAP(type) name { __VA_ARGS__ }
-    #define VE_FUNCTION_COMPONENT(name, side, ...) name(__VA_ARGS__)
-    #define VE_CONST_FUNCTION_COMPONENT(name, side, ...) name(__VA_ARGS__) const
-#else
-
-
 namespace ve::detail {
     // If T is a component, return that components side value, otherwise default to the provided value.
     template <typename T> constexpr side component_side_or(side s) {
@@ -51,6 +41,33 @@ namespace ve::detail {
             T,
             named_value_component<Name, T, Side, CSM, Serializer>
         >;
+    
+    
+    // Invokes the provided function component with args,
+    // reconstructing the function signature from the provided member function type.
+    template <typename MemFn> struct fc_invoke_wrapper {
+        using Traits = ve::meta::mft<MemFn>;
+        
+        template <typename... Args> struct inner {
+            constexpr static typename Traits::return_type invoke(auto& cmp, void* self, Args&&... args) {
+                cmp.template invoke_unchecked<
+                    typename Traits::return_type,
+                    void*,
+                    Args...
+                >(self, std::forward<Args>(args)...);
+            }
+    
+            constexpr static typename Traits::return_type invoke(auto& cmp, const void* self, Args&&... args) {
+                cmp.template invoke_unchecked<
+                    typename Traits::return_type,
+                    const void*,
+                    Args...
+                >(self, std::forward<Args>(args)...);
+            }
+        };
+        
+        using type = typename Traits::argument_types::template expand_inside<inner>;
+    };
 }
 
 
@@ -78,14 +95,30 @@ BOOST_PP_IF(                                                                    
 
 
 #define VE_IMPL_VARIADIC_REST(Index, ...)                                                   \
-BOOST_PP_SEQ_REST_N(                                                                        \
-    BOOST_PP_MIN(                                                                           \
-        Index,                                                                              \
-        BOOST_PP_SEQ_SIZE(                                                                  \
-            BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)                                           \
+BOOST_PP_REMOVE_PARENS(                                                                     \
+    BOOST_PP_EXPAND(                                                                        \
+        BOOST_PP_IF(                                                                        \
+            BOOST_PP_LESS(                                                                  \
+                BOOST_PP_MIN(                                                               \
+                    Index,                                                                  \
+                    BOOST_PP_VARIADIC_SIZE(__VA_ARGS__)                                     \
+                ),                                                                          \
+                BOOST_PP_VARIADIC_SIZE(__VA_ARGS__)                                         \
+            ),                                                                              \
+            (                                                                               \
+                BOOST_PP_SEQ_ENUM(                                                          \
+                    BOOST_PP_SEQ_REST_N(                                                    \
+                        BOOST_PP_MIN(                                                       \
+                            Index,                                                          \
+                            BOOST_PP_VARIADIC_SIZE(__VA_ARGS__)                             \
+                        ),                                                                  \
+                        BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)                               \
+                    )                                                                       \
+                )                                                                           \
+            ),                                                                              \
+            ()                                                                              \
         )                                                                                   \
-    ),                                                                                      \
-    BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)                                                   \
+    )                                                                                       \
 )
 
 
@@ -176,7 +209,7 @@ VE_COMPONENT(name, type, BOTH, BINARY, ve::meta::null_type, __VA_ARGS__)
 // Variadic parameter should contain the arguments of the method.
 // Note: this macro should be used for the declaration of the function in question. e.g:
 // void VE_FUNCTION_COMPONENT(my_fn, SERVER) { do_thing_a(); do_thing_b(); }
-#define VE_IMPL_FUNCTION_COMPONENT(name, hidden_name, capture_name, side, const_kw, ...)    \
+#define VE_IMPL_FUNCTION_COMPONENT(name, hidden_name, capture_name, invoker_name, side, const_kw, ...)    \
 /* Macro preceeded by return type. Capture it. */                                           \
 capture_name(void);                                                                         \
                                                                                             \
@@ -192,9 +225,9 @@ name(auto&&... args) const_kw {                                                 
     if (has_dynamic_behaviour()) [[unlikely]] {                                             \
         const auto& fn = get_component<component_type>();                                   \
                                                                                             \
-        return fn.invoke_unchecked<                                                         \
-            function_traits::return_type                                                    \
-        >(this, std::forward<decltype(args)>(args)...);                                     \
+        return ve::detail::fc_invoke_wrapper<                                               \
+            decltype(&most_derived_t::hidden_name)                                          \
+        >::type::invoke(fn, this, std::forward<decltype(args)>(args)...);                   \
     } else {                                                                                \
         return hidden_name(std::forward<decltype(args)>(args)...);                          \
     }                                                                                       \
@@ -211,7 +244,17 @@ constexpr static auto ve_impl_component_info(void) {                            
 /* Add component to registry on entity construction. */                                     \
 [[no_unique_address]] ve::meta::null_type BOOST_PP_SEQ_CAT((ve_impl_autoinit_)(name)) =     \
 [&](){                                                                                      \
-    /* TODO: Insert component! */                                                           \
+    using fptr_type = typename ve::meta::mft<                                               \
+        decltype(&most_derived_t::hidden_name)                                              \
+    >::freed_pointer_type;                                                                  \
+                                                                                            \
+    get_storage().emplace<ve::named_function_component<#name, side>>(                       \
+        get_id(),                                                                           \
+        (fptr_type) [](const_kw void* self, ve::universal auto... args) {                   \
+            ((const_kw most_derived_t*) self)->name(std::forward<decltype(args)>(args)...); \
+        }                                                                                   \
+    );                                                                                      \
+                                                                                            \
     return ve::meta::null_type { };                                                         \
 }();                                                                                        \
                                                                                             \
@@ -226,6 +269,7 @@ VE_IMPL_FUNCTION_COMPONENT(                                                     
     name,                                                                                   \
     BOOST_PP_SEQ_CAT((ve_impl_)(name)(_default)),                                           \
     BOOST_PP_SEQ_CAT((ve_impl_)(name)(_rt_capture)),                                        \
+    BOOST_PP_SEQ_CAT((ve_impl_)(name)(invoker)),                                            \
     ve::side::cside,                                                                        \
     /* Not Const */ __VA_OPT__(,)                                                           \
     __VA_ARGS__                                                                             \
@@ -241,6 +285,3 @@ VE_IMPL_FUNCTION_COMPONENT(                                                     
     const __VA_OPT__(,)                                                                     \
     __VA_ARGS__                                                                             \
 )
-
-
-#endif  // IDE Check

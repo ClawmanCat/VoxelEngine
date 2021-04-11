@@ -72,11 +72,11 @@ namespace ve {
     // A component for wrapping simple values.
     template <
         typename T,
-        side Side              = side::SERVER,
+        side Side = side::SERVER,
         component_serialization_mode CSM = component_serialization_mode::BINARY,
         // If a serializer S is provided, it should implement S::to_bytes(T) and S::from_bytes(T).
         // (Note: this is different from just implementing binary_serializable.)
-        typename Serializer              = meta::null_type
+        typename Serializer = meta::null_type
     > struct value_component :
         public component<value_component<T>, Side, CSM>,
         // If T is a class, inherit from T, otherwise just store a T inside this object.

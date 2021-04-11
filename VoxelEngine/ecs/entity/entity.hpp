@@ -85,6 +85,12 @@ namespace ve {
     
             this->get_storage().template emplace_or_replace<Component>(this->id, std::forward<Component>(cmp));
         }
+    
+    
+        template <component_type Component, typename... Args>
+        constexpr void set_component(Args&&... args) {
+            set_component<Component>(Component { std::forward<Args>(args)... });
+        }
         
         
         template <component_type Component>

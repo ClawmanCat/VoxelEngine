@@ -52,6 +52,12 @@ namespace ve {
     }
     
     
+    template <typename T>
+    constexpr inline mat4<T> translation_matrix(const vec3<T>& pos) {
+        return glm::translate(glm::identity<mat4<T>>(), pos);
+    }
+    
+    
     template <typename Vec, typename Pred>
     constexpr static void foreach_dimension(Pred pred) {
         constexpr bool pred_requires_index = std::is_invocable_v<Pred, std::size_t>;
