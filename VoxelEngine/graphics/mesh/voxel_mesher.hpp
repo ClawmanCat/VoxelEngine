@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/graphics/graphics.hpp>
 #include <VoxelEngine/voxel/voxel_settings.hpp>
+#include <VoxelEngine/voxel/space.hpp>
 #include <VoxelEngine/voxel/chunk/chunk.hpp>
 #include <VoxelEngine/voxel/tile/tile_data.hpp>
 #include <VoxelEngine/voxel/tile/tile_registry.hpp>
@@ -23,7 +24,9 @@ namespace ve::graphics {
     }
     
     
-    inline voxel_mesh_t mesh_chunk(const chunk& chnk) {
+    inline voxel_mesh_t mesh_chunk(const vec3i& where, const chunk& chnk, const voxel_space& space) {
+        constexpr i32 chunk_size = voxel_settings::chunk_size;
+        
         // Empty tiles are very likely to be common, so optimize the mesher to skip these.
         const static tile_data void_type_td = tile_registry::instance().get_default_tile_state(tiles::TILE_VOID);
         // For a given combination of tile data and occluded directions, the tile should always produce the same mesh,
@@ -60,17 +63,25 @@ namespace ve::graphics {
             // Find occluded sides.
             auto occludes = [&](const vec3i& pos, direction dir) {
                 const vec3i neighbour = pos + direction_vector(dir);
+                tile_data td;
                 
-                // Assume positions outside the chunk to not be occluded.
-                // TODO: Change this.
-                if (glm::any(neighbour < 0 || neighbour >= (i32) voxel_settings::chunk_size)) {
-                    return false;
+                
+                // Check in neighbouring chunk if this is a tile at the edge of the chunk.
+                if (glm::any(neighbour < 0 || neighbour >= chunk_size)) {
+                    const auto* neighbour_chunk = space.get_chunk(where + direction_vector(dir));
+                    if (!neighbour_chunk) return false; // Chunk is not loaded, side is not occluded.
+                    
+                    td = (*neighbour_chunk)[
+                        neighbour
+                        - (vec3i(neighbour >= chunk_size) * chunk_size)
+                        + (vec3i(neighbour < 0) * chunk_size)
+                    ];
+                } else {
+                    td = chnk[neighbour];
                 }
                 
-                const auto& td = chnk[neighbour];
-                if (td == void_type_td) return false;
                 
-                return true;
+                if (td == void_type_td) return false;
                 
                 const auto* t = tile_registry::instance().get_tile(td);
                 return t->occludes_side(opposing(dir));

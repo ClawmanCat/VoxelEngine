@@ -64,6 +64,8 @@ namespace ve::graphics {
         std::vector<Vertex> vertices;
         
         using vertex_t = Vertex;
+        using index_t  = void;
+        
         constexpr static inline bool indexed = false;
     };
     
@@ -80,6 +82,7 @@ namespace ve::graphics {
         
         using vertex_t = Vertex;
         using index_t  = Index;
+        
         constexpr static inline bool indexed = true;
     };
     

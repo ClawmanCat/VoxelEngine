@@ -29,7 +29,7 @@ namespace ve::graphics {
         enum class filter_direction { MIN_FILTER = 0, MAG_FILTER = 1 };
         
         
-        inline GLenum get_gl_filter_enum(const texture_parameters& params, filter_direction direction) {
+        inline GLint get_gl_filter_enum(const texture_parameters& params, filter_direction direction) {
             using filter_type = texture_parameters::filter_type;
             
             constexpr std::array filter_fields {

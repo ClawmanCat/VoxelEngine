@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/traits/string_arg.hpp>
 #include <VoxelEngine/utility/traits/pack.hpp>
+#include <VoxelEngine/utility/logger.hpp>
 #include <VoxelEngine/ecs/component/component.hpp>
 #include <VoxelEngine/ecs/component/named_component.hpp>
 #include <VoxelEngine/side/side.hpp>

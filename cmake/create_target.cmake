@@ -3,7 +3,6 @@ macro(create_target target_name target_type major minor patch)
     # Get source files for target.
     file(GLOB_RECURSE sources CONFIGURE DEPENDS LIST_DIRECTORIES false "*.hpp" "*.cpp")
     list(FILTER sources EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}\\/tests\\/[0-z_]+\\.[ch]pp")
-    message(STATUS ${sources})
 
     # Create target of correct type and add sources.
     if (${target_type} STREQUAL "EXECUTABLE")
