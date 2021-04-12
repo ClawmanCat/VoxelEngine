@@ -9,4 +9,12 @@ namespace ve::tiles {
         .rendered   = false,
         .num_states = 1,
     });
+    
+    
+    const tile* TILE_UNKNOWN = detail::ve_tile_storage().emplace<tile>(tile_parameters {
+        .name       = "unknown",
+        .colliding  = false,
+        .rendered   = false,
+        .num_states = 1,
+    });
 }

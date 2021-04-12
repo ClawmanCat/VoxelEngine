@@ -1,17 +1,15 @@
 #include <VEDemoGame/game.hpp>
+
 #include <VoxelEngine/input/input_manager.hpp>
 #include <VoxelEngine/input/input_event.hpp>
+#include <VoxelEngine/utility/math.hpp>
 #include <VoxelEngine/engine.hpp>
 
 
 namespace demo_game {
-    ve::simple_tile_storage& get_tile_store(void) {
-        static ve::simple_tile_storage instance;
-        return instance;
-    }
-    
-    const ve::tile* tile_grass = get_tile_store().emplace<ve::tile>(ve::tile_parameters { .name = "grass" });
-    const ve::tile* tile_stone = get_tile_store().emplace<ve::tile>(ve::tile_parameters { .name = "stone" });
+    ve::shared<gfx::window> game::window = nullptr;
+    ve::scene<ve::side::CLIENT> game::scene { };
+    gfx::perspective_camera game::camera { };
     
     
     void game::on_pre_init(void) {}
@@ -32,10 +30,18 @@ namespace demo_game {
         game::camera.set_position(ve::vec3f { 0, 3, 0 });
         game::camera.set_fov(ve::radians(70.0f));
         
-        ve_register_input_event(ve::window_resize_event, e, game::camera.set_aspect_ratio(e.new_size.x / e.new_size.y));
+        ve_register_input_event(
+            ve::window_resize_event,
+            e,
+            game::camera.set_aspect_ratio(e.new_size.x / e.new_size.y)
+        );
         
         pipeline->set_uniform_producer<ve::mat4f>("camera"s, []() {
             return game::camera.get_matrix();
+        });
+    
+        pipeline->set_uniform_producer<float>("near"s, []() {
+            return game::camera.get_near();
         });
         
         game::scene.add_system(ve::renderer(pipeline));

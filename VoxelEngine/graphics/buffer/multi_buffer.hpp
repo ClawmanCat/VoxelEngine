@@ -7,31 +7,19 @@
 
 
 namespace ve::graphics {
-    class multi_buffer : public buffer {
+    class multi_buffer : public buffer, public tree_set<shared<buffer>> {
     public:
         virtual void draw(context& ctx) const {
             buffer::draw(ctx);
             
-            for (auto& buf : buffers) {
+            for (auto& buf : *this) {
                 buf->draw(ctx);
             }
         }
     
         
         [[nodiscard]] virtual GLuint get_id(void) const {
-            return buffers.size() > 0 ? (*buffers.begin())->get_id() : 0;
+            return size() > 0 ? (*begin())->get_id() : 0;
         }
-        
-        
-        void insert(shared<buffer>&& buf) {
-            buffers.insert(std::move(buf));
-        }
-        
-        
-        void erase(const shared<buffer>& buf) {
-            buffers.erase(buf);
-        }
-    private:
-        tree_set<shared<buffer>> buffers;
     };
 }

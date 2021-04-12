@@ -17,7 +17,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
 #include <glm/gtx/string_cast.hpp>
-
 #include <glm/gtx/hash.hpp>
 
 #pragma clang diagnostic pop

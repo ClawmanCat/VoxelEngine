@@ -9,4 +9,6 @@
 namespace ve::tiles {
     // A tile used to indicate the absence of a real tile.
     const extern tile* TILE_VOID;
+    // A tile used to indicate that the tile is not loaded.
+    const extern tile* TILE_UNKNOWN;
 }

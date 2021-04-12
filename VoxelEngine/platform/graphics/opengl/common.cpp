@@ -36,6 +36,7 @@ namespace ve::graphics {
     
                 glEnable(GL_DEPTH_TEST);
                 glEnable(GL_TEXTURE_2D);
+                glEnable(GL_DEPTH_CLAMP);
             }
             
             
