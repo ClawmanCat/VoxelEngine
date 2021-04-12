@@ -21,11 +21,9 @@ namespace demo_game {
             });
             
             // Load some chunks in the voxel space.
-            voxels.toggle_mesh_updates(false);
             voxels.add_loader(std::make_shared<ve::point_loader<ve::distance_functions::L1<ve::chunkpos>{ }>>(
                 &voxels, ve::vec3i { 0 }, 3
             ));
-            voxels.toggle_mesh_updates(true);
         }
         
         

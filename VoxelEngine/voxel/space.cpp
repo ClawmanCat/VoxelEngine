@@ -136,6 +136,7 @@ namespace ve {
         if (chunk_data.load_count == 1) {
             mesh->erase(chunk_data.mesh);
             chunks.erase(it);
+            unmeshed_chunks.erase(where);
 
             invalidate_neighbour_meshes(where);
         } else {
