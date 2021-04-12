@@ -39,6 +39,10 @@ namespace demo_game {
         pipeline->set_uniform_producer<ve::mat4f>("camera"s, []() {
             return game::camera.get_matrix();
         });
+    
+        pipeline->set_uniform_producer<float>("near"s, []() {
+            return game::camera.get_near();
+        });
         
         game::scene.add_system(ve::renderer(pipeline));
         game::scene.add_system(ve::movement());
