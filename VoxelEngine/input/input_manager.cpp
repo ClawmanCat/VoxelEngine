@@ -117,6 +117,14 @@ namespace ve {
     
     
     
+    
+    void input_manager::set_mouse_capture(bool enabled) {
+        SDL_SetRelativeMouseMode((SDL_bool) enabled);
+    }
+    
+    
+    
+    
     void input_manager::update(u64 tick) {
         dispatcher.dispatch_event(input_processing_begin_event { });
         dispatcher.dispatch_all();
@@ -164,7 +172,7 @@ namespace ve {
                 case SDL_MOUSEMOTION: {
                     // Mouse events are only fired after processing all SDL events,
                     // so all events will have the same mouse state.
-                    mouse_current_state.position += vec2i { e.motion.x, e.motion.y };
+                    mouse_current_state.position += vec2i { e.motion.xrel, e.motion.yrel };
                     
                     break;
                 }

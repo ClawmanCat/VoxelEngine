@@ -5,14 +5,11 @@
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_storage.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/shader/shader_program.hpp>
-
-#include <memory>
+#include <VoxelEngine/ecs/system/system.hpp>
 
 
 namespace ve::graphics {
-    // Note: ownership of contained buffers is managed through buffer_owner_registry.
-    // Buffers will still be automatically removed from the pipeline if their owner is destroyed.
-    class pipeline : public uniform_storage, public std::enable_shared_from_this<pipeline> {
+    class pipeline : public uniform_storage {
     public:
         pipeline(void) = default;
         virtual ~pipeline(void) = default;
@@ -20,7 +17,16 @@ namespace ve::graphics {
         ve_move_only(pipeline);
         
         
-        virtual void draw(void) {
+        virtual void draw(void) = 0;
+        
+        virtual void add_buffer(shared<shader_program>&& shader, shared<buffer>&& buffer) = 0;
+        virtual void clear(void) = 0;
+    };
+    
+    
+    class simple_pipeline : public pipeline {
+    public:
+        void draw(void) override {
             for (auto& [shader, buffers_for_shader] : buffers) {
                 shader->bind();
                 
@@ -40,36 +46,19 @@ namespace ve::graphics {
         }
         
         
-        void add_buffer(
-            universal<shared<shader_program>> auto&& shader,
-            universal<shared<buffer>> auto&& vertex_buffer,
-            ve_default_actor(owner)
-        ) {
-            registry_add_buffer(vertex_buffer, shader, owner);
-            
-            buffers[std::forward<shared<shader_program>>(shader)]
-                .insert(std::forward<shared<buffer>>(vertex_buffer));
+        void add_buffer(shared<shader_program>&& shader, shared<buffer>&& buffer) override {
+            buffers[std::move(shader)].push_back(std::move(buffer));
         }
         
         
-        void remove_buffer(const shared<shader_program>& shader, const shared<buffer>& buffer) {
-            remove_buffer<true>(shader, buffer);
+        void clear(void) override {
+            // Keep existing allocations to reduce new allocations on next iteration.
+            for (auto& [shader, shader_buffers] : buffers) shader_buffers.clear();
         }
-    private:
-        // Buffers for each shader.
-        // TODO: Optimize storage for iteration.
-        hash_map<shared<shader_program>, hash_set<shared<buffer>>> buffers;
-        
-        
-        friend class buffer_owner_registry;
-        
-        template <bool remove_from_registry>
-        void remove_buffer(const shared<shader_program>& shader, const shared<buffer>& buffer) {
-            if constexpr (remove_from_registry) registry_remove_buffer(buffer, shader);
-            buffers[shader].erase(buffer);
-        }
-        
-        void registry_add_buffer(const shared<buffer>& vertex_buffer, const shared<shader_program>& shader, actor_id owner);
-        void registry_remove_buffer(const shared<buffer>& vertex_buffer, const shared<shader_program>& shader);
+    protected:
+        hash_map<
+            shared<shader_program>,
+            std::vector<shared<buffer>>
+        > buffers;
     };
 }

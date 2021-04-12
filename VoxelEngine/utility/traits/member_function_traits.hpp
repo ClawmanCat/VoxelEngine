@@ -17,6 +17,7 @@ namespace ve::meta {
         using containing_class_type = Cls;
         using return_type           = Ret;
         using argument_types        = pack<Args...>;
+        using freed_pointer_type    = Fn<Ret, void*, Args...>;
     };
     
     
@@ -27,6 +28,7 @@ namespace ve::meta {
         using containing_class_type = Cls;
         using return_type           = Ret;
         using argument_types        = pack<Args...>;
+        using freed_pointer_type    = Fn<Ret, const void*, Args...>;
     };
     
     

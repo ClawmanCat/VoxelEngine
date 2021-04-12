@@ -7,9 +7,6 @@
 
 ### ECS
 - Basic ECS structure
-- Generation of component wrapping members with optional default local storage.
-- Implicit component access with `__declspec(property)`
-- Scene class & Renderable component
 
 ### Events
 - IO Event handling by layerstack
@@ -17,13 +14,8 @@
 
 ### Voxel World
 - Nested Entities
-- VoxelSpace Component
-- Chunks
-- Tile Registry
-- Basic world generator
 
 ### Plugin System
-- Loading of plugins
 - Test ResourceOwner system
 - Prioritized resource owners to minimize `on_actor_destroyed` calls.
 

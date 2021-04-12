@@ -3,15 +3,24 @@
 #include <VoxelEngine/core/preprocessor.hpp>
 #include <VoxelEngine/core/typedefs/scalar.hpp>
 
+#include <boost/preprocessor.hpp>
+
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-volatile"
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+
 #define GLM_FORCE_SWIZZLE
 #define GLM_SWIZZLE_XYZW
 #define GLM_SWIZZLE_RGBA
 #define GLM_FORCE_SIZE_T_LENGTH
 #include <glm/glm.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
+#include <glm/gtx/string_cast.hpp>
+
 #include <glm/gtx/hash.hpp>
 
-#include <boost/preprocessor.hpp>
+#pragma clang diagnostic pop
 
 
 // Sequence of all scalar types usable in GLM tensors. Contains pairs of (typename, glm type suffix).
@@ -131,5 +140,26 @@ namespace ve {
     template <typename T, std::size_t N>
     constexpr inline auto operator>=(const vec<N, T>& a, const vec<N, T>& b) {
         return glm::greaterThanEqual(a, b);
+    }
+    
+    
+    template <typename T, std::size_t N>
+    constexpr inline auto operator<(const vec<N, T>& a, const T& b) {
+        return glm::lessThan(a, glm::vec<N, T>(b));
+    }
+    
+    template <typename T, std::size_t N>
+    constexpr inline auto operator>(const vec<N, T>& a, const T& b) {
+        return glm::greaterThan(a, glm::vec<N, T>(b));
+    }
+    
+    template <typename T, std::size_t N>
+    constexpr inline auto operator<=(const vec<N, T>& a, const T& b) {
+        return glm::lessThanEqual(a, glm::vec<N, T>(b));
+    }
+    
+    template <typename T, std::size_t N>
+    constexpr inline auto operator>=(const vec<N, T>& a, const T& b) {
+        return glm::greaterThanEqual(a, glm::vec<N, T>(b));
     }
 }

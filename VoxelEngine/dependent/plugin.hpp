@@ -16,8 +16,12 @@ namespace ve {
         std::vector<std::string> authors;
         version plugin_version;
         
-        // Plugin settings
+        // Plugin loading settings
         bool allow_dynamic_load   = true;
         bool allow_dynamic_unload = true;
+        
+        // Is this plugin required on the client, or the server?
+        bool server_required = true;
+        bool client_required = true;
     };
 }

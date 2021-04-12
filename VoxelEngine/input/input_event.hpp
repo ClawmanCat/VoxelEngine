@@ -5,9 +5,9 @@
 #include <VoxelEngine/input/keyboard.hpp>
 #include <VoxelEngine/input/mouse.hpp>
 
-#include <VoxelEngine/graphics/graphics.hpp>
-#include graphics_include(window/window.hpp)
-#include graphics_include(window/window_registry.hpp)
+#include <VoxelEngine/platform/platform_include.hpp>
+#include VE_GRAPHICS_INCLUDE(window/window.hpp)
+#include VE_GRAPHICS_INCLUDE(window/window_registry.hpp)
 
 
 #define VE_IMPL_INPUT_EVENT(name, ...)              \

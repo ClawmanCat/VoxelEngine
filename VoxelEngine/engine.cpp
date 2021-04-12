@@ -6,9 +6,10 @@
 #include <VoxelEngine/utility/thread/make_nonconcurrent.hpp>
 #include <VoxelEngine/utility/io/io.hpp>
 #include <VoxelEngine/input/input_manager.hpp>
+#include <VoxelEngine/ecs/scene_registry.hpp>
 
-#include <VoxelEngine/graphics/graphics.hpp>
-#include graphics_include(window/window_registry.hpp)
+#include <VoxelEngine/platform/platform_include.hpp>
+#include VE_GRAPHICS_INCLUDE(window/window_registry.hpp)
 
 #include <magic_enum.hpp>
 
@@ -72,15 +73,22 @@ namespace ve {
     
     
     void engine::tick(void) {
-        game_callbacks::on_game_pre_loop();
-        dispatcher.dispatch_event(engine_tick_begin { .tick = engine::tick_count });
+        microseconds last_dt = duration_cast<microseconds>(steady_clock::now() - engine::last_tick_time);
+        engine::last_tick_time = steady_clock::now();
+        
+        game_callbacks::on_game_pre_loop(engine::tick_count, last_dt);
+        dispatcher.dispatch_event(engine_tick_begin { .tick = engine::tick_count, .dt = last_dt });
+        
+        scene_registry<side::CLIENT>::instance().update_scenes(last_dt);
+        scene_registry<side::SERVER>::instance().update_scenes(last_dt);
         
         input_manager::instance().update(engine::tick_count);
         graphics::window_registry::instance().draw_all();
         
-        dispatcher.dispatch_event(engine_tick_end { .tick = engine::tick_count });
+        dispatcher.dispatch_event(engine_tick_end { .tick = engine::tick_count, .dt = last_dt });
+        game_callbacks::on_game_post_loop(engine::tick_count, last_dt);
+        
         ++engine::tick_count;
-        game_callbacks::on_game_post_loop();
     }
     
     

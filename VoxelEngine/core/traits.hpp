@@ -39,4 +39,8 @@ namespace ve {
     // Useful for matching universal reference types
     template <typename A, typename B> constexpr static bool is_loosely_same =
         std::is_same_v<std::remove_cvref_t<A>, std::remove_cvref_t<B>>;
+    
+    
+    // Prevents type deduction when it is advisable to specify types explicitly.
+    template <typename X, typename Y> concept dont_deduce = std::is_same_v<X, Y>;
 }

@@ -42,3 +42,20 @@ static void set_##name (auto&& value) {                                         
 #define VE_GET_SET_STATIC_CREF(name) VE_GET_STATIC_CREF(name) VE_STATIC_SET(name)
 #define VE_GET_SET_STATIC_MREF(name) VE_GET_STATIC_MREF(name) VE_STATIC_SET(name)
 #define VE_GET_SET_STATIC_VAL(name)  VE_GET_STATIC_VAL(name)  VE_STATIC_SET(name)
+
+
+// Specialized versions for bool, since they are often called is_x or has_x rather than get_x.
+#define VE_GET_BOOL_IS(name)                                                    \
+[[nodiscard]] bool is_##name(void) const { return name; }
+
+#define VE_GET_BOOL_HAS(name)                                                   \
+[[nodiscard]] bool has_##name(void) const { return name; }
+
+
+#define VE_GET_SET_BOOL_IS(name)                                                \
+VE_GET_BOOL_IS(name);                                                           \
+VE_SET(name);
+
+#define VE_GET_SET_BOOL_HAS(name)                                               \
+VE_GET_BOOL_HAS(name);                                                          \
+VE_SET(name);

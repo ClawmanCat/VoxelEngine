@@ -45,6 +45,8 @@ namespace ve {
         [[nodiscard]] i32 tick_wheel_delta(void) const;         // Wheel motion during the last tick.
         [[nodiscard]] i32 total_wheel_delta(void) const;        // Wheel motion since the mouse began moving.
         
+        void set_mouse_capture(bool enabled);
+        
         VE_GET_MREF(dispatcher);
     private:
         struct mouse_state_history {

@@ -4,6 +4,7 @@
 #include <VoxelEngine/platform/graphics/opengl/buffer/buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/buffer_utils.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/attribute.hpp>
+#include <VoxelEngine/platform/graphics/opengl/buffer/vertex.hpp>
 
 #include <GL/glew.h>
 #include <boost/pfr.hpp>
@@ -15,7 +16,7 @@ namespace ve::graphics {
     // Vertex buffer without indexing. (i.e. each vertex is drawn once, in the order it is present in the buffer.)
     template <typename Vertex> class vertex_buffer : public buffer {
     public:
-        vertex_buffer(GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+        explicit vertex_buffer(GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
             buffer(), vao(0), vbo(), primitive(primitive)
         {
             glGenVertexArrays(1, &vao);
@@ -29,10 +30,17 @@ namespace ve::graphics {
         }
         
         
-        vertex_buffer(span<Vertex> auto&& data, GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+        explicit vertex_buffer(std::span<const Vertex> data, GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
             vertex_buffer(primitive, storage_mode)
         {
             update(data);
+        }
+        
+        
+        explicit vertex_buffer(const unindexed_mesh<Vertex>& mesh, GLenum primivite = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+            vertex_buffer(primitive, storage_mode)
+        {
+            update(mesh.vertices);
         }
         
         
@@ -80,7 +88,7 @@ namespace ve::graphics {
         }
         
         
-        void update(span<Vertex> auto&& elements, std::size_t where = 0) {
+        void update(std::span<const Vertex> elements, std::size_t where = 0) {
             detail::buffer_store(vao, elements, where, vbo);
         }
     

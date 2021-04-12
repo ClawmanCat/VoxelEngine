@@ -17,6 +17,7 @@ namespace ve::io::paths {
     ve_init_order(0) const inline fs::path PATH_TEXTURES                = PATH_ASSETS / "textures/";
     ve_init_order(0) const inline fs::path PATH_SOUNDS                  = PATH_ASSETS / "sounds/";
     ve_init_order(0) const inline fs::path PATH_TILE_TEXTURES           = PATH_TEXTURES / "tiles/";
+    ve_init_order(0) const inline fs::path PATH_ENTITY_TEXTURES         = PATH_TEXTURES / "entities/";
     
     
     inline const auto& get_required_paths(void) {

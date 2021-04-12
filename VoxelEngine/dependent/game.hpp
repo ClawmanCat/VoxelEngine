@@ -28,8 +28,8 @@ namespace ve {
         extern void on_game_pre_init(void);
         extern void on_game_post_init(void);
         
-        extern void on_game_pre_loop(void);
-        extern void on_game_post_loop(void);
+        extern void on_game_pre_loop (u64 tick, microseconds dt);
+        extern void on_game_post_loop(u64 tick, microseconds dt);
         
         extern void on_game_pre_exit(void);
         extern void on_game_post_exit(void);

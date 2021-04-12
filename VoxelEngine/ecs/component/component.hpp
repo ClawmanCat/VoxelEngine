@@ -2,43 +2,47 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/traits/null_type.hpp>
-#include <VoxelEngine/utility/serializable.hpp>
+#include <VoxelEngine/utility/serialize/serialize.hpp>
+#include <VoxelEngine/side/side.hpp>
 
 #include <type_traits>
 
 
 namespace ve {
-    // On which side should the component be stored?
-    enum class component_side : u8 {
-        CLIENT = 0b01,
-        SERVER = 0b10,
-        BOTH   = CLIENT | SERVER
-    };
-    
-    
     // In what ways can the component be serialized?
     enum class component_serialization_mode : u8 {
-        NONE   = 0b00,
-        BINARY = 0b01,
-        STRING = 0b10,
-        BOTH   = BINARY | STRING
+        NONE   = 0,
+        BINARY = (1 << 0),
+        STRING = (1 << 1),
+        // Component can be serialized both as bytes and as a string.
+        BOTH   = BINARY | STRING,
+        // Component can be serialized, but does so outside of the engine serialization system.
+        // (Component should provide callbacks for when serialization occurs to do so.)
+        MANUAL = (1 << 2)
     };
+    
+    VE_BITWISE_ENUM(component_serialization_mode);
     
     
     template <
         typename Derived,
-        component_side Side              = component_side::SERVER,
+        side Side                        = side::SERVER,
         component_serialization_mode CSM = component_serialization_mode::BINARY
     > struct component :
         public std::conditional_t<
             bool(CSM & component_serialization_mode::BINARY),
-            binary_serializable<component<Derived, Side, CSM>>,
+            binary_serializable<Derived>,
             meta::unique_null_type<"BINARY">
         >,
         public std::conditional_t<
             bool(CSM & component_serialization_mode::STRING),
-            string_serializable<component<Derived, Side, CSM>>,
+            string_serializable<Derived>,
             meta::unique_null_type<"STRING">
+        >,
+        public std::conditional_t<
+            bool(CSM & component_serialization_mode::MANUAL),
+            externally_serializable<Derived>,
+            meta::unique_null_type<"MANUAL">
         >
     {
         using most_derived_t  = Derived;

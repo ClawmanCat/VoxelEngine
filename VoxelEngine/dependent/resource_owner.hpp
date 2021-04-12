@@ -14,8 +14,10 @@
 // but not otherwise. (e.g. when building a plugin.)
 #if defined(VE_BUILD_ENGINE)
     #define ve_default_actor(param) ve::actor_id param = ve::engine_actor_id
+    #define ve_default_actor_id ve::engine_actor_id
 #elif defined(VE_BUILD_GAME)
     #define ve_default_actor(param) ve::actor_id param = ve::game_actor_id
+    #define ve_default_actor_id ve::game_actor_id
 #else
     #define ve_default_actor(param) ve::actor_id param
 #endif
