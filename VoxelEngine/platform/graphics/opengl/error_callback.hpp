@@ -78,11 +78,5 @@ namespace ve::graphics {
             "OpenGL "s + type_str + " event with severity " + severity_str + " caught from " + source_str + ": " + message,
             level
         );
-        
-        
-        // Put breakpoint here to debug errors.
-        if (level == logger::level::ERROR) {
-            ((void) 0);
-        }
     }
 }

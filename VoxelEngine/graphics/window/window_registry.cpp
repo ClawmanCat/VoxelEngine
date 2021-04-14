@@ -1,4 +1,4 @@
-#include <VoxelEngine/platform/graphics/opengl/window/window_registry.hpp>
+#include <VoxelEngine/graphics/window/window_registry.hpp>
 
 
 namespace ve::graphics {

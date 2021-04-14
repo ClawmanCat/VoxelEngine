@@ -9,8 +9,7 @@
 
 
 namespace ve {
-    // To change these settings, overload this class for the type ve::overloaded_settings_tag.
-    // You can use the macro VE_OVERLOAD_SETTINGS for this purpose.
+    // Change these settings by specializing overloadable_vulkan_settings<overloaded_settings_tag>.
     template <typename = void> struct overloadable_voxel_settings {
         // Dimensions of a chunk in number of blocks.
         // If this is not a power of two, voxel operations will probably be significantly slower.

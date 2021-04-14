@@ -13,3 +13,6 @@
 #include <VoxelEngine/graphics/texture/generative_texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/texture_manager.hpp>
+#include <VoxelEngine/graphics/window/layerstack.hpp>
+#include <VoxelEngine/graphics/window/window.hpp>
+#include <VoxelEngine/graphics/window/window_registry.hpp>

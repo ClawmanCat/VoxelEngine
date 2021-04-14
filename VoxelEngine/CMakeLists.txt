@@ -19,6 +19,8 @@ create_target(
     PUBLIC CONAN_PKG::tl-optional
     PUBLIC CONAN_PKG::tl-expected
     PUBLIC CONAN_PKG::range-v3
+    PUBLIC CONAN_PKG::vulkan-headers
+    PUBLIC CONAN_PKG::shaderc
 )
 
 # Copies the resource directories (assets, etc.) when VoxelEngine is built.
@@ -36,6 +38,7 @@ target_compile_definitions(VoxelEngine PUBLIC VE_GRAPHICS_API=opengl)
 
 # Generate headers for including subsets of the engine.
 generate_si_header(VoxelEngine platform/graphics/opengl graphics.hpp)
+generate_si_header(VoxelEngine platform/graphics/vulkan graphics.hpp)
 generate_si_header(VoxelEngine graphics graphics_sih.hpp graphics/graphics.hpp)
 
 generate_si_header(VoxelEngine core core.hpp)

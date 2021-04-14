@@ -7,7 +7,7 @@
 
 // Constexpr versions of C string operations.
 namespace ve {
-    consteval bool constexpr_strcmp(const char* a, const char* b) {
+    constexpr bool constexpr_strcmp(const char* a, const char* b) {
         std::size_t i = 0;
         
         // If strings are of non-equal length, last comparison will be between
@@ -22,7 +22,7 @@ namespace ve {
     }
     
     
-    consteval std::size_t constexpr_strlen(const char* str) {
+    constexpr std::size_t constexpr_strlen(const char* str) {
         std::size_t i = 0;
         while (str[i] != '\0') ++i;
         return i;

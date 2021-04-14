@@ -31,3 +31,33 @@
                                                             \
     return vec;                                             \
 }
+
+
+namespace ve {
+    template <typename A, typename B>
+    constexpr inline auto conjunction(A&& a, B&& b) {
+        return [a = std::forward<A>(a), b = std::forward<B>(b)](auto&... args) {
+            return a(args...) && b(args...);
+        };
+    }
+    
+    
+    template <typename A, typename B>
+    constexpr inline auto disjunction(A&& a, B&& b) {
+        return [a = std::forward<A>(a), b = std::forward<B>(b)](auto&... args) {
+            return a(args...) || b(args...);
+        };
+    }
+    
+    
+    // For use with ranges::views::transform
+    template <typename T>
+    constexpr inline auto construct(void) {
+        return [] <typename... Args> (std::tuple<Args...>&& args) {
+            return std::apply(
+                [](auto&&... args) { return T { std::move(args)... }; },
+                std::move(args)
+            );
+        };
+    }
+}

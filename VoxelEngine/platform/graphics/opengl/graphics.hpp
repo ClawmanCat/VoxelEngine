@@ -29,6 +29,4 @@
 #include <VoxelEngine/platform/graphics/opengl/texture/texture_utils.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/set_uniform.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_storage.hpp>
-#include <VoxelEngine/platform/graphics/opengl/window/layerstack.hpp>
-#include <VoxelEngine/platform/graphics/opengl/window/window.hpp>
-#include <VoxelEngine/platform/graphics/opengl/window/window_registry.hpp>
+#include <VoxelEngine/platform/graphics/opengl/window/window_details.hpp>

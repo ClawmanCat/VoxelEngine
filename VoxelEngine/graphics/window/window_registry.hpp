@@ -2,7 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/dependent/resource_owner.hpp>
-#include <VoxelEngine/platform/graphics/opengl/window/window.hpp>
+#include <VoxelEngine/graphics/window/window.hpp>
 
 
 namespace ve::graphics {

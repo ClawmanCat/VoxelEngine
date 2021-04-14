@@ -9,7 +9,7 @@
 #include <VoxelEngine/ecs/scene_registry.hpp>
 
 #include <VoxelEngine/platform/platform_include.hpp>
-#include VE_GRAPHICS_INCLUDE(window/window_registry.hpp)
+#include VE_GRAPHICS_INCLUDE(window/window_registry.hpp)"VoxelEngine/graphics/window/window_registry.hpp"
 
 #include <magic_enum.hpp>
 

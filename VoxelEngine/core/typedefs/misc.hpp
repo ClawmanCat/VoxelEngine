@@ -32,6 +32,10 @@ namespace ve {
     using ArrayRef = T(&)[N];
     
     
+    // Function Categories
+    template <typename T> using comparator = Fn<bool, const T&, const T&>;
+    
+    
     // Smart Pointers
     template <typename T, typename Deleter = std::default_delete<T>>
     using unique = std::unique_ptr<T>;
