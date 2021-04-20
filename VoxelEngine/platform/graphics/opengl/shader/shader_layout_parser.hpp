@@ -15,6 +15,9 @@ namespace ve::graphics {
     namespace detail {
         struct glsl_type { GLenum primitive; std::size_t count; };
         
+        
+        constexpr ctll::fixed_string matrix_regex = ".?mat(\\d)x(\\d)";
+        
         inline glsl_type parse_glsl_type(std::string_view str) {
             glsl_type result;
             
@@ -29,7 +32,7 @@ namespace ve::graphics {
     
     
             // Check for the matAxB case.
-            if (auto [match, cols, rows] = ctre::match<".?mat(\\d)x(\\d)">(str); match) {
+            if (auto [match, cols, rows] = ctre::match<matrix_regex>(str); match) {
                 result.count *= (cols - '0');
             }
             
@@ -54,11 +57,11 @@ namespace ve::graphics {
     }
     
     
+    constexpr inline ctll::fixed_string input_regex  = R"RGX((layout\s*\(.+\))?\s*in\s+(\S+)\s+(\S+)\s*;)RGX";
+    constexpr inline ctll::fixed_string output_regex = R"RGX((layout\s*\(.+\))?\s*out\s+(\S+)\s+(\S+)\s*;)RGX";
+    
     // TODO: Do this in a more robust way.
     inline shader_layout get_layout(const io::text_file& vs, const io::text_file& fs) {
-        constexpr ctll::fixed_string input_regex  = R"RGX((layout\s*\(.+\))?\s*in\s+(\S+)\s+(\S+)\s*;)RGX";
-        constexpr ctll::fixed_string output_regex = R"RGX((layout\s*\(.+\))?\s*out\s+(\S+)\s+(\S+)\s*;)RGX";
-        
         shader_layout result;
         
         std::array per_shader_data {

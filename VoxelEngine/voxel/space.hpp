@@ -20,12 +20,15 @@ namespace ve {
     public:
         explicit voxel_space(unique<chunk_generator>&& generator);
         ve_move_only(voxel_space);
-        
-        
-        [[nodiscard]] const tile_data& operator[](const vec3i& where) const;
     
+        [[nodiscard]] const tile_data& get(const vec3i& where) const;
+        void set(const vec3i& where, const tile_data& td);
+        
         void on_serialized(void);
         void on_deserialized(void);
+        
+        // TODO: Should be private when meshing is handled by events.
+        void update_mesh(void);
         
         // Allow manually deferring the creation of the chunk meshes for increased performance.
         // TODO: Do this automatically via event-based rendering system.
@@ -59,16 +62,17 @@ namespace ve {
         
         
         constexpr static chunkpos chunk_position(const tilepos& world_position) {
-            return chunkpos(world_position / (i32) voxel_settings::chunk_size);
+            constexpr u32 exponent = least_significant_bit(voxel_settings::chunk_size);
+            return chunkpos(world_position >> (i32) exponent);
         }
         
         
         constexpr static tilepos tile_position(const chunkpos& chunk_position) {
-            return tilepos(chunk_position * (i32) voxel_settings::chunk_size);
+            constexpr u32 exponent = least_significant_bit(voxel_settings::chunk_size);
+            return tilepos(chunk_position) << (i32) exponent;
         }
         
         
-        void update_mesh(void);
         void invalidate_neighbour_meshes(const chunkpos& where);
     
         void load_chunk(const chunkpos& where);

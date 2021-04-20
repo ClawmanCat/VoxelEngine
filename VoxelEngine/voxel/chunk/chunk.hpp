@@ -11,10 +11,13 @@
 namespace ve {
     class chunk : public tile_provider<chunk> {
     public:
-        [[nodiscard]] const tile_data& operator[](const vec3i& where) const {
+        [[nodiscard]] const tile_data& get(const vec3i& where) const {
             return data[flatten(where, (i32) voxel_settings::chunk_size)];
         }
-        
+    
+        void set(const vec3i& where, const tile_data& td) {
+            data[flatten(where, (i32) voxel_settings::chunk_size)] = td;
+        }
         
         template <typename Pred> void foreach(const Pred& pred) {
             foreach_impl<Pred, false>(*this, pred);
@@ -23,6 +26,7 @@ namespace ve {
         template <typename Pred> void foreach(const Pred& pred) const {
             foreach_impl<Pred, true>(*this, pred);
         }
+        
     private:
         // TODO: Optimize for caching. Use NxNxN cubes and prefetch on loop?
         std::array<tile_data, cube(voxel_settings::chunk_size)> data;

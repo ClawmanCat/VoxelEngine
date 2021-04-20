@@ -272,9 +272,13 @@ namespace ve {
     
         // Check if this is actually a key down or a key typed event.
         if (!is_down || e.key.repeat == 0) {
-            key_state& stored_state = keyboard_state[e.key.keysym.sym];
-            key_state  old_state    = stored_state;
-        
+            key_state& stored_state = keyboard_state.try_emplace(
+                e.key.keysym.sym,
+                key_state { .key = e.key.keysym.sym }
+            ).first->second;
+            
+            key_state  old_state = stored_state;
+            
             stored_state.down        = is_down;
             stored_state.mods        = e.key.keysym.mod;
             stored_state.*time_field = { tick, steady_clock::now() };

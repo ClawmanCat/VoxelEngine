@@ -27,12 +27,12 @@ namespace ve::detail::window_details {
         }
     
         
-        static void post_window_create(window& window) {}
-        
-        
-        static void pre_window_destroy(window& window, window::vsync_mode vsync_mode) {
+        static void post_window_create(window& window, window::vsync_mode vsync_mode) {
             set_vsync_mode(window, vsync_mode);
         }
+        
+        
+        static void pre_window_destroy(window& window) {}
         
         
         static void post_window_destroy(window& window) {}
@@ -78,6 +78,9 @@ namespace ve::detail::window_details {
                 case window::vsync_mode::ADAPTIVE_VSYNC:
                     SDL_GL_SetSwapInterval(-1);
                 
+                    break;
+                case window::vsync_mode::TRIPLE_BUFFERED:
+                    VE_ASSERT(false, "Unsupported vsync mode.");
                     break;
             }
         }

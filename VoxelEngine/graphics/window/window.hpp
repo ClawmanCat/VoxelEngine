@@ -81,7 +81,7 @@ namespace ve::graphics {
     
     private:
         friend struct windetail::platform_window_methods;
-        unique<windetail::platform_window_data> platform_data = nullptr;
+        windetail::platform_window_data* platform_data;
         
         SDL_Window* handle = nullptr;
         actor_id owner;

@@ -145,6 +145,17 @@ namespace ve::meta {
             if constexpr (size == 0) return false;
             else return pred.template operator()<head>() || tail::template all(pred);
         }
+        
+        
+        template <typename Pack>
+        constexpr static bool same(void) {
+            if constexpr (size != Pack::size) return false;
+            else {
+                if constexpr (size == 0) return true;
+                else if constexpr (std::is_same_v<head, typename Pack::head>) return tail::template same<typename Pack::tail>();
+                else return false;
+            }
+        }
     };
     
     

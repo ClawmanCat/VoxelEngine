@@ -19,11 +19,11 @@ function(set_compiler_profile)
     set_clang_option(-Wextra)
     # set_clang_option(-Wpedantic)
 
-    # Mute warnings due to lack of C++20 attribute support. (Remove for Clang 12)
-    set_clang_option(-Wno-unknown-attributes)
-
     # Cast function pointer to void pointer. This is required for interacting with both GetProcAddress and dlsym.
     set_clang_option(-Wno-microsoft-cast)
+
+    # Clang does not currently support [[no_unique_address]] on Windows (https://bugs.llvm.org/show_bug.cgi?id=50014).
+    set_clang_option(-Wno-unknown-attributes)
 
     # Unused variables may exist when they are only used in the debug configuration.
     # e.g. storing the result of some call and using it with VE_ASSERT, when VE_ASSERT is disabled.

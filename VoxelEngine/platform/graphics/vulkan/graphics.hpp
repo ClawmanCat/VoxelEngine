@@ -5,4 +5,6 @@
 #pragma once
 
 #include <VoxelEngine/platform/graphics/vulkan/common.hpp>
+#include <VoxelEngine/platform/graphics/vulkan/resource.hpp>
+#include <VoxelEngine/platform/graphics/vulkan/vulkan_helpers.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/window/window_details.hpp>

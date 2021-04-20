@@ -6,6 +6,7 @@
 #include <VoxelEngine/graphics/texture/texture_manager.hpp>
 
 #include <type_traits>
+#include <bit>
 
 
 namespace ve {
@@ -63,4 +64,9 @@ namespace ve {
     using tilepos      = typename voxel_settings::tilepos;
     using worldpos     = typename voxel_settings::worldpos;
     using voxel_mesh_t = typename voxel_settings::mesh_t;
+    
+    static_assert(
+        std::popcount(voxel_settings::chunk_size) == 1,
+        "Chunk size should be a power of 2."
+    );
 }

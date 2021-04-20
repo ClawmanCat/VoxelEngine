@@ -2,7 +2,6 @@
 
 #include <VEDemoGame/core/core.hpp>
 #include <VEDemoGame/entity/world.hpp>
-#include <VEDemoGame/entity/howlee.hpp>
 
 #include <VoxelEngine/dependent/game.hpp>
 
@@ -20,10 +19,11 @@ namespace demo_game {
         [[nodiscard]] static const ve::game_info* get_info(void);
         [[nodiscard]] static gfx::window& get_window(void) { return *window; }
         
-    private:
+    //private:
         static ve::shared<gfx::window> window;
         static ve::scene<ve::side::CLIENT> scene;
         static gfx::perspective_camera camera;
+        static inline world* world = nullptr;
     };
 }
 

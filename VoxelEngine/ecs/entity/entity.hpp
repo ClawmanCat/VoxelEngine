@@ -66,8 +66,20 @@ namespace ve {
         using most_derived_t = Derived;
         
         
-        template <typename... Args> void init(Args&&... args) {
-            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, template init<Args...>)) {
+        template <typename... Args> void deferred_init(Args&&... args) {
+            constexpr bool has_init_fn = requires (Derived e, Args... init_args) {
+                e.init(std::forward<Args>(init_args)...);
+            };
+    
+            // If the deriving class has no init function, this function shouldn't accept arguments for it.
+            static_assert(
+                has_init_fn || meta::pack<Args...>::template same<meta::pack<>>(),
+                "Attempt to initialize entity with incorrect parameters. "
+                "If your entity has an init function, make sure it has the correct signature. "
+                "If your entity has no such function, make sure no parameters were given when initializing it."
+            );
+            
+            if constexpr (has_init_fn) {
                 static_cast<Derived*>(this)->init(std::forward<Args>(args)...);
             }
         }

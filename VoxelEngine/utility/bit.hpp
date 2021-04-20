@@ -2,6 +2,8 @@
 
 #include <VoxelEngine/core/core.hpp>
 
+#include <bit>
+
 
 namespace ve {
     constexpr inline std::size_t next_aligned_address(std::size_t address, std::size_t alignment) {
@@ -35,5 +37,11 @@ namespace ve {
                 return positions[((u32)((value & -value) * 0x077CB531U)) >> 27];
             }
         #endif
+    }
+    
+    
+    template <typename T> requires std::is_integral_v<T>
+    constexpr static bool power_of_2(const T& v) {
+        return std::popcount(v) == 1;
     }
 }

@@ -88,7 +88,7 @@ namespace ve {
                     component_serialization_mode::NONE
             >>(&entity);
             
-            entity.init(std::forward<Args>(args)...);
+            entity.deferred_init(std::forward<Args>(args)...);
             
             return entity;
         }

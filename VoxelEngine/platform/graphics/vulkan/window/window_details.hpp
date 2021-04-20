@@ -47,7 +47,7 @@ namespace ve::detail::window_details {
         static void post_window_create(window& window, window::vsync_mode vsync_mode) {
             auto* ctx = bind_vulkan_context(window);
             
-            window.platform_data = std::make_unique<platform_window_data>();
+            window.platform_data = new platform_window_data();
             auto& windata = *window.platform_data;
             
             windata.surface = vk_helpers::create_surface(window.get_handle(), ctx->instance);
@@ -85,7 +85,7 @@ namespace ve::detail::window_details {
     
         
         static void post_window_destroy(window& window) {
-            window.platform_data = nullptr;
+            delete window.platform_data;
         }
         
         

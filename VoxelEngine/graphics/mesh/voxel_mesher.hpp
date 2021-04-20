@@ -29,6 +29,12 @@ namespace ve::graphics {
         
         // Empty tiles are very likely to be common, so optimize the mesher to skip these.
         const static tile_data void_type_td = tile_registry::instance().get_default_tile_state(tiles::TILE_VOID);
+        const static tile_data unknown_type_td = tile_registry::instance().get_default_tile_state(tiles::TILE_UNKNOWN);
+        
+        auto skip = [&](const auto& td) {
+            return td == void_type_td || td == unknown_type_td;
+        };
+        
         // For a given combination of tile data and occluded directions, the tile should always produce the same mesh,
         // so we can cache the result.
         static hash_map<detail::mesh_cache_key, voxel_mesh_t> mesh_cache;
@@ -52,7 +58,7 @@ namespace ve::graphics {
         chnk.foreach([&](const vec3i& pos, u32 index, const tile_data& data) {
             // Don't render air.
             // (This could be handled by the next statement, but this is such a common case it is worth eliminating the lookup.)
-            if (data == void_type_td) return;
+            if (skip(data)) return;
             
             
             // Don't render invisible tiles.
@@ -71,17 +77,17 @@ namespace ve::graphics {
                     const auto* neighbour_chunk = space.get_chunk(where + direction_vector(dir));
                     if (!neighbour_chunk) return false; // Chunk is not loaded, side is not occluded.
                     
-                    td = (*neighbour_chunk)[
+                    td = neighbour_chunk->tiles[
                         neighbour
                         - (vec3i(neighbour >= chunk_size) * chunk_size)
                         + (vec3i(neighbour < 0) * chunk_size)
                     ];
                 } else {
-                    td = chnk[neighbour];
+                    td = chnk.tiles[neighbour];
                 }
                 
                 
-                if (td == void_type_td) return false;
+                if (skip(td)) return false;
                 
                 const auto* t = tile_registry::instance().get_tile(td);
                 return t->occludes_side(opposing(dir));

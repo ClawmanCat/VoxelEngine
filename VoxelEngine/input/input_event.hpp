@@ -6,8 +6,8 @@
 #include <VoxelEngine/input/mouse.hpp>
 
 #include <VoxelEngine/platform/platform_include.hpp>
-#include VE_GRAPHICS_INCLUDE(window/window.hpp)"VoxelEngine/graphics/window/window.hpp"
-#include VE_GRAPHICS_INCLUDE(window/window_registry.hpp)"VoxelEngine/graphics/window/window_registry.hpp"
+#include <VoxelEngine/graphics/window/window.hpp>
+#include <VoxelEngine/graphics/window/window_registry.hpp>
 
 
 #define VE_IMPL_INPUT_EVENT(name, ...)              \
