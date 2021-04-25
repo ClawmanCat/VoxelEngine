@@ -18,8 +18,8 @@ namespace ve::graphics {
             source->draw();
         }
         
-        void set_target(shared<pipeline> source) {
-            this->source = std::move(source);
+        void set_target(shared<pipeline> src) {
+            source = std::move(src);
         }
     private:
         shared<pipeline> source;

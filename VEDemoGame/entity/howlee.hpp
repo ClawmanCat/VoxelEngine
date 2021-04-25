@@ -2,6 +2,7 @@
 
 #include <VEDemoGame/core/core.hpp>
 #include <VEDemoGame/game.hpp>
+#include <VEDemoGame/tile/tiles.hpp>
 
 #include <VoxelEngine/voxel/voxel.hpp>
 #include <VoxelEngine/voxel/tile/tile.hpp>
@@ -12,6 +13,9 @@
 namespace demo_game {
     class howlee : public ve::entity<howlee, ve::side::CLIENT> {
     public:
+        enum type { NORMAL, ASIMOV, BAD };
+        
+        
         using base = ve::entity<howlee, ve::side::CLIENT>;
         using base::base;
         
@@ -19,11 +23,15 @@ namespace demo_game {
         void init(void) {
             using vertex = gfx::flat_texture_vertex_3d;
             
-            special = ve::u32(get_id()) % 50 == 0;
-    
+            ve::u32 id = ve::u32(get_id());
+            if ((id + 0) % 50  == 0) howlee_type = ASIMOV;
+            if ((id + 1) % 100 == 0) howlee_type = BAD;
+            
+            
             gfx::subtexture texture = *ve::voxel_settings::tile_texture_manager.get_texture(
                 ve::io::paths::PATH_ENTITY_TEXTURES /
-                (special ? "asimov.png" : "howlee.png")
+                (howlee_type == NORMAL ? "howlee.png"s :
+                    howlee_type == ASIMOV ? "asimov.png"s : "bad_howlee.png"s)
             );
             
             
@@ -74,6 +82,22 @@ namespace demo_game {
             }
             
             
+            // Randomly jump.
+            if (!falling) {
+                const float random_jump = cheaprand::random_real();
+                const float jump_chance = 0.002f * dt_seconds;
+                const bool  jump        = random_jump < jump_chance;
+                
+                if (jump) {
+                    transform.linear_velocity.y += cheaprand::random_real(5.0f, 20.0f);
+                    
+                    transform.linear_velocity.x += cheaprand::random_real(-10.0f, 10.0f);
+                    transform.linear_velocity.z += cheaprand::random_real(-10.0f, 10.0f);
+                    return;
+                }
+            }
+            
+            
             // Stop if moving would cause collision.
             for (const auto& axis : std::array { &vec3f::x, &vec3f::z }) {
                 vec3f velocity_axis { 0 };
@@ -113,7 +137,7 @@ namespace demo_game {
             
             
             // Special Howlees can destroy tiles.
-            if (special && !falling) {
+            if (howlee_type == ASIMOV && !falling) {
                 const float destroy_random = cheaprand::random_real();
                 const float destroy_chance = 0.01f * dt_seconds;
                 const bool  destroy        = destroy_random < destroy_chance;
@@ -133,12 +157,26 @@ namespace demo_game {
                     );
                 }
             }
+            
+            
+            // Bad howlees can build
+            if (howlee_type == BAD && !falling) {
+                const float build_random = cheaprand::random_real();
+                const float build_chance = 0.5f * dt_seconds;
+                const bool  build        = build_random < build_chance;
+                
+                if (build) {
+                    game::world->voxels.set_tile((tilepos) transform.position, tile_stone);
+                    transform.position.y += 1;
+                    transform.linear_velocity = vec3f { 0 };
+                }
+            }
         }
 
 
         ve::renderable_component VE_COMPONENT(mesh);
         ve::transform_component VE_COMPONENT(transform);
-        bool VE_COMPONENT(special, SERVER, NONE) = false;
         bool VE_COMPONENT(falling, SERVER, NONE) = false;
+        type VE_COMPONENT(howlee_type, SERVER, NONE) = NORMAL;
     };
 }

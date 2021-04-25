@@ -70,9 +70,8 @@ namespace ve::graphics {
                 else if (result.channels == 3) result.channel_format = GL_RGB;
                 else if (result.channels == 2) result.channel_format = GL_RG;
                 else {
-                    result.channel_format == (result.type == types::DEPTH)
-                    ? GL_DEPTH_COMPONENT
-                    : GL_RED;
+                    if (result.type == types::DEPTH) result.channel_format = GL_DEPTH_COMPONENT;
+                    else result.channel_format = GL_RED;
                 }
             
             

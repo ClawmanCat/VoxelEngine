@@ -86,7 +86,7 @@ namespace ve {
         
         
         template <component_type Component>
-        constexpr void set_component(universal<Component> auto&& cmp) {
+        constexpr void set_component(Component&& cmp) {
             if constexpr (has_static_component<Component>()) {
                 // If this is a function component being changed to a non-default value,
                 // we can no longer optimize away the ECS lookup + indirect function call for this entity
@@ -96,6 +96,12 @@ namespace ve {
             }
     
             this->get_storage().template emplace_or_replace<Component>(this->id, std::forward<Component>(cmp));
+        }
+    
+    
+        template <component_type Component>
+        constexpr void set_component(const Component& cmp) {
+            set_component(copy(cmp));
         }
     
     

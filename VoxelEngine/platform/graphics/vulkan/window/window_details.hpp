@@ -76,7 +76,8 @@ namespace ve::detail::window_details {
                 ctx->physical_device,
                 window.get_handle(),
                 windata.surface,
-                translate_vsync_mode(vsync_mode)
+                translate_vsync_mode(vsync_mode),
+                { VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT }
             );
         }
     

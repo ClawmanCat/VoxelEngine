@@ -116,6 +116,7 @@ namespace ve::graphics {
         VE_GET_SET_CACHED(aspect_ratio, aspect_ratio, camera, perspective);
         VE_GET_SET_CACHED(near,         near,         camera, perspective);
         
+        
         [[nodiscard]] vec3f get_forwards (void) const { return +(*forwards); }
         [[nodiscard]] vec3f get_backwards(void) const { return -(*forwards); }
         [[nodiscard]] vec3f get_right    (void) const { return +(*right);    }

@@ -56,7 +56,7 @@ namespace ve::detail::window_details {
             switch (mode) {
                 case window::vsync_mode::IMMEDIATE:       return true;
                 case window::vsync_mode::VSYNC:           return true;
-                case window::vsync_mode::ADAPTIVE_VSYNC:  glewIsSupported("GL_EXT_swap_control_tear");
+                case window::vsync_mode::ADAPTIVE_VSYNC:  return glewIsSupported("GL_EXT_swap_control_tear");
                 case window::vsync_mode::TRIPLE_BUFFERED: return false; // Vulkan only.
             }
         }

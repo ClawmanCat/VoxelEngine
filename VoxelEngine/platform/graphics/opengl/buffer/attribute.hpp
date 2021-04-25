@@ -63,7 +63,7 @@ namespace ve::graphics {
     
     
     namespace detail {
-        template <typename T> consteval inline GLenum get_gl_type(void) {
+        template <typename T> constexpr inline GLenum get_gl_type(void) {
             GLenum type = GL_INVALID_ENUM;
     
             if constexpr (std::is_same_v<T, i8  >) type = GL_BYTE;

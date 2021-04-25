@@ -5,9 +5,8 @@
 
 
 namespace ve {
-    // Allows for universal-reference-like behaviour when the required type is known.
-    // e.g. void fn(universal<std::string> auto&&) will accept parameters of type
-    // std::string&, const std::string& and std::string&&.
+    // Trick for casting lambdas with an auto&&... parameter to a function pointer.
+    // Instead of auto&&..., universal auto... can be used.
     template <typename T, typename Stripped = std::remove_cvref_t<T>> concept universal =
         std::is_same_v<T, Stripped> ||
         std::is_same_v<T, Stripped&> ||

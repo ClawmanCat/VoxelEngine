@@ -14,7 +14,7 @@ case entry: out = #entry; break;
 
 
 namespace ve::graphics {
-    static void GLAPIENTRY opengl_error_callback(
+    inline void GLAPIENTRY opengl_error_callback(
         GLenum source,
         GLenum type,
         GLuint id,

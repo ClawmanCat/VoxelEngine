@@ -60,7 +60,14 @@ namespace ve {
             }
         }
         
-        if (!error) return str[0] == '-' ? -result : result;
+        if (!error) {
+            if constexpr (std::is_signed_v<T>) {
+                return str[0] == '-' ? -result : result;
+            } else {
+                // If T is unsigned, but the result is negative, don't return a value to trigger a compile error.
+                if (str[0] != '-') return result;
+            }
+        }
     }
     #pragma clang diagnostic pop
 }

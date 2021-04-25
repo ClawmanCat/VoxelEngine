@@ -34,6 +34,7 @@ namespace ve {
                     31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
                 };
             
+                #pragma warning(suppress : 4146) // Unary minus on unsigned type.
                 return positions[((u32)((value & -value) * 0x077CB531U)) >> 27];
             }
         #endif
@@ -41,7 +42,17 @@ namespace ve {
     
     
     template <typename T> requires std::is_integral_v<T>
-    constexpr static bool power_of_2(const T& v) {
-        return std::popcount(v) == 1;
+    constexpr static u8 popcount(T val) {
+        #if defined(VE_WINDOWS) && defined(VE_COMPILER_CLANG)
+            return __builtin_popcount(val);
+        #else
+            return std::popcount(val);
+        #endif
+    }
+    
+    
+    template <typename T> requires std::is_integral_v<T>
+    constexpr static bool power_of_2(T val) {
+        return popcount(val) == 1;
     }
 }

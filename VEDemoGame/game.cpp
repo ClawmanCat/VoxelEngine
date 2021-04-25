@@ -67,6 +67,20 @@ namespace demo_game {
         auto& im = ve::input_manager::instance();
         
         
+        // Summon more howlees.
+        if (im.is_pressed(SDLK_e)) {
+            for (ve::u32 i = 0; i < 50; ++i) {
+                howlee& h = game::scene.create_entity<howlee>();
+                h.transform.position = game::camera.get_position() + game::camera.get_forwards() * 2.5f;
+                h.transform.linear_velocity = ve::vec3f {
+                    ve::cheaprand::random_real(-10.0f, 10.0f),
+                    ve::cheaprand::random_real(-10.0f, 10.0f),
+                    ve::cheaprand::random_real(-10.0f, 10.0f)
+                };
+            }
+        }
+        
+        
         // Capture mouse.
         static bool captured = false;
         if (im.is_pressed(ve::mouse_button::LEFT)) captured = true;

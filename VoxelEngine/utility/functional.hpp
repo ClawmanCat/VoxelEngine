@@ -53,10 +53,10 @@ namespace ve {
     // For use with ranges::views::transform
     template <typename T>
     constexpr inline auto construct(void) {
-        return [] <typename... Args> (std::tuple<Args...>&& args) {
+        return [] <typename TupleLike> (TupleLike&& tpl) {
             return std::apply(
                 [](auto&&... args) { return T { std::move(args)... }; },
-                std::move(args)
+                std::move(tpl)
             );
         };
     }

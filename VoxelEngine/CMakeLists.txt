@@ -19,8 +19,7 @@ create_target(
     PUBLIC CONAN_PKG::tl-optional
     PUBLIC CONAN_PKG::tl-expected
     PUBLIC CONAN_PKG::range-v3
-    PUBLIC CONAN_PKG::vulkan-headers
-    PUBLIC CONAN_PKG::shaderc
+    PUBLIC CONAN_PKG::vulkan-sdk
 )
 
 # Copies the resource directories (assets, etc.) when VoxelEngine is built.
@@ -46,4 +45,5 @@ generate_si_header(VoxelEngine ecs ecs.hpp)
 generate_si_header(VoxelEngine voxel voxel.hpp)
 generate_si_header(VoxelEngine utility/serialize serialize.hpp)
 generate_si_header(VoxelEngine utility/traits traits.hpp)
+generate_si_header(VoxelEngine tests/framework framework.hpp)
 

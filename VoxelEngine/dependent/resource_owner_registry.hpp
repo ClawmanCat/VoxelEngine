@@ -46,15 +46,15 @@ namespace ve {
         
         
         void init_actor_resources(actor_id id) {
-            for (const auto& [self, callbacks] : callbacks) {
-                callbacks.on_created(self, id);
+            for (const auto& [self, callback] : callbacks) {
+                callback.on_created(self, id);
             }
         }
         
         
         void unload_actor_resources(actor_id id) {
-            for (const auto& [self, callbacks] : callbacks) {
-                callbacks.on_destroyed(self, id);
+            for (const auto& [self, callback] : callbacks) {
+                callback.on_destroyed(self, id);
             }
         }
     

@@ -83,6 +83,20 @@ namespace ve {
     };
     
     
+    namespace detail::iterate_class {
+        // Wrapping these methods is required to prevent Clang from crashing.
+        template <typename Pred, std::size_t I, typename Mem>
+        constexpr inline void invoke_deferred_0(Pred pred) {
+            pred.template operator()<I, Mem>();
+        }
+    
+        template <typename Pred, typename Mem>
+        constexpr inline void invoke_deferred_1(Pred pred) {
+            pred.template operator()<Mem>();
+        }
+    }
+    
+    
     // Iterate over each class member. Requires that the class can be decomposed using Boost PFR.
     // Pred should be a type such that at least one of the following statements is valid:
     // - Pred{}.operator()<std::size_t Index>(auto& value)
@@ -117,10 +131,11 @@ namespace ve {
             ([&] <std::size_t Index> (value<Index>) {
                 using member_type = boost::pfr::tuple_element_t<Index, Cls>;
             
-                if constexpr (requires (const Pred& p) { p.template operator()<Index, member_type>(); }) {
-                    pred.template operator()<Index, member_type>();
-                } else if constexpr (requires (const Pred& p) { p.template operator()<member_type>(); }) {
-                    pred.template operator()<member_type>();
+                // Workaround to prevent Clang crash.
+                if constexpr (requires (Pred p) { detail::iterate_class::invoke_deferred_0<Pred, Index, member_type>(p); }) {
+                    detail::iterate_class::invoke_deferred_0<Pred, Index, member_type>(pred);
+                } else if constexpr (requires (const Pred& p) { detail::iterate_class::invoke_deferred_1<Pred, member_type>(p); }) {
+                    detail::iterate_class::invoke_deferred_1<Pred, member_type>(pred);
                 } else {
                     // Equivalent to ve::always_false_v.
                     static_assert(!sizeof(member_type*), "Predicate for iterate_class_member cannot be invoked.");

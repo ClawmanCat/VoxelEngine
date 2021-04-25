@@ -7,17 +7,17 @@
 
 
 namespace ve::io::paths {
-    ve_init_order(0) const inline fs::path ROOT_DIR                     = fs::absolute(fs::current_path());
-    ve_init_order(0) const inline fs::path PATH_LOGS                    = ROOT_DIR / "logs/";
-    ve_init_order(0) const inline fs::path PATH_SETTINGS                = ROOT_DIR / "cfg/";
-    ve_init_order(0) const inline fs::path PATH_PLUGINS                 = ROOT_DIR / "plugins/";
-    ve_init_order(0) const inline fs::path PATH_ENGINE_DATA             = ROOT_DIR / "data/";
-    ve_init_order(0) const inline fs::path PATH_ASSETS                  = ROOT_DIR / "assets/";
-    ve_init_order(0) const inline fs::path PATH_SHADERS                 = PATH_ASSETS / "shaders/";
-    ve_init_order(0) const inline fs::path PATH_TEXTURES                = PATH_ASSETS / "textures/";
-    ve_init_order(0) const inline fs::path PATH_SOUNDS                  = PATH_ASSETS / "sounds/";
-    ve_init_order(0) const inline fs::path PATH_TILE_TEXTURES           = PATH_TEXTURES / "tiles/";
-    ve_init_order(0) const inline fs::path PATH_ENTITY_TEXTURES         = PATH_TEXTURES / "entities/";
+    const inline fs::path ROOT_DIR                          = fs::absolute(fs::current_path());
+    const inline fs::path PATH_LOGS                         = ROOT_DIR / "logs/";
+    const inline fs::path PATH_SETTINGS                     = ROOT_DIR / "cfg/";
+    const inline fs::path PATH_PLUGINS                      = ROOT_DIR / "plugins/";
+    const inline fs::path PATH_ENGINE_DATA                  = ROOT_DIR / "data/";
+    const inline fs::path PATH_ASSETS                       = ROOT_DIR / "assets/";
+    const inline fs::path PATH_SHADERS                      = PATH_ASSETS / "shaders/";
+    const inline fs::path PATH_TEXTURES                     = PATH_ASSETS / "textures/";
+    const inline fs::path PATH_SOUNDS                       = PATH_ASSETS / "sounds/";
+    const inline fs::path PATH_TILE_TEXTURES                = PATH_TEXTURES / "tiles/";
+    const inline fs::path PATH_ENTITY_TEXTURES              = PATH_TEXTURES / "entities/";
     
     
     inline const auto& get_required_paths(void) {
