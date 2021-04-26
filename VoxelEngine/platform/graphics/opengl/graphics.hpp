@@ -6,6 +6,7 @@
 
 #include <VoxelEngine/platform/graphics/opengl/buffer/attribute.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/buffer.hpp>
+#include <VoxelEngine/platform/graphics/opengl/buffer/buffer_settings.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/buffer_utils.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/indexed_vertex_buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/vertex.hpp>

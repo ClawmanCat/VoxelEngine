@@ -15,7 +15,10 @@ namespace ve::graphics {
     // Vertex buffer with indexing. (i.e. each vertex may be drawn multiple times, controlled by the index buffer.)
     template <typename Vertex, typename Index = u32> class indexed_vertex_buffer : public buffer {
     public:
-        explicit indexed_vertex_buffer(GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+        explicit indexed_vertex_buffer(
+            buffer_primitive primitive = buffer_primitive::TRIANGLES,
+            buffer_storage_mode storage_mode = buffer_storage_mode::WRITE_MANY_READ_MANY
+        ) :
             vao(0), vbo(), ebo(), primitive(primitive)
         {
             glGenVertexArrays(1, &vao);
@@ -37,7 +40,12 @@ namespace ve::graphics {
         }
     
     
-        explicit indexed_vertex_buffer(std::span<const Vertex> vertices, std::span<const Index> indices, GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+        explicit indexed_vertex_buffer(
+            std::span<const Vertex> vertices,
+            std::span<const Index> indices,
+            buffer_primitive primitive = buffer_primitive::TRIANGLES,
+            buffer_storage_mode storage_mode = buffer_storage_mode::WRITE_MANY_READ_MANY
+        ) :
             indexed_vertex_buffer(primitive, storage_mode)
         {
             update_vertices(vertices);
@@ -45,7 +53,11 @@ namespace ve::graphics {
         }
         
         
-        explicit indexed_vertex_buffer(const indexed_mesh<Vertex, Index>& mesh, GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+        explicit indexed_vertex_buffer(
+            const indexed_mesh<Vertex, Index>& mesh,
+            buffer_primitive primitive = buffer_primitive::TRIANGLES,
+            buffer_storage_mode storage_mode = buffer_storage_mode::WRITE_MANY_READ_MANY
+        ) :
             indexed_vertex_buffer(primitive, storage_mode)
         {
             update_vertices(mesh.vertices);
@@ -91,7 +103,7 @@ namespace ve::graphics {
             glBindBuffer(ebo.buffer_type, ebo.buffer_id);
             bind_vertex_layout<Vertex>(ctx);
             
-            glDrawElements(primitive, ebo.size, detail::get_gl_type<Index>(), nullptr);
+            glDrawElements((GLenum) primitive, ebo.size, detail::get_gl_type<Index>(), nullptr);
         }
         
         
@@ -118,6 +130,6 @@ namespace ve::graphics {
         GLuint vao;
         detail::buffer_storage<Vertex> vbo;
         detail::buffer_storage<Index> ebo;
-        GLenum primitive;
+        buffer_primitive primitive;
     };
 }

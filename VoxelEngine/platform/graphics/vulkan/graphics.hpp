@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <VoxelEngine/platform/graphics/vulkan/buffer/buffer_settings.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/common.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/resource.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/vulkan_helpers.hpp>

@@ -264,7 +264,7 @@ namespace ve::detail::vk_helpers {
         );
         
         
-        return { std::move(device), [](auto){} };
+        return { std::move(device) };
     }
     
     
@@ -349,7 +349,7 @@ namespace ve::detail::vk_helpers {
         vkGetDeviceQueue(device, family, 0, &queue);
         VE_ASSERT(queue != VK_NULL_HANDLE, "Failed to fetch Vulkan queue for family "s + std::to_string(family));
         
-        return { std::move(queue), [](auto){} };
+        return { std::move(queue) };
     }
     
     
@@ -543,9 +543,10 @@ namespace ve::detail::vk_helpers {
         
         return {
             std::move(view),
-            [device](auto&& view) {
-                vkDestroyImageView(device, view, nullptr);
-            }
+            [device](auto&& view) { vkDestroyImageView(device, view, nullptr); }
         };
     }
+    
+    
+    
 }

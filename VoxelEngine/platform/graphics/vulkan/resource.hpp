@@ -9,12 +9,12 @@ namespace ve::graphics {
     template <typename Resource> struct vk_resource {
         vk_resource(void) = default;
         
-        vk_resource(Resource&& res, std::function<void(Resource&&)> destructor)
+        vk_resource(Resource&& res, std::function<void(Resource&&)> destructor = nullptr)
             : value(std::move(res)), destructor(destructor), has_value(true)
         {}
         
         ~vk_resource(void) {
-            if (has_value) destructor(std::move(value));
+            if (has_value && destructor) destructor(std::move(value));
         }
         
         ve_swap_move_only(vk_resource, value, destructor, has_value);
