@@ -36,6 +36,8 @@ function(set_compiler_profile)
     set_clang_option(-Wno-unknown-attributes)
     # The standard does not seem to forbid this anymore in C++20 (http://eel.is/c++draft/cpp.replace.general#15).
     set_clang_option(-Wno-gnu-zero-variadic-macro-arguments)
+    # Macro expansion may result in superfluous semicolons.
+    set_clang_option(-Wno-extra-semi)
 
     # Unused variables may exist when they are only used in the debug configuration.
     # e.g. storing the result of some call and using it with VE_ASSERT, when VE_ASSERT is disabled.

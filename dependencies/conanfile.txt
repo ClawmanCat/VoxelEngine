@@ -16,6 +16,7 @@ lodepng/cci.20200615
 glm/0.9.9.8
 glew/2.1.0
 vulkan-sdk/1.0.0@clawmancat/stable
+shaderc/2019.0
 
 [options]
 boost:header_only=True

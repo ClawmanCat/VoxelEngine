@@ -52,7 +52,7 @@ namespace demo_game {
             );
             
             mesh.buffers.push_back(gfx::shader_buffer_pair {
-                gfx::shader_library::get_shader("atlas_texture_3d"s),
+                gfx::shader_library::instance().get_shader("atlas_texture_3d"s),
                 std::move(buffer)
             });
         }

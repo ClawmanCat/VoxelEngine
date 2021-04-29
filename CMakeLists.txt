@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.18)
 project("VoxelEngine")
 
 
@@ -86,6 +86,7 @@ add_custom_target(
             ${CMAKE_SOURCE_DIR}/out/conan/bin
             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
+
 
 # Add targets.
 add_subdirectory(VoxelEngine)

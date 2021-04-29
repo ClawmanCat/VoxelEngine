@@ -10,7 +10,7 @@ For the engine itself, any compiler (With C++20 support) should work in theory, 
 and other compilers may lack the required C++20 features.  
 To install the dependencies, you will need Conan (`pip install conan`). 
 It is recommended to use Ninja as the generator, as other generators have not been tested.  
-When using `VE_GRAPHICS_API=vulkan`, the Vulkan SDK is required to build the engine.
+The Vulkan SDK is required to build the engine, even if you're compiling with `VE_GRAPHICS_API=opengl`.
 
 To build the project (with Ninja):
 ```

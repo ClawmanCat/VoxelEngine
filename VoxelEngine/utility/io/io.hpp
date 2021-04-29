@@ -51,6 +51,13 @@ namespace ve::io {
     }
     
     
+    // Returns the stem of the path, using full_extension to remove the extension.
+    inline std::string full_stem(const fs::path& path) {
+        auto filename = path.filename().string();
+        return filename.substr(0, filename.length() - full_extension(path).length());
+    }
+    
+    
     // File IO Methods
     
     inline expected<text_file> read_text(const fs::path& path) {

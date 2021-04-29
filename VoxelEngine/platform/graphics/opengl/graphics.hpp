@@ -15,12 +15,8 @@
 #include <VoxelEngine/platform/graphics/opengl/context.hpp>
 #include <VoxelEngine/platform/graphics/opengl/error_callback.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
-#include <VoxelEngine/platform/graphics/opengl/shader/shader_compiler.hpp>
-#include <VoxelEngine/platform/graphics/opengl/shader/shader_layout.hpp>
-#include <VoxelEngine/platform/graphics/opengl/shader/shader_layout_parser.hpp>
-#include <VoxelEngine/platform/graphics/opengl/shader/shader_library.hpp>
 #include <VoxelEngine/platform/graphics/opengl/shader/shader_program.hpp>
-#include <VoxelEngine/platform/graphics/opengl/shader/shader_type.hpp>
+#include <VoxelEngine/platform/graphics/opengl/shader/spirv_to_gl_shader.hpp>
 #include <VoxelEngine/platform/graphics/opengl/target/framebuffer_target.hpp>
 #include <VoxelEngine/platform/graphics/opengl/target/layerstack_target.hpp>
 #include <VoxelEngine/platform/graphics/opengl/target/target.hpp>

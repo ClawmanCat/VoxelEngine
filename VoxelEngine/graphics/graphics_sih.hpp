@@ -8,6 +8,9 @@
 #include <VoxelEngine/graphics/camera/perspective_camera.hpp>
 #include <VoxelEngine/graphics/mesh/voxel_mesher.hpp>
 #include <VoxelEngine/graphics/mesh/voxel_mesher_helpers.hpp>
+#include <VoxelEngine/graphics/shader/shader_compiler.hpp>
+#include <VoxelEngine/graphics/shader/shader_library.hpp>
+#include <VoxelEngine/graphics/shader/shader_stage.hpp>
 #include <VoxelEngine/graphics/shader_buffer_pair.hpp>
 #include <VoxelEngine/graphics/texture/aligned_texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/generative_texture_atlas.hpp>

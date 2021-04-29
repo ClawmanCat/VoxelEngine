@@ -1,25 +1,21 @@
 macro(run_conan)
     include(cmake_conan)
+    include(utility)
 
     # Read remote list.
-    file(READ "${CMAKE_SOURCE_DIR}/dependencies/remotes.txt" remotes)
-    string(REPLACE "\n" "${Esc};" remotes ${remotes})
-
-    # Parse name / URL pairs and add remotes.
-    foreach(remote IN ITEMS ${remotes})
-        separate_arguments(remote)
-
-        list(GET remote 0 name)
-        list(GET remote 1 url)
-
+    function(add_remote name url)
         conan_add_remote(NAME ${name} URL ${url})
-    endforeach()
+    endfunction()
+
+    parse_kv_file("${CMAKE_SOURCE_DIR}/dependencies/remotes.txt" "add_remote")
+
 
     # Use a profile if we're in Windows, since we need to set the compiler and pick between MD and MDd.
     string(TOLOWER ${CMAKE_BUILD_TYPE} config)
     if(WIN32)
         set(profile windows_${config}.conanprofile)
     endif()
+
 
     # conan_cmake_run from cmake_conan.cmake does not seem to work,
     # so just use it to add the remotes and call Conan manually.

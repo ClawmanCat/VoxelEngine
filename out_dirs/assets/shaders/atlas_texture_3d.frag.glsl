@@ -5,7 +5,7 @@ in float frag_log_z;
 in flat uint frag_tex_index;
 
 // Should be large enough for the number of textures used.
-uniform sampler2D tex[4];
+layout (location = 3) uniform sampler2D tex[4];
 
 out vec4 color;
 

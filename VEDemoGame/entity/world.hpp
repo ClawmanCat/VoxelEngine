@@ -16,7 +16,7 @@ namespace demo_game {
         void init(void) {
             // Add the voxel space's mesh to be part of this entity's mesh.
             mesh.buffers.push_back(gfx::shader_buffer_pair {
-                gfx::shader_library::get_shader("atlas_texture_3d"s),
+                gfx::shader_library::instance().get_shader("atlas_texture_3d"s),
                 voxels.get_mesh()
             });
             
