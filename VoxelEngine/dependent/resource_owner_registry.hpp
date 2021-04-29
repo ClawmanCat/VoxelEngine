@@ -18,7 +18,9 @@ namespace ve {
         
         
         template <typename D> void add_owner(resource_owner<D>& owner) {
-            VE_LOG_DEBUG("Registered new resource owner of type "s + ctti::nameof<D>().cppstring());
+            #ifndef VE_QUIET_RES_OWNER
+                VE_LOG_DEBUG("Registered new resource owner of type "s + ctti::nameof<D>().cppstring());
+            #endif
             
             callbacks.insert({
                 (void*) &owner,
@@ -28,7 +30,10 @@ namespace ve {
         
         
         template <typename D> void remove_owner(resource_owner<D>& owner) {
-            VE_LOG_DEBUG("Removed resource owner of type "s + ctti::nameof<D>().cppstring());
+            #ifndef VE_QUIET_RES_OWNER
+                VE_LOG_DEBUG("Removed resource owner of type "s + ctti::nameof<D>().cppstring());
+            #endif
+            
             callbacks.erase((void*) &owner);
         }
         
@@ -41,15 +46,15 @@ namespace ve {
         
         
         void init_actor_resources(actor_id id) {
-            for (const auto& [self, callbacks] : callbacks) {
-                callbacks.on_created(self, id);
+            for (const auto& [self, callback] : callbacks) {
+                callback.on_created(self, id);
             }
         }
         
         
         void unload_actor_resources(actor_id id) {
-            for (const auto& [self, callbacks] : callbacks) {
-                callbacks.on_destroyed(self, id);
+            for (const auto& [self, callback] : callbacks) {
+                callback.on_destroyed(self, id);
             }
         }
     

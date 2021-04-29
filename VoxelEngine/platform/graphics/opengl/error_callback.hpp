@@ -14,7 +14,7 @@ case entry: out = #entry; break;
 
 
 namespace ve::graphics {
-    static void GLAPIENTRY opengl_error_callback(
+    inline void GLAPIENTRY opengl_error_callback(
         GLenum source,
         GLenum type,
         GLuint id,
@@ -73,16 +73,14 @@ namespace ve::graphics {
         
         if (one_of((real_enum_t) type, GL_DEBUG_TYPE_ERROR, GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR)) level = logger::level::ERROR;
         if (one_of((real_enum_t) type, GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR, GL_DEBUG_TYPE_PERFORMANCE, GL_DEBUG_TYPE_PORTABILITY)) level = logger::level::WARNING;
+    
+        #ifdef VE_QUIET_GRAPHICS
+            if (level == logger::level::DEBUG) return;
+        #endif
         
         loggers::ve_logger.message(
             "OpenGL "s + type_str + " event with severity " + severity_str + " caught from " + source_str + ": " + message,
             level
         );
-        
-        
-        // Put breakpoint here to debug errors.
-        if (level == logger::level::ERROR) {
-            ((void) 0);
-        }
     }
 }

@@ -42,7 +42,7 @@ namespace ve::graphics {
         
         
         template <typename T>
-        void set_uniform_value(universal<std::string> auto&& name, T&& value, ve_default_actor(owner)) {
+        void set_uniform_value(std::string&& name, T&& value, ve_default_actor(owner)) {
             auto setter = uniform_setter {
                 .setter = [value = std::forward<T>(value)](const std::string& name, context& ctx) {
                     set_uniform(name.c_str(), value, ctx);
@@ -50,12 +50,18 @@ namespace ve::graphics {
                 .owner = owner
             };
             
-            uniforms[std::forward<decltype(name)>(name)] = std::move(setter);
+            uniforms[std::move(name)] = std::move(setter);
+        }
+    
+    
+        template <typename T>
+        void set_uniform_value(std::string_view name, T&& value, ve_default_actor(owner)) {
+            set_uniform_value(std::string { name }, std::forward<T>(value), owner);
         }
         
     
         template <typename T, typename Pred> requires requires (Pred p) { producer_fn<T> { p }; }
-        void set_uniform_producer(universal<std::string> auto&& name, Pred&& fn, ve_default_actor(owner)) {
+        void set_uniform_producer(std::string&& name, Pred&& fn, ve_default_actor(owner)) {
             auto setter = uniform_setter {
                 .setter = [fn = producer_fn<T> { std::forward<Pred>(fn) }](const std::string& name, context& ctx) {
                     set_uniform(name.c_str(), fn(), ctx);
@@ -63,7 +69,13 @@ namespace ve::graphics {
                 .owner = owner
             };
     
-            uniforms[std::forward<decltype(name)>(name)] = std::move(setter);
+            uniforms[std::move(name)] = std::move(setter);
+        }
+    
+    
+        template <typename T, typename Pred> requires requires (Pred p) { producer_fn<T> { p }; }
+        void set_uniform_producer(std::string_view name, Pred&& fn, ve_default_actor(owner)) {
+            set_uniform_producer(std::string { name }, std::forward<Pred>(fn), owner);
         }
         
         

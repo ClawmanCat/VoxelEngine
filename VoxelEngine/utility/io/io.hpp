@@ -42,12 +42,19 @@ namespace ve::io {
         std::string path_string = path.string();
         std::size_t last_dot = path_string.size();
         
-        for (std::size_t i = path_string.size() - 1; i >= 0; --i) {
-            if (path_string[i] == '.') last_dot = i;
-            if (path_string[i] == '/' || path_string[i] == '\\') break;
+        for (i64 i = path_string.size() - 1; i >= 0; --i) {
+            if (path_string[i] == '.') last_dot = (u64) i;
+            if (path_string[i] == '/' || path_string[(u64) i] == '\\') break;
         }
         
         return path_string.substr(last_dot, std::string::npos);
+    }
+    
+    
+    // Returns the stem of the path, using full_extension to remove the extension.
+    inline std::string full_stem(const fs::path& path) {
+        auto filename = path.filename().string();
+        return filename.substr(0, filename.length() - full_extension(path).length());
     }
     
     

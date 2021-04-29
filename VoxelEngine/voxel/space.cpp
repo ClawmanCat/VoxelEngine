@@ -9,22 +9,45 @@ namespace ve {
     {}
     
     
-    [[nodiscard]] const tile_data& voxel_space::operator[](const vec3i& where) const {
+    [[nodiscard]] const tile_data& voxel_space::get(const vec3i& where) const {
         const chunkpos chunk_pos = chunk_position(where);
         auto it = chunks.find(chunk_pos);
-        
+    
         if (it == chunks.end()) {
-            // If the tile is not currently loaded, return an instance of TILE_UNKNOWN.
-            // Since we return by mutable reference (const may be cast away by base),
-            // we have to account for the situation where the tile data is assigned to by a user.
-            static thread_local tile_data unknown;
-            unknown = *tiles::TILE_UNKNOWN;
-            
+            const static tile_data unknown = *tiles::TILE_UNKNOWN;
             return unknown;
         }
-        
+    
         chunk& chnk = *(it->second.chunk);
-        return chnk[where - tile_position(chunk_pos)];
+        return chnk.tiles[where - tile_position(chunk_pos)];
+    }
+    
+    
+    void voxel_space::set(const vec3i& where, const tile_data& td) {
+        const chunkpos chunk_pos    = chunk_position(where);
+        const tilepos  in_chunk_pos = where - tile_position(chunk_pos);
+        
+        auto it = chunks.find(chunk_pos);
+        if (it == chunks.end()) {
+            VE_LOG_WARN("Attempt to set tile in unloaded chunk. Modification was not recorded.");
+            return;
+        }
+    
+        chunk& chnk = *(it->second.chunk);
+        chnk.tiles[in_chunk_pos] = td;
+        
+        // Mark the current chunk as needing a new mesh, and also neighbouring chunks if the tile is on a chunk border.
+        // Note: the mesh update method already checks if the marked chunks are actually loaded, so we don't have to do so here.
+        unmeshed_chunks.insert(chunk_pos);
+        
+        for (auto dir : direction{}) {
+            auto axis = axis_of_traversal<tilepos>(dir);
+            auto neighbour = in_chunk_pos + direction_vector(dir);
+            
+            if (neighbour.*axis < 0 || neighbour.*axis >= (i32) voxel_settings::chunk_size) {
+                unmeshed_chunks.insert(chunk_pos + direction_vector(dir));
+            }
+        }
     }
 
 
@@ -68,8 +91,15 @@ namespace ve {
 
     
     void voxel_space::update_mesh(void) {
+        if (!unmeshed_chunks.empty()) {
+            VE_LOG_DEBUG("Remeshing "s + std::to_string(unmeshed_chunks.size()) + " chunks.");
+        }
+        
         for (const auto& pos : unmeshed_chunks) {
-            auto& chnk = chunks[pos];
+            auto it = chunks.find(pos);
+            if (it == chunks.end()) continue;
+            
+            auto& chnk = it->second;
             
             
             using buffer_t = std::conditional_t<
@@ -82,16 +112,15 @@ namespace ve {
                     typename voxel_mesh_t::vertex_t
                 >
             >;
-
-
+            
+            mesh->erase(chnk.mesh);
             chnk.mesh = std::make_shared<buffer_t>(graphics::mesh_chunk(pos, *chnk.chunk, *this));
 
             chnk.mesh->set_uniform_value(
                 "transform"s,
                 translation_matrix((vec3f) (pos * (i32) voxel_settings::chunk_size))
             );
-
-
+            
             mesh->insert(copy(chnk.mesh));
         }
         

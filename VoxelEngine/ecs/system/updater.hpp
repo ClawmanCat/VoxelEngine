@@ -25,12 +25,13 @@ namespace ve {
     public:
         using update_component  = static_update_component<Side>;
         using address_component = static_address_component<Side>;
+        using base = system<static_updater<Side>, Side, meta::pack<update_component, address_component>>;
         
         
         static_updater(void) = default;
         
         
-        void update(view_type& view, microseconds dt) {
+        void update(typename base::view_type& view, microseconds dt) {
             for (auto e : view) {
                 auto [update_fn, address] = view.template get<update_component, address_component>(e);
                 update_fn.template invoke_checked<void, void*, microseconds>((void*) address, dt);

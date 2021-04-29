@@ -12,12 +12,11 @@
 
 #ifdef VE_DEBUG
     #define VE_LOG_DEBUG(...) ve::loggers::ve_logger.debug(__VA_ARGS__)
-    #define VE_LOG_INFO(...)  ve::loggers::ve_logger.info (__VA_ARGS__)
 #else
     #define VE_LOG_DEBUG(...) /* Not Enabled. */
-    #define VE_LOG_INFO(...)  /* Not Enabled. */
 #endif
 
+#define VE_LOG_INFO(...)  ve::loggers::ve_logger.info (__VA_ARGS__)
 #define VE_LOG_WARN(...)  ve::loggers::ve_logger.warn (__VA_ARGS__)
 #define VE_LOG_ERROR(...) ve::loggers::ve_logger.error(__VA_ARGS__)
 #define VE_LOG_FATAL(...) ve::loggers::ve_logger.fatal(__VA_ARGS__)

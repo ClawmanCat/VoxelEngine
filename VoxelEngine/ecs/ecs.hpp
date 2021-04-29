@@ -10,6 +10,7 @@
 #include <VoxelEngine/ecs/component/named_component.hpp>
 #include <VoxelEngine/ecs/component/renderable_component.hpp>
 #include <VoxelEngine/ecs/component/static_component.hpp>
+#include <VoxelEngine/ecs/component/static_component_helpers.hpp>
 #include <VoxelEngine/ecs/component/static_component_info.hpp>
 #include <VoxelEngine/ecs/component/transform_component.hpp>
 #include <VoxelEngine/ecs/component/value_component.hpp>

@@ -1,12 +1,17 @@
-#include <VoxelEngine/platform/graphics/opengl/window/window.hpp>
-#include <VoxelEngine/platform/graphics/opengl/window/window_registry.hpp>
-#include <VoxelEngine/platform/graphics/opengl/common.hpp>
+#include <VoxelEngine/graphics/window/window.hpp>
+#include <VoxelEngine/graphics/window/window_registry.hpp>
 #include <VoxelEngine/input/input_manager.hpp>
+
+#include <VoxelEngine/platform/platform_include.hpp>
+#include VE_GRAPHICS_INCLUDE(window/window_details.hpp)
 
 
 namespace ve::graphics {
+    using winimpl = windetail::platform_window_methods;
+    
+    
     window::window(const arguments& args) : layerstack(), owner(args.owner) {
-        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, SDL_TRUE);
+        winimpl::pre_window_create(*this);
         
         handle = SDL_CreateWindow(
             args.title,
@@ -14,13 +19,14 @@ namespace ve::graphics {
             args.position.y,
             args.size.x,
             args.size.y,
-            args.flags | SDL_WINDOW_OPENGL
+            args.flags | winimpl::get_flags()
         );
         
         VE_ASSERT(handle, "Failed to create window: "s + SDL_GetError());
+    
+        winimpl::post_window_create(*this, args.vsync_mode);
         
         set_window_mode(args.window_mode);
-        set_vsync_mode(args.vsync_mode);
         if (args.maximized) maximize();
         
         window_registry::instance().add_window(this, args.owner);
@@ -45,25 +51,22 @@ namespace ve::graphics {
     void window::close(void) {
         if (!handle) return;
     
+        winimpl::pre_window_destroy(*this);
         window_registry::instance().remove_window(this, owner);
         
         SDL_DestroyWindow(handle);
         handle = nullptr;
+    
+        winimpl::post_window_destroy(*this);
     }
     
     
     void window::draw(void) {
         VE_ASSERT(handle, "Attempt to draw to closed window.");
-        bind_opengl_context(handle);
-        
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        const auto size = get_canvas_size();
-        glViewport(0, 0, size.x, size.y);
-        
+    
+        winimpl::pre_draw(*this);
         layerstack::draw();
-        
-        SDL_GL_SwapWindow(handle);
+        winimpl::post_draw(*this);
     }
     
     
@@ -87,23 +90,7 @@ namespace ve::graphics {
     
     
     void window::set_vsync_mode(vsync_mode mode) {
-        bind_opengl_context(handle);
-        
-        switch (mode) {
-            case vsync_mode::IMMEDIATE:
-                SDL_GL_SetSwapInterval(0);
-                
-                break;
-            case vsync_mode::VSYNC:
-                SDL_GL_SetSwapInterval(1);
-                
-                break;
-            case vsync_mode::ADAPTIVE_VSYNC:
-                VE_ASSERT(supports_adaptive_vsync(), "Adaptive Vsync is not supported on this device.");
-                SDL_GL_SetSwapInterval(-1);
-                
-                break;
-        }
+        winimpl::set_vsync_mode(*this, mode);
     }
     
     
@@ -117,31 +104,15 @@ namespace ve::graphics {
     }
     
     
-    [[nodiscard]] vec2i window::get_window_size(void) const {
+    [[nodiscard]] vec2i window::get_canvas_size(void) const {
         vec2i result;
         SDL_GetWindowSize(handle, &result.x, &result.y);
         return result;
     }
     
     
-    void window::set_window_size(const vec2i& size) {
-        SDL_SetWindowSize(handle, size.x, size.y);
-    }
-    
-    
-    [[nodiscard]] vec2i window::get_canvas_size(void) const {
-        bind_opengl_context(handle);
-    
-        vec2i result;
-        SDL_GL_GetDrawableSize(handle, &result.x, &result.y);
-        
-        return result;
-    }
-    
-    
     void window::set_canvas_size(const vec2i& size) {
-        const auto border = get_window_size() - get_canvas_size();
-        set_window_size(size + border);
+        SDL_SetWindowSize(handle, size.x, size.y);
     }
     
     
@@ -172,10 +143,5 @@ namespace ve::graphics {
     
     u32 window::get_window_id(void) const {
         return SDL_GetWindowID(handle);
-    }
-    
-    
-    bool window::supports_adaptive_vsync(void) {
-        return glewIsSupported("GL_EXT_swap_control_tear");
     }
 }

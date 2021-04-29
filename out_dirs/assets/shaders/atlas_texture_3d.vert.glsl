@@ -1,8 +1,8 @@
 #version 430
 
-uniform mat4 camera;
-uniform float near;
-uniform mat4 transform = mat4(1.0);
+layout (location = 0) uniform mat4 camera;
+layout (location = 1) uniform float near;
+layout (location = 2) uniform mat4 transform = mat4(1.0);
 
 in vec3 position;
 in vec2 uv;

@@ -8,45 +8,70 @@
 
 
 namespace ve {
-    template <typename T> constexpr inline T radians(const T& degrees) {
-        return degrees * (T(pi) / T(180));
-    }
-    
-    template <typename T> constexpr inline T degrees(const T& radians) {
-        return radians * (T(180) / T(pi));
-    }
-    
-    template <typename T> constexpr inline bool in(const T& val, const T& min, const T& max) {
-        return val >= min && val < max;
-    }
-    
-    
     template <typename T> constexpr T max_value = std::numeric_limits<T>::max();
     template <typename T> constexpr T min_value = std::numeric_limits<T>::lowest();
     template <typename T> constexpr T infinity  = std::numeric_limits<T>::infinity();
     
     
+    template <typename T> constexpr inline T radians(T degrees) {
+        return degrees * (T(pi) / T(180));
+    }
+    
+    
+    template <typename T> constexpr inline T degrees(T radians) {
+        return radians * (T(180) / T(pi));
+    }
+    
+    
+    template <typename T> constexpr inline T difference(T a, T b) {
+        return (T) std::abs(i64(a) - i64(b));
+    }
+    
+    
+    template <typename T> requires std::is_integral_v<T>
+    constexpr inline T pow(T v, T exp) {
+        T result = 1;
+        
+        while (true) {
+            if (exp & 1) result *= v;
+            exp >>= 1;
+            
+            if (!exp) break;
+            v *= v;
+        }
+        
+        return result;
+    }
+    
+    
+    template <typename T> constexpr inline bool in(T val, T min, T max) {
+        return val >= min && val < max;
+    }
+    
+    
     template <typename T>
-    [[nodiscard]] constexpr inline T square(const T& val) {
+    [[nodiscard]] constexpr inline T square(T val) {
         return val * val;
     }
     
+    
     template <typename T>
-    [[nodiscard]] constexpr inline T cube(const T& val) {
+    [[nodiscard]] constexpr inline T cube(T val) {
         return val * val * val;
     }
     
     
     template <typename T>
-    [[nodiscard]] constexpr inline T flatten(const vec3<T>& pos, const T& size) {
-        return pos.x + (pos.y * size) + (pos.z * square(size));
+    [[nodiscard]] constexpr inline T flatten(const vec3<T>& pos, T size) {
+        return pos.z + (pos.y * size) + (pos.x * square(size));
     }
     
+    
     template <typename T>
-    [[nodiscard]] constexpr inline vec3<T> unflatten(const T& pos, const T& size) {
-        T x = pos % size;
+    [[nodiscard]] constexpr inline vec3<T> unflatten(T pos, T size) {
+        T x = pos / square(size);
         T y = (pos / size) % size;
-        T z = pos / square(size);
+        T z = pos % size;
         
         return { x, y, z };
     }

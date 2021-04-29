@@ -66,15 +66,27 @@ namespace ve {
         using most_derived_t = Derived;
         
         
-        template <typename... Args> void init(Args&&... args) {
-            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, template init<Args...>)) {
+        template <typename... Args> void deferred_init(Args&&... args) {
+            constexpr bool has_init_fn = requires (Derived e, Args... init_args) {
+                e.init(std::forward<Args>(init_args)...);
+            };
+    
+            // If the deriving class has no init function, this function shouldn't accept arguments for it.
+            static_assert(
+                has_init_fn || meta::pack<Args...>::template same<meta::pack<>>(),
+                "Attempt to initialize entity with incorrect parameters. "
+                "If your entity has an init function, make sure it has the correct signature. "
+                "If your entity has no such function, make sure no parameters were given when initializing it."
+            );
+            
+            if constexpr (has_init_fn) {
                 static_cast<Derived*>(this)->init(std::forward<Args>(args)...);
             }
         }
         
         
         template <component_type Component>
-        constexpr void set_component(universal<Component> auto&& cmp) {
+        constexpr void set_component(Component&& cmp) {
             if constexpr (has_static_component<Component>()) {
                 // If this is a function component being changed to a non-default value,
                 // we can no longer optimize away the ECS lookup + indirect function call for this entity
@@ -84,6 +96,12 @@ namespace ve {
             }
     
             this->get_storage().template emplace_or_replace<Component>(this->id, std::forward<Component>(cmp));
+        }
+    
+    
+        template <component_type Component>
+        constexpr void set_component(const Component& cmp) {
+            set_component(copy(cmp));
         }
     
     

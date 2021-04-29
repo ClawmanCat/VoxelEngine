@@ -7,9 +7,7 @@
 #include <VoxelEngine/utility/io/io.hpp>
 #include <VoxelEngine/input/input_manager.hpp>
 #include <VoxelEngine/ecs/scene_registry.hpp>
-
-#include <VoxelEngine/platform/platform_include.hpp>
-#include VE_GRAPHICS_INCLUDE(window/window_registry.hpp)
+#include <VoxelEngine/graphics/window/window_registry.hpp>
 
 #include <magic_enum.hpp>
 
@@ -73,7 +71,12 @@ namespace ve {
     
     
     void engine::tick(void) {
-        microseconds last_dt = duration_cast<microseconds>(steady_clock::now() - engine::last_tick_time);
+        // Assume target dt for first tick.
+        microseconds last_dt = engine::tick_count
+            ? duration_cast<microseconds>(steady_clock::now() - engine::last_tick_time)
+            : engine::server_target_dt;
+    
+    
         engine::last_tick_time = steady_clock::now();
         
         game_callbacks::on_game_pre_loop(engine::tick_count, last_dt);

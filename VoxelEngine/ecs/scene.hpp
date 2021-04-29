@@ -6,6 +6,7 @@
 #include <VoxelEngine/dependent/resource_owner.hpp>
 #include <VoxelEngine/ecs/scene_registry.hpp>
 #include <VoxelEngine/ecs/system/system_view_type.hpp>
+#include <VoxelEngine/ecs/component/component.hpp>
 #include <VoxelEngine/utility/priority.hpp>
 
 #include <entt/entt.hpp>
@@ -66,7 +67,7 @@ namespace ve {
         
         
         void update(microseconds dt) {
-            for (auto& [priority, storage] : systems | views::reverse) storage.system_fn(dt);
+            for (auto& [priority, system] : systems | views::reverse) system.system_fn(dt);
         }
         
         
@@ -88,7 +89,7 @@ namespace ve {
                     component_serialization_mode::NONE
             >>(&entity);
             
-            entity.init(std::forward<Args>(args)...);
+            entity.deferred_init(std::forward<Args>(args)...);
             
             return entity;
         }

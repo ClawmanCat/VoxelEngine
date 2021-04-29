@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.18)
 project("VoxelEngine")
 
 
@@ -14,6 +14,7 @@ endif()
 
 # This flag is used in ./cmake/create_target.cmake to generate test targets if it is enabled.
 option(ENABLE_TESTING "Enable VoxelEngine tests." OFF)
+option(NO_SETTINGS_PROFILE "Disable automatic selection of compiler settings." OFF)
 
 
 # Prevent running CMake concurrently.
@@ -40,13 +41,32 @@ set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/out")
 # Make sure symbols are exported on Windows.
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-# Load compiler settings profile.
-include(clang_profile)
-set_compiler_profile()
 
 # Run Conan
 include(run_conan)
 run_conan()
+
+
+# Load compiler settings profile.
+if(${NO_SETTINGS_PROFILE})
+    message(STATUS "No settings profile will be applied")
+    function(set_compiler_profile)
+    endfunction()
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    # Note: this detects Clang++, Clang-cl and AppleClang.
+    message(STATUS "Using Clang settings profile")
+    include(clang_profile)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    message(STATUS "Using MSVC settings profile")
+    include(msvc_profile)
+else()
+    message(STATUS "No settings profile will be applied (Unknown compiler)")
+    function(set_compiler_profile)
+    endfunction()
+endif()
+
+set_compiler_profile()
+
 
 # Preprocessor Definitions
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS SDL_MAIN_HANDLED)
@@ -66,6 +86,7 @@ add_custom_target(
             ${CMAKE_SOURCE_DIR}/out/conan/bin
             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
+
 
 # Add targets.
 add_subdirectory(VoxelEngine)

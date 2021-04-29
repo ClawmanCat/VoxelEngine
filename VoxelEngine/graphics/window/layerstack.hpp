@@ -4,8 +4,10 @@
 #include <VoxelEngine/dependent/resource_owner.hpp>
 #include <VoxelEngine/utility/functional.hpp>
 #include <VoxelEngine/utility/logger.hpp>
-#include <VoxelEngine/platform/graphics/opengl/context.hpp>
-#include <VoxelEngine/platform/graphics/opengl/target/layerstack_target.hpp>
+
+#include <VoxelEngine/platform/platform_include.hpp>
+#include VE_GRAPHICS_INCLUDE(context.hpp)
+#include VE_GRAPHICS_INCLUDE(target/layerstack_target.hpp)
 
 
 namespace ve::graphics {

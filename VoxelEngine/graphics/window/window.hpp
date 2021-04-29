@@ -1,26 +1,35 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/platform/graphics/opengl/context.hpp>
-#include <VoxelEngine/platform/graphics/opengl/window/layerstack.hpp>
+#include <VoxelEngine/graphics/window/layerstack.hpp>
 
 #include <SDL.h>
 
 #include <type_traits>
 
 
+namespace ve::detail::window_details {
+    struct platform_window_data;
+    struct platform_window_methods;
+}
+
 namespace ve::graphics {
+    namespace windetail = ve::detail::window_details;
+    
+    
     namespace detail {
         using window_flags_t = std::underlying_type_t<SDL_WindowFlags>;
     }
     
     
+    // The window class contains a platform agnostic API to create and draw to a window.
+    // Platform-specific implementation details are handled in {current platform}/window/window_detail.hpp
     class window : public layerstack {
     public:
         constexpr static inline i32 WINDOW_CENTERED = SDL_WINDOWPOS_CENTERED;
         struct window_location { vec2i position; u32 display; };
         enum class window_mode { BORDERED, BORDERLESS, FULLSCREEN };
-        enum class vsync_mode  { IMMEDIATE, VSYNC, ADAPTIVE_VSYNC };
+        enum class vsync_mode  { IMMEDIATE, VSYNC, ADAPTIVE_VSYNC, TRIPLE_BUFFERED };
         
         
         // Use named arguments since the window constructor has a lot of parameters.
@@ -56,9 +65,6 @@ namespace ve::graphics {
         void minimize(void);
         void maximize(void);
         
-        [[nodiscard]] vec2i get_window_size(void) const;
-        void set_window_size(const vec2i& size);
-    
         [[nodiscard]] vec2i get_canvas_size(void) const;
         void set_canvas_size(const vec2i& size);
     
@@ -70,8 +76,13 @@ namespace ve::graphics {
         
         u32 get_window_id(void) const;
         
-        static bool supports_adaptive_vsync(void);
+        VE_GET_VAL(handle);
+        VE_GET_VAL(owner);
+    
     private:
+        friend struct windetail::platform_window_methods;
+        windetail::platform_window_data* platform_data;
+        
         SDL_Window* handle = nullptr;
         actor_id owner;
     };

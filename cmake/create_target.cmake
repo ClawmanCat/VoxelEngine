@@ -15,16 +15,8 @@ macro(create_target target_name target_type major minor patch)
     endif()
 
     # Add dependencies.
-    target_link_libraries(${target_name} ${ARGN})
-    # Mute warnings from dependencies.
-    foreach(dependency IN ITEMS ${ARGN})
-        if (${dependency} MATCHES "[PUBLIC|PRIVATE]")
-            continue()
-        endif()
-
-        get_target_property(dependency_includes ${dependency} INCLUDE_DIRECTORIES)
-        target_include_directories(${target_name} SYSTEM ${dependency_includes})
-    endforeach()
+    include(utility)
+    target_link_libraries_system(${target_name} ${ARGN})
     # Prevent linker language errors on header only libraries.
     set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -35,9 +27,7 @@ macro(create_target target_name target_type major minor patch)
     target_compile_definitions(${target_name} PUBLIC "${name_capitalized}_VERSION_PATCH=${patch}")
 
     # Add tests if there is a test folder for this target and testing is enabled.
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests" AND ${ENABLE_TESTING})
-        set(STOP_UNUSED_VAR_WARNING ${ENABLE_TESTING})
-
+    if(NOT ${target_name} MATCHES "test_.+" AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests" AND ${ENABLE_TESTING})
         include(CTest)
         enable_testing()
 
@@ -47,16 +37,14 @@ macro(create_target target_name target_type major minor patch)
         # Create a test for each source file.
         foreach(test IN ITEMS ${tests})
             get_filename_component(test_name ${test} NAME_WE)
+            message(STATUS "Creating test ${test_name}.")
 
-            add_executable("test_${test_name}" ${test})
-            add_test(NAME "test_${test_name}" COMMAND "test_${test_name}")
-
-            target_include_directories("test_${test_name}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tests")
-            set_target_properties("test_${test_name}" PROPERTIES LINKER_LANGUAGE CXX)
-
-            # Make the test have the target as a dependency.
-            target_link_libraries("test_${test_name}" PUBLIC ${target_name})
-            target_compile_definitions("test_${test_name}" PUBLIC ${name_capitalized}_TESTING)
+            # Create executable
+            add_executable(test_${test_name} ${test})
+            # Add dependencies.
+            target_link_libraries(test_${test_name} PUBLIC ${target_name})
+            # Prevent linker language errors on header only libraries.
+            set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
         endforeach()
     endif()
 endmacro()

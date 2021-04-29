@@ -25,6 +25,8 @@ namespace ve::graphics {
     
     
     namespace detail {
+        constexpr inline ctll::fixed_string texfmt_regex = R"RGX((RGBA?|DUAL|GRAY|DEPTH)(\d+)([UIF]?))RGX";
+        
         // Disable compiler warning for branches without return statement.
         // Missing return statements are intentional, since this method is consteval,
         // errors should cause compilation failure.
@@ -34,9 +36,7 @@ namespace ve::graphics {
             using prims = enum class texture_format_data::primitive;
             using types = enum class texture_format_data::type;
         
-            constexpr ctll::fixed_string regex = R"RGX((RGBA?|DUAL|GRAY|DEPTH)(\d+)([UIF]?))RGX";
-        
-            if (auto [match, type, bits, primitive] = ctre::match<regex>(name); match) {
+            if (auto [match, type, bits, primitive] = ctre::match<texfmt_regex>(name); match) {
                 texture_format_data result { };
             
             
@@ -70,9 +70,8 @@ namespace ve::graphics {
                 else if (result.channels == 3) result.channel_format = GL_RGB;
                 else if (result.channels == 2) result.channel_format = GL_RG;
                 else {
-                    result.channel_format == (result.type == types::DEPTH)
-                    ? GL_DEPTH_COMPONENT
-                    : GL_RED;
+                    if (result.type == types::DEPTH) result.channel_format = GL_DEPTH_COMPONENT;
+                    else result.channel_format = GL_RED;
                 }
             
             

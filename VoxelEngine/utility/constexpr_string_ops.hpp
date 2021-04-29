@@ -7,7 +7,7 @@
 
 // Constexpr versions of C string operations.
 namespace ve {
-    consteval bool constexpr_strcmp(const char* a, const char* b) {
+    constexpr bool constexpr_strcmp(const char* a, const char* b) {
         std::size_t i = 0;
         
         // If strings are of non-equal length, last comparison will be between
@@ -22,7 +22,7 @@ namespace ve {
     }
     
     
-    consteval std::size_t constexpr_strlen(const char* str) {
+    constexpr std::size_t constexpr_strlen(const char* str) {
         std::size_t i = 0;
         while (str[i] != '\0') ++i;
         return i;
@@ -60,7 +60,14 @@ namespace ve {
             }
         }
         
-        if (!error) return str[0] == '-' ? -result : result;
+        if (!error) {
+            if constexpr (std::is_signed_v<T>) {
+                return str[0] == '-' ? -result : result;
+            } else {
+                // If T is unsigned, but the result is negative, don't return a value to trigger a compile error.
+                if (str[0] != '-') return result;
+            }
+        }
     }
     #pragma clang diagnostic pop
 }

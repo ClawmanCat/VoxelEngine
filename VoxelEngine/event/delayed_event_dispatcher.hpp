@@ -10,10 +10,12 @@ namespace ve {
     class delayed_event_dispatcher : private event_dispatcher<AllowEventCancelling> {
         using base          = event_dispatcher<AllowEventCancelling>;
         using handler_ret_t = typename base::handler_t::return_t;
-        
+    
     public:
         using base::add_handler;
         using base::remove_handler;
+        
+        using delayed_event_dispatcher_tag = void;
         
         
         void on_actor_destroyed(actor_id id) {

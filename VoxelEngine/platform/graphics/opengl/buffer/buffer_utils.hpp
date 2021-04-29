@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/platform/graphics/opengl/buffer/buffer_settings.hpp>
 
 #include <GL/glew.h>
 
@@ -11,8 +12,8 @@ namespace ve::graphics::detail {
         
         GLuint buffer_id = 0;
         std::size_t size = 0, capacity = 0;
-        GLenum storage_mode = GL_INVALID_ENUM;
-        GLenum buffer_type = GL_INVALID_ENUM;
+        buffer_storage_mode storage_mode = buffer_storage_mode::WRITE_MANY_READ_MANY;
+        GLenum buffer_type = GL_INVALID_ENUM; // Vertex buffer or index buffer.
         
         
         // Allows checking if buffer is valid with if (buffer) { ... }
@@ -32,7 +33,7 @@ namespace ve::graphics::detail {
         VE_ASSERT(new_buffer, "Failed to create OpenGL buffer.");
     
         glBindBuffer(storage.buffer_type, new_buffer);
-        glBufferData(storage.buffer_type, new_capacity * sizeof(Stored), nullptr, storage.storage_mode);
+        glBufferData(storage.buffer_type, new_capacity * sizeof(Stored), nullptr, (GLenum) storage.storage_mode);
         
         if (storage.size > 0) {
             glCopyBufferSubData(storage.buffer_id, new_buffer, 0, 0, storage.size * sizeof(Stored));

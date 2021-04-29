@@ -5,6 +5,7 @@
 #include <VoxelEngine/platform/graphics/opengl/buffer/buffer_utils.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/attribute.hpp>
 #include <VoxelEngine/platform/graphics/opengl/buffer/vertex.hpp>
+#include <VoxelEngine/platform/graphics/opengl/buffer/buffer_settings.hpp>
 
 #include <GL/glew.h>
 #include <boost/pfr.hpp>
@@ -16,7 +17,10 @@ namespace ve::graphics {
     // Vertex buffer without indexing. (i.e. each vertex is drawn once, in the order it is present in the buffer.)
     template <typename Vertex> class vertex_buffer : public buffer {
     public:
-        explicit vertex_buffer(GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+        explicit vertex_buffer(
+            buffer_primitive primitive = buffer_primitive::TRIANGLES,
+            buffer_storage_mode storage_mode = buffer_storage_mode::WRITE_MANY_READ_MANY
+        ) :
             buffer(), vao(0), vbo(), primitive(primitive)
         {
             glGenVertexArrays(1, &vao);
@@ -30,14 +34,22 @@ namespace ve::graphics {
         }
         
         
-        explicit vertex_buffer(std::span<const Vertex> data, GLenum primitive = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+        explicit vertex_buffer(
+            std::span<const Vertex> data,
+            buffer_primitive primitive = buffer_primitive::TRIANGLES,
+            buffer_storage_mode storage_mode = buffer_storage_mode::WRITE_MANY_READ_MANY
+        ) :
             vertex_buffer(primitive, storage_mode)
         {
             update(data);
         }
         
         
-        explicit vertex_buffer(const unindexed_mesh<Vertex>& mesh, GLenum primivite = GL_TRIANGLES, GLenum storage_mode = GL_DYNAMIC_DRAW) :
+        explicit vertex_buffer(
+            const unindexed_mesh<Vertex>& mesh,
+            buffer_primitive primitive = buffer_primitive::TRIANGLES,
+            buffer_storage_mode storage_mode = buffer_storage_mode::WRITE_MANY_READ_MANY
+        ) :
             vertex_buffer(primitive, storage_mode)
         {
             update(mesh.vertices);
@@ -79,7 +91,7 @@ namespace ve::graphics {
             glBindBuffer(vbo.buffer_type, vbo.buffer_id);
             bind_vertex_layout<Vertex>(ctx);
             
-            glDrawArrays(primitive, 0, vbo.size);
+            glDrawArrays((GLenum) primitive, 0, vbo.size);
         }
         
         
@@ -97,6 +109,6 @@ namespace ve::graphics {
     private:
         GLuint vao;
         detail::buffer_storage<Vertex> vbo;
-        GLenum primitive;
+        buffer_primitive primitive;
     };
 }

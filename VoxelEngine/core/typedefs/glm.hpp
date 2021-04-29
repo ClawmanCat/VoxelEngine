@@ -161,4 +161,26 @@ namespace ve {
     constexpr inline auto operator>=(const vec<N, T>& a, const T& b) {
         return glm::greaterThanEqual(a, glm::vec<N, T>(b));
     }
+    
+    
+    template <typename T, std::size_t N>
+    constexpr inline auto negative_mask(const vec<N, T>& v) {
+        vec<N, bool> result;
+        for (std::size_t i = 0; i < N; ++i) result[i] = (v[i] < T(0));
+        return result;
+    }
+    
+    template <typename T, std::size_t N>
+    constexpr inline auto positive_mask(const vec<N, T>& v) {
+        vec<N, bool> result;
+        for (std::size_t i = 0; i < N; ++i) result[i] = (v[i] >= T(0));
+        return result;
+    }
+    
+    template <typename T, std::size_t N>
+    constexpr inline auto nonzero_positive_mask(const vec<N, T>& v) {
+        vec<N, bool> result;
+        for (std::size_t i = 0; i < N; ++i) result[i] = (v[i] > T(0));
+        return result;
+    }
 }

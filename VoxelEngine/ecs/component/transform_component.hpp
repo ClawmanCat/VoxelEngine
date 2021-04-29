@@ -20,8 +20,8 @@ namespace ve {
             position(position),
             linear_velocity(linear_velocity),
             rotation(rotation),
-            angular_velocity(angular_velocity
-        ) {}
+            angular_velocity(angular_velocity)
+        {}
         
         
         vec3f position;

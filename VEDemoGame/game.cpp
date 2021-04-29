@@ -4,6 +4,7 @@
 #include <VoxelEngine/input/input_event.hpp>
 #include <VoxelEngine/utility/math.hpp>
 #include <VoxelEngine/engine.hpp>
+#include <VEDemoGame/entity/howlee.hpp>
 
 
 namespace demo_game {
@@ -36,6 +37,7 @@ namespace demo_game {
             game::camera.set_aspect_ratio(e.new_size.x / e.new_size.y)
         );
         
+        
         pipeline->set_uniform_producer<ve::mat4f>("camera"s, []() {
             return game::camera.get_matrix();
         });
@@ -48,10 +50,12 @@ namespace demo_game {
         game::scene.add_system(ve::movement());
         game::scene.add_system(ve::static_updater<ve::side::SERVER>());
         
-        game::scene.create_entity<world>();
+        auto& world = game::scene.create_entity<class world>();
+        game::world = &world;
         
-        for (ve::i32 x = -32; x <= 32; x += 16) {
-            for (ve::i32 z = -32; z <= 32; z += 16) {
+        // 128^2 = 16K entities.
+        for (ve::i32 x = -64; x <= 64; ++x) {
+            for (ve::i32 z = -64; z <= 64; ++z) {
                 auto& h = game::scene.create_entity<howlee>();
                 h.transform.position = ve::vec3f { x, 1, z };
             }
@@ -61,6 +65,20 @@ namespace demo_game {
     
     void game::on_pre_loop(ve::u64 tick, microseconds dt) {
         auto& im = ve::input_manager::instance();
+        
+        
+        // Summon more howlees.
+        if (im.is_pressed(SDLK_e)) {
+            for (ve::u32 i = 0; i < 50; ++i) {
+                howlee& h = game::scene.create_entity<howlee>();
+                h.transform.position = game::camera.get_position() + game::camera.get_forwards() * 2.5f;
+                h.transform.linear_velocity = ve::vec3f {
+                    ve::cheaprand::random_real(-10.0f, 10.0f),
+                    ve::cheaprand::random_real(-10.0f, 10.0f),
+                    ve::cheaprand::random_real(-10.0f, 10.0f)
+                };
+            }
+        }
         
         
         // Capture mouse.
@@ -73,7 +91,7 @@ namespace demo_game {
         
     
         float move_speed = float(dt.count()) / 50'000.0f;
-        float look_speed = float(dt.count()) / 500'000.0f;
+        float look_speed = float(dt.count()) / 1'500'000.0f;
     
         
         // Rotate camera based on mouse input.

@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/dependent/actor.hpp>
 #include <VoxelEngine/dependent/plugin.hpp>
+#include <VoxelEngine/utility/logger.hpp>
 #include <VoxelEngine/platform/library_loader/library_loader.hpp>
 
 #include <string_view>

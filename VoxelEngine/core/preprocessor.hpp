@@ -18,9 +18,10 @@
 #endif
 
 
-// Forces initialization order for a static variable.
-// Prefer using local statics where possible.
-#define ve_init_order(Priority) __attribute__((init_priority(Priority + 101)))
+// Map PRETTY_FUNCTION to FUNCSIG on MSVC
+#if defined(VE_COMPILER_MSVC)
+    #define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
 
 
 // Check whether or not the derived class implements the given function.

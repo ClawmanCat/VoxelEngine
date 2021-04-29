@@ -6,11 +6,11 @@
 #include <VoxelEngine/graphics/texture/texture_manager.hpp>
 
 #include <type_traits>
+#include <bit>
 
 
 namespace ve {
-    // To change these settings, overload this class for the type ve::overloaded_settings_tag.
-    // You can use the macro VE_OVERLOAD_SETTINGS for this purpose.
+    // Change these settings by specializing overloadable_vulkan_settings<overloaded_settings_tag>.
     template <typename = void> struct overloadable_voxel_settings {
         // Dimensions of a chunk in number of blocks.
         // If this is not a power of two, voxel operations will probably be significantly slower.
@@ -64,4 +64,9 @@ namespace ve {
     using tilepos      = typename voxel_settings::tilepos;
     using worldpos     = typename voxel_settings::worldpos;
     using voxel_mesh_t = typename voxel_settings::mesh_t;
+    
+    static_assert(
+        std::popcount(voxel_settings::chunk_size) == 1,
+        "Chunk size should be a power of 2."
+    );
 }

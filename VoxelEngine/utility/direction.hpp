@@ -60,7 +60,7 @@ namespace ve {
     
     // Gets the direction one would travel in to get from a to b,
     // assuming a and b only differ their coordinate on one axis.
-    inline direction heading(const vec3i& from, const vec3i& to) {
+    constexpr inline direction heading(const vec3i& from, const vec3i& to) {
         vec3i difference = to - from;
         
         return direction(
@@ -68,5 +68,13 @@ namespace ve {
             (bool(difference.y) << (2 + (difference.y < 0))) +
             (bool(difference.x) << (4 + (difference.z < 0)))
         );
+    }
+    
+    
+    // Gets the field of a vector that moves along the given direction.
+    template <typename Vec>
+    constexpr inline auto axis_of_traversal(direction dir) {
+        constexpr std::array axes { &Vec::z, &Vec::y, &Vec::x };
+        return axes[least_significant_bit((u8) dir) >> 1];
     }
 }

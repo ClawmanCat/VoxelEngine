@@ -4,6 +4,8 @@
 
 namespace ve::graphics {
     namespace detail {
+        // Singleton RAII object that manages setting up OpenGL when it is created and manages cleanup when it is destroyed.
+        // The instance for this class is constructed as a Meyers Singleton in bind_opengl_context.
         struct opengl_context_raii_wrapper {
             opengl_context ctx;
             
@@ -33,7 +35,7 @@ namespace ve::graphics {
                 glEnable(GL_BLEND);
                 glBlendEquation(GL_FUNC_ADD);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
+                
                 glEnable(GL_DEPTH_TEST);
                 glEnable(GL_TEXTURE_2D);
                 glEnable(GL_DEPTH_CLAMP);
