@@ -1,3 +1,0 @@
-bincrafters https://api.bintray.com/conan/bincrafters/public-conan
-manu343726 https://api.bintray.com/conan/manu343726/conan-packages
-clawmancat https://clawmancat.jfrog.io/artifactory/api/conan/conan

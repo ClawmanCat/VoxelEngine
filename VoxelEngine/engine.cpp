@@ -1,109 +1,128 @@
 #include <VoxelEngine/engine.hpp>
-#include <VoxelEngine/engine_event.hpp>
-#include <VoxelEngine/dependent/game.hpp>
-#include <VoxelEngine/utility/utility.hpp>
-#include <VoxelEngine/utility/logger.hpp>
-#include <VoxelEngine/utility/thread/make_nonconcurrent.hpp>
-#include <VoxelEngine/utility/io/io.hpp>
-#include <VoxelEngine/input/input_manager.hpp>
-#include <VoxelEngine/ecs/scene_registry.hpp>
-#include <VoxelEngine/graphics/window/window_registry.hpp>
+#include <VoxelEngine/engine_events.hpp>
+#include <VoxelEngine/utility/assert.hpp>
+#include <VoxelEngine/utility/io/paths.hpp>
+#include <VoxelEngine/utility/thread/thread_pool.hpp>
+#include <VoxelEngine/dependent/plugin_registry.hpp>
+#include <VoxelEngine/dependent/game_callbacks.hpp>
 
-#include <magic_enum.hpp>
+#include <SDL.h>
+
+// TODO: Remove this!
+#include <VoxelEngine/platform/graphics/vulkan/graphics.hpp>
 
 
 namespace ve {
-    void engine::set_state(engine_state state) {
-        engine_state prev_state = std::exchange(engine::state, state);
-        
-        dispatcher.dispatch_event(engine_state_change {
-            .old_state = prev_state,
-            .new_state = engine::state
-        });
-    }
+    [[noreturn]] void engine::main(i32 argc, char** argv) {
+        engine::arguments.feed((std::size_t) argc, (const char**) argv);
     
-    
-    void engine::main(i32 argc, char** argv) {
-        engine::args = std::vector<std::string> { argv, argv + argc };
-        
-        while (true) {
-            VE_ASSERT(
-                one_of(engine::state, engine_state::UNINITIALIZED, engine_state::RUNNING, engine_state::EXITING),
-                "Invalid engine state: "s + magic_enum::enum_name(engine::state)
-            );
-            
-            switch (engine::state) {
-                case engine_state::UNINITIALIZED:
-                    engine::init();
-                    break;
-                case engine_state::RUNNING:
-                    engine::tick();
-                    break;
-                case engine_state::EXITING:
-                    engine::exit();
-                    break;
-                default: VE_UNREACHABLE;
+        // In debug mode, don't catch top-level exceptions so they can be intercepted by the debugger.
+        #ifndef VE_DEBUG
+        try {
+        #endif
+            while (true) {
+                switch (engine::engine_state) {
+                    case engine::state::UNINITIALIZED:
+                        engine::init();
+                        break;
+                    case engine::state::RUNNING:
+                        engine::loop();
+                        break;
+                    case engine::state::EXITING:
+                        engine::immediate_exit();
+                        break;
+                    default:
+                        throw std::runtime_error("Illegal engine state.");
+                }
             }
+        #ifndef VE_DEBUG
+        } catch (const std::exception& e) {
+            VE_ASSERT(false, "Unhandled exception:", e.what());
+        } catch (...) {
+            VE_ASSERT(false, "Unhandled exception: no further information.");
         }
+        #endif
+        
+        engine::immediate_exit();
     }
     
     
-    void engine::request_exit(i32 exit_code, bool immediate) {
-        ve_make_nonconcurrent;
+    void engine::exit(i32 code, bool immediate) {
+        engine::event_dispatcher.dispatch_event(engine_exit_requested_event { code });
+
+        engine::exit_code    = code;
+        engine::engine_state = engine::state::EXITING;
         
-        engine::exit_code = exit_code;
-        set_state(engine_state::EXITING);
-        
-        if (immediate) engine::exit();
+        if (immediate) engine::immediate_exit();
     }
     
     
     void engine::init(void) {
-        game_callbacks::on_game_pre_init();
-        set_state(engine_state::INITIALIZING);
+        game_callbacks::pre_init();
+        engine::event_dispatcher.dispatch_event(engine_pre_init_event { });
+
+        engine::engine_state = engine::state::INITIALIZING;
+
+
+        for (const auto& path : io::paths::get_registered_paths()) {
+            fs::create_directories(path);
+        }
+
+
+        SDL_SetMainReady();
+        SDL_Init(SDL_INIT_EVERYTHING);
         
-        // Make sure all required directories exist.
-        io::create_required_paths();
         
-        set_state(engine_state::RUNNING);
-        game_callbacks::on_game_post_init();
+        plugin_registry::instance().scan_folder(io::paths::PATH_PLUGINS);
+        plugin_registry::instance().try_load_all_plugins(false);
+
+
+        engine::engine_state = engine::state::RUNNING;
+
+        engine::event_dispatcher.dispatch_event(engine_post_init_event { });
+        game_callbacks::post_init();
     }
     
     
-    void engine::tick(void) {
-        // Assume target dt for first tick.
-        microseconds last_dt = engine::tick_count
-            ? duration_cast<microseconds>(steady_clock::now() - engine::last_tick_time)
-            : engine::server_target_dt;
-    
-    
-        engine::last_tick_time = steady_clock::now();
-        
-        game_callbacks::on_game_pre_loop(engine::tick_count, last_dt);
-        dispatcher.dispatch_event(engine_tick_begin { .tick = engine::tick_count, .dt = last_dt });
-        
-        scene_registry<side::CLIENT>::instance().update_scenes(last_dt);
-        scene_registry<side::SERVER>::instance().update_scenes(last_dt);
-        
-        input_manager::instance().update(engine::tick_count);
-        graphics::window_registry::instance().draw_all();
-        
-        dispatcher.dispatch_event(engine_tick_end { .tick = engine::tick_count, .dt = last_dt });
-        game_callbacks::on_game_post_loop(engine::tick_count, last_dt);
-        
+    void engine::loop(void) {
+        game_callbacks::pre_loop();
+        engine::event_dispatcher.dispatch_event(engine_pre_loop_event { engine::tick_count });
+
+
+        thread_pool::instance().execute_main_thread_tasks();
+
+
         ++engine::tick_count;
+
+        engine::event_dispatcher.dispatch_event(engine_post_loop_event { engine::tick_count });
+        game_callbacks::post_loop();
     }
     
     
-    void engine::exit(void) {
-        game_callbacks::on_game_pre_exit();
-        dispatcher.dispatch_event(engine_exit_begin { });
+    [[noreturn]] void engine::immediate_exit(void) {
+        game_callbacks::pre_exit();
+        engine::event_dispatcher.dispatch_event(engine_pre_exit_event { engine::exit_code });
+
+
+        // Plugins failing to unload should not jeopardize normal cleanup;
+        // attempt to unload all plugins first, then error after cleanup if any remain loaded.
+        plugin_registry::instance().try_unload_all_plugins(false);
+
+        VE_ASSERT(
+            plugin_registry::instance().get_loaded_plugins().empty(),
+            "Some plugins failed to unload while terminating the engine.\n"
+            "Exit completed successfully otherwise."
+        );
+
+
+        SDL_Quit();
+
+
+        engine::engine_state = engine::state::EXITED;
+
+        engine::event_dispatcher.dispatch_event(engine_post_exit_event { engine::exit_code });
+        game_callbacks::post_exit();
         
-        // Exit code here.
-        
-        set_state(engine_state::EXITED);
-        game_callbacks::on_game_post_exit();
-        
-        std::exit(engine::exit_code.value_or(-1));
+        std::exit(engine::exit_code);
     }
 }

@@ -1,8 +1,6 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/math.hpp>
-#include <VoxelEngine/utility/traits/any_of.hpp>
 
 #include <random>
 #include <array>
@@ -23,7 +21,7 @@ namespace ve::random {
     
     
     template <typename Gen> constexpr inline std::size_t generator_state_size =
-        Gen::state_size * sizeof(typename Gen::result_type);
+    Gen::state_size * sizeof(typename Gen::result_type);
     
     
     template <
@@ -42,11 +40,11 @@ namespace ve::random {
             using result_type = u64;
             
             
-            explicit xorshift(u64 seed = 0ull) : state(seed) {}
-            explicit xorshift(const std::array<u8, sizeof(u64)>& seed) : state(std::bit_cast<u64>(seed)) {}
+            constexpr explicit xorshift(u64 seed = 0ull) : state(seed ^ alternating_bits) {}
+            constexpr explicit xorshift(const std::array<u8, sizeof(u64)>& seed) : state(std::bit_cast<u64>(seed) ^ alternating_bits) {}
             
             
-            u64 operator()(void) {
+            constexpr u64 operator()(void) {
                 state ^= state << 13;
                 state ^= state >> 7;
                 state ^= state << 17;
@@ -55,9 +53,13 @@ namespace ve::random {
             }
             
             
-            static u64 min(void) { return min_value<u64>; }
-            static u64 max(void) { return max_value<u64>; }
+            constexpr static u64 min(void) { return min_value<u64>; }
+            constexpr static u64 max(void) { return max_value<u64>; }
         private:
+			// A seed with many zero bits would produce bad results. Zero wouldn't produce any results at all.
+			// XOR the seed with alternating 0s and 1s to make sure it is never zero'd out.
+			constexpr static inline u64 alternating_bits = 0xAA'AA'AA'AA'AA'AA'AA'AA;
+		
             u64 state;
         };
         
@@ -65,56 +67,56 @@ namespace ve::random {
         inline thread_local xorshift global_generator { generate_seed<sizeof(u64)>() };
     
     
-        // Produces a random floating point number with uniform distribution between min and max.
-        template <typename T = float> requires std::is_floating_point_v<T>
-        inline T random_real(T min = T(0.0), T max = T(1.0)) {
-            std::uniform_real_distribution<T> dis { min, max };
-            return dis(global_generator);
-        }
-    
-        // Produces a random integer number with uniform distribution between min and max (inclusive).
-        template <typename T = u32> requires std::is_integral_v<T>
-        inline T random_int(T min = min_value<T>, T max = max_value<T>) {
-            std::uniform_int_distribution<T> dis { min, max };
-            return dis(global_generator);
-        }
-    
-        // Produces a random floating point number with normal distribution the given mean and standard deviation.
-        template <typename T = float> requires std::is_floating_point_v<T>
-        inline T random_normal(T mean = T(0), T stddev = T(1.0)) {
-            std::normal_distribution<T> dis { mean, stddev };
-            return dis(global_generator);
-        }
+    // Produces a random floating point number with uniform distribution between min and max.
+    template <typename T = float> requires std::is_floating_point_v<T>
+    inline T random_real(T min = T(0.0), T max = T(1.0)) {
+        std::uniform_real_distribution<T> dis { min, max };
+        return dis(global_generator);
     }
     
-    
-    namespace good {
-        inline thread_local std::mt19937 global_generator = create_seeded_generator<std::mt19937>(
-            generate_seed<generator_state_size<std::mt19937>>()
-        );
-    
-    
-        // Produces a random floating point number with uniform distribution between min and max.
-        template <typename T = float> requires std::is_floating_point_v<T>
-        inline T random_real(T min = T(0.0), T max = T(1.0)) {
-            std::uniform_real_distribution<T> dis { min, max };
-            return dis(global_generator);
-        }
-    
-        // Produces a random integer number with uniform distribution between min and max (inclusive).
-        template <typename T = u32> requires std::is_integral_v<T>
-        inline T random_int(T min = min_value<T>, T max = max_value<T>) {
-            std::uniform_int_distribution<T> dis { min, max };
-            return dis(global_generator);
-        }
-    
-        // Produces a random floating point number with normal distribution the given mean and standard deviation.
-        template <typename T = float> requires std::is_floating_point_v<T>
-        inline T random_normal(T mean = T(0), T stddev = T(1.0)) {
-            std::normal_distribution<T> dis { mean, stddev };
-            return dis(global_generator);
-        }
+    // Produces a random integer number with uniform distribution between min and max (inclusive).
+    template <typename T = u32> requires std::is_integral_v<T>
+    inline T random_int(T min = min_value<T>, T max = max_value<T>) {
+        std::uniform_int_distribution<T> dis { min, max };
+        return dis(global_generator);
     }
+    
+    // Produces a random floating point number with normal distribution the given mean and standard deviation.
+    template <typename T = float> requires std::is_floating_point_v<T>
+    inline T random_normal(T mean = T(0), T stddev = T(1.0)) {
+        std::normal_distribution<T> dis { mean, stddev };
+        return dis(global_generator);
+    }
+}
+
+
+namespace good {
+    inline thread_local std::mt19937 global_generator = create_seeded_generator<std::mt19937>(
+        generate_seed<generator_state_size<std::mt19937>>()
+    );
+    
+    
+    // Produces a random floating point number with uniform distribution between min and max.
+    template <typename T = float> requires std::is_floating_point_v<T>
+    inline T random_real(T min = T(0.0), T max = T(1.0)) {
+        std::uniform_real_distribution<T> dis { min, max };
+        return dis(global_generator);
+    }
+    
+    // Produces a random integer number with uniform distribution between min and max (inclusive).
+    template <typename T = u32> requires std::is_integral_v<T>
+    inline T random_int(T min = min_value<T>, T max = max_value<T>) {
+        std::uniform_int_distribution<T> dis { min, max };
+        return dis(global_generator);
+    }
+    
+    // Produces a random floating point number with normal distribution the given mean and standard deviation.
+    template <typename T = float> requires std::is_floating_point_v<T>
+    inline T random_normal(T mean = T(0), T stddev = T(1.0)) {
+        std::normal_distribution<T> dis { mean, stddev };
+        return dis(global_generator);
+    }
+}
 }
 
 

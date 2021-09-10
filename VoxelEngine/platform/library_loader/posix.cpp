@@ -1,34 +1,49 @@
-#include <VoxelEngine/platform/library_loader/posix.hpp>
+#include <VoxelEngine/platform/library_loader/library_loader.hpp>
+#include <VoxelEngine/utility/string.hpp>
 
 
 #if defined(VE_LINUX) || defined(VE_APPLE)
     #include <dlfcn.h>
-    
-    
+
+
     namespace ve {
-        expected<library_handle> load_library(const char* path) {
-            auto handle = dlopen(path, RTLD_NOW);
+        native_library_handle load_library(const fs::path& path) {
+            auto result = dlopen(path.c_str(), RTLD_GLOBAL | RTLD_LAZY | RTLD_DEEPBIND);
+            if (!result) throw std::runtime_error(cat("Failed to load library (", path.filename(), "): ", get_last_error()));
             
-            if (handle) return handle;
-            else return make_unexpected(detail::get_library_error());
+            return result;
         }
         
         
-        void unload_library(library_handle handle) {
+        void unload_library(native_library_handle handle) {
             dlclose(handle);
         }
         
         
-        expected<void*> detail::get_library_function_impl(library_handle handle, const char* method) {
-            auto ptr = dlsym(handle, name);
+        void* load_library_symbol(native_library_handle handle, const char* symbol) {
+            auto result = dlsym(handle, symbol);
+            if (!result) throw std::runtime_error(cat("Failed to load symbol ", symbol, " from library: ", get_last_error()));
             
-            if (ptr) return ptr;
-            else return make_unexpected(detail::get_library_error());
+            return result;
         }
         
         
-        std::string detail::get_library_error(void) {
-            return std::string { dlerror() };
+        bool is_library_file(const fs::path& path) {
+            #ifdef VE_LINUX
+                auto file_extension = ".so";
+            #else
+                auto file_extension = ".dylib";
+            #endif
+            
+            return path.extension() == file_extension;
+        }
+        
+        
+        std::string get_last_error(void) {
+            const char* error = dlerror();
+            
+            if (error) return std::string { error };
+            else return "No further information available.";
         }
     }
 #endif

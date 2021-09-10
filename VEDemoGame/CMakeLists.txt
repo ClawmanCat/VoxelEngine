@@ -1,4 +1,6 @@
 include(create_target)
+include(generate_include_header)
+
 
 create_target(
     VEDemoGame
@@ -8,5 +10,5 @@ create_target(
     PUBLIC VoxelEngine
 )
 
-# Indicates that the game is being built, and not some dependency like a plugin.
-target_compile_definitions(VEDemoGame PRIVATE VE_BUILD_GAME)
+# Allow automatic selection of the actor when making actor-dependent function calls.
+target_compile_definitions(VoxelEngine PRIVATE VE_BUILD_GAME)

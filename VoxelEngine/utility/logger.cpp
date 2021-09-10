@@ -1,5 +1,6 @@
 #include <VoxelEngine/utility/logger.hpp>
 #include <VoxelEngine/utility/io/paths.hpp>
+#include <VoxelEngine/utility/string.hpp>
 
 #include <magic_enum.hpp>
 
@@ -7,11 +8,15 @@
 #include <iomanip>
 #include <ctime>
 #include <iostream>
+#include <syncstream>
 #include <fstream>
 
 
 namespace ve {
     void logger::message(std::string_view msg, level msg_level, bool show_info) {
+        if (msg_level < logger_level) return;
+
+
         std::stringstream out_message;
     
         if (show_info) {
@@ -26,8 +31,7 @@ namespace ve {
             
             for (auto& target_ref : targets) {
                 auto& target = target_ref.get();
-                
-                target << out_message.str();
+                std::osyncstream { target } << out_message.str();
     
                 #ifdef VE_DEBUG
                     target.flush();
@@ -47,8 +51,11 @@ namespace ve {
     }
     
     
-    namespace loggers::detail {
-        // By constructing the logger like this, initialization order issues are avoided.
+    namespace loggers {
+        constexpr inline std::string_view gfxapi_name = BOOST_PP_STRINGIZE(VE_GRAPHICS_API);
+
+
+        // By constructing the loggers like this, initialization order issues are avoided.
         logger& get_ve_logger(void) {
             static auto log_filestream = std::ofstream(io::paths::PATH_LOGS / "voxelengine.log");
             
@@ -59,6 +66,20 @@ namespace ve {
                 log_filestream
             };
             
+            return logger_object;
+        }
+
+
+        logger& get_gfxapi_logger(void) {
+            static auto log_filestream = std::ofstream(io::paths::PATH_LOGS / cat(gfxapi_name, ".log"));
+
+            static auto logger_object = logger {
+                to_sentence_case(gfxapi_name),
+                logger::level::INFO,
+                std::cout,
+                log_filestream
+            };
+
             return logger_object;
         }
     }
