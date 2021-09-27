@@ -15,15 +15,21 @@ namespace ve {
     template <
         typename Derived,
         meta::pack_of_types RequiredComponents,
-        meta::pack_of_types ExcludedComponents = meta::pack<>,
-        u16 Priority = priority::NORMAL
+        meta::pack_of_types ExcludedComponents = meta::pack<>
     > struct system {
-        constexpr static inline u16 priority = Priority;
-
         using required_components = RequiredComponents;
         using excluded_components = ExcludedComponents;
         using view_type           = view_type_for<RequiredComponents, ExcludedComponents>;
         using ecs_system_tag      = void;
+
+
+        u16 get_priority(void) const {
+            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, get_priority)) {
+                return static_cast<const Derived*>(this)->get_priority();
+            } else {
+                return priority::NORMAL;
+            }
+        }
 
 
         void init(registry& storage) {

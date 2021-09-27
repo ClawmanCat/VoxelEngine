@@ -50,6 +50,9 @@ function(load_common_profile)
     # Don't hide part of the backtrace for template errors.
     set_compiler_option(-ftemplate-backtrace-limit=0)
 
+    # Allow lookup into dependent base classes.
+    set_compiler_option(-Wno-microsoft-template)
+
     # Conan packages don't have PDBs. We don't need a warning for every package that there is no debug info.
     add_link_options(/ignore:4099)
 endfunction()

@@ -1,15 +1,26 @@
-#include <VoxelEngine/platform/graphics/vulkan/shader/stage.hpp>
+#include <VoxelEngine/platform/graphics/opengl/shader/stage.hpp>
 
 
-namespace ve::gfx::vulkan {
+namespace ve::gfx::opengl {
     const std::vector<shader_stage> shader_stages = {
         shader_stage {
             .name           = "vertex shader",
             .file_extension = ".vert.glsl",
             .shaderc_type   = shaderc_vertex_shader,
-            .vulkan_type    = VK_SHADER_STAGE_VERTEX_BIT,
-            .pipeline       = &pipeline_categories::RASTERIZATION,
-            .pipeline_mode  = shader_stage::pipeline_mode_t::REQUIRED,
+            .opengl_type    = GL_VERTEX_SHADER,
+            .pipeline       = &pipeline_category::RASTERIZATION,
+            .pipeline_mode  = shader_stage::pipeline_mode_t::VARIANT,
+            .first          = true
+        },
+
+        // Alternative identity for vertex shader when used to pass through GBuffer to fragment shader.
+        shader_stage {
+            .name           = "multipass vertex shader",
+            .file_extension = ".gvert.glsl",
+            .shaderc_type   = shaderc_vertex_shader,
+            .opengl_type    = GL_VERTEX_SHADER,
+            .pipeline       = &pipeline_category::RASTERIZATION,
+            .pipeline_mode  = shader_stage::pipeline_mode_t::VARIANT,
             .first          = true
         },
 
@@ -17,8 +28,8 @@ namespace ve::gfx::vulkan {
             .name           = "fragment shader",
             .file_extension = ".frag.glsl",
             .shaderc_type   = shaderc_fragment_shader,
-            .vulkan_type    = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .pipeline       = &pipeline_categories::RASTERIZATION,
+            .opengl_type    = GL_FRAGMENT_SHADER,
+            .pipeline       = &pipeline_category::RASTERIZATION,
             .pipeline_mode  = shader_stage::pipeline_mode_t::REQUIRED,
             .last           = true
         },
@@ -27,8 +38,8 @@ namespace ve::gfx::vulkan {
             .name           = "geometry shader",
             .file_extension = ".geo.glsl",
             .shaderc_type   = shaderc_geometry_shader,
-            .vulkan_type    = VK_SHADER_STAGE_GEOMETRY_BIT,
-            .pipeline       = &pipeline_categories::RASTERIZATION,
+            .opengl_type    = GL_GEOMETRY_SHADER,
+            .pipeline       = &pipeline_category::RASTERIZATION,
             .pipeline_mode  = shader_stage::pipeline_mode_t::OPTIONAL
         },
 
@@ -36,8 +47,8 @@ namespace ve::gfx::vulkan {
             .name           = "tesselation control shader",
             .file_extension = ".tctrl.glsl",
             .shaderc_type   = shaderc_tess_control_shader,
-            .vulkan_type    = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-            .pipeline       = &pipeline_categories::RASTERIZATION,
+            .opengl_type    = GL_TESS_CONTROL_SHADER,
+            .pipeline       = &pipeline_category::RASTERIZATION,
             .pipeline_mode  = shader_stage::pipeline_mode_t::OPTIONAL
         },
 
@@ -45,8 +56,8 @@ namespace ve::gfx::vulkan {
             .name           = "tesselation evaluation shader",
             .file_extension = ".teval.glsl",
             .shaderc_type   = shaderc_tess_evaluation_shader,
-            .vulkan_type    = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-            .pipeline       = &pipeline_categories::RASTERIZATION,
+            .opengl_type    = GL_TESS_EVALUATION_SHADER,
+            .pipeline       = &pipeline_category::RASTERIZATION,
             .pipeline_mode  = shader_stage::pipeline_mode_t::OPTIONAL
         },
 
@@ -54,8 +65,8 @@ namespace ve::gfx::vulkan {
             .name           = "compute shader",
             .file_extension = ".comp.glsl",
             .shaderc_type   = shaderc_compute_shader,
-            .vulkan_type    = VK_SHADER_STAGE_COMPUTE_BIT,
-            .pipeline       = &pipeline_categories::COMPUTE,
+            .opengl_type    = GL_COMPUTE_SHADER,
+            .pipeline       = &pipeline_category::COMPUTE,
             .pipeline_mode  = shader_stage::pipeline_mode_t::REQUIRED,
             .first          = true,
             .last           = true

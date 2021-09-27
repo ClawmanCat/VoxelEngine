@@ -7,6 +7,7 @@
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
 #include VE_GFX_HEADER(presentation/canvas.hpp)
 #include VE_GFX_HEADER(presentation/window_helpers.hpp)
+#include VE_GFX_HEADER(context/api_context.hpp)
 
 #include <SDL_video.h>
 
@@ -25,13 +26,13 @@ namespace ve::gfx {
 
         struct arguments {
             std::string title;
-            vec2ui size               = vec2ui { 512, 512 };
-            window_location position  = { window::WINDOW_CENTERED, window::WINDOW_CENTERED, 0 };
-            window_mode window_mode   = window::BORDERED;
-            bool start_maximized      = true;
-            bool graphics_window      = true;
-            sdl_windowflags_t flags   = SDL_WINDOW_RESIZABLE;
-            present_mode present_mode = present_mode::VSYNC;
+            vec2ui size                 = vec2ui { 512, 512 };
+            window_location position    = { window::WINDOW_CENTERED, window::WINDOW_CENTERED, 0 };
+            window_mode window_mode     = window::BORDERED;
+            bool start_maximized        = true;
+            bool graphics_window        = true;
+            sdl_windowflags_t flags     = SDL_WINDOW_RESIZABLE;
+            present_mode_t present_mode = present_mode::VSYNC;
         };
 
 
@@ -40,7 +41,7 @@ namespace ve::gfx {
                 args.title.c_str(),
                 args.position.x, args.position.y,
                 (i32) args.size.x, (i32) args.size.y,
-                args.flags | (args.graphics_window ? gfxapi::get_windowflags() : 0)
+                args.flags | (args.graphics_window ? gfxapi::window_helpers::get_window_flags() : 0)
             );
 
             if (args.start_maximized) maximize();
@@ -48,7 +49,7 @@ namespace ve::gfx {
 
             if (args.graphics_window) {
                 gfxapi::get_or_create_context(handle);
-                canvas = make_shared<gfxapi::canvas>(this, args.present_mode);
+                canvas = make_unique<gfxapi::canvas>(handle, args.present_mode);
             }
         }
 
@@ -113,16 +114,37 @@ namespace ve::gfx {
         }
 
 
+        void set_window_size(const vec2ui& size) {
+            SDL_SetWindowSize(handle, (i32) size.x, (i32) size.y);
+        }
+
+
         vec2ui get_canvas_size(void) const {
-            return gfxapi::get_canvas_size(handle);
+            return gfxapi::window_helpers::get_canvas_size(handle);
+        }
+
+
+        void set_canvas_size(const vec2ui& size) {
+            vec2ui border = get_window_size() - get_canvas_size();
+            set_window_size(size + border);
+        }
+
+
+        present_mode_t get_present_mode(void) const {
+            return canvas->get_mode();
+        }
+
+
+        void set_present_mode(present_mode_t mode) {
+            canvas->set_present_mode(mode);
         }
 
 
         VE_GET_CREF(handle);
-        VE_GET_VAL(canvas);
+        VE_GET_CREF(canvas);
     private:
         SDL_Window* handle = nullptr;
-        shared<gfxapi::canvas> canvas = nullptr;
+        unique<gfxapi::canvas> canvas = nullptr;
 
 
         // Called after construction by window::create.

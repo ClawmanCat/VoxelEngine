@@ -41,7 +41,7 @@ namespace ve::gfx::reflect {
         vec_map<const gfxapi::shader_stage*, stage> stages;
 
         std::string name;
-        const gfxapi::pipeline_category* pipeline;
+        const gfxapi::pipeline_category_t* pipeline;
 
 
         const auto& get_input_stage(void) const {

@@ -15,6 +15,12 @@
 #include <boost/uuid/uuid_io.hpp>
 
 
+// Glew must be included before gl.h, but it is included somewhere in the project. (Probably from SDL.)
+#if VE_GRAPHICS_API == opengl
+    #include <gl/glew.h>
+#endif
+
+
 namespace ve {
     namespace defs {
         using namespace std::string_literals;

@@ -26,6 +26,7 @@ namespace ve::gfx {
 
     class shader_compiler {
     public:
+        // Get all files in the given folder whose name without extension is equal to the given name.
         static std::vector<fs::path> get_files_for_shader(const fs::path& folder, std::string_view name) {
             std::vector<fs::path> files;
 
@@ -39,9 +40,8 @@ namespace ve::gfx {
         }
 
 
-        shader_compilation_data compile(const std::vector<fs::path>& files, std::string_view name, shaderc::CompileOptions options) const {
+        shader_compilation_data compile(const std::vector<fs::path>& files, std::string_view name, const shaderc::CompileOptions& options) const {
             shader_compilation_data result;
-            options.SetIncluder(make_unique<detail::include_handler>(io::paths::PATH_SHADERS));
 
             for (const auto& file : files) {
                 auto stage_it = ranges::find_if(gfxapi::shader_stages, equal_on(&gfxapi::shader_stage::file_extension, io::get_full_extension(file)));
@@ -62,7 +62,7 @@ namespace ve::gfx {
         }
 
 
-        shader_compilation_data compile(const fs::path& folder, std::string_view name, shaderc::CompileOptions options) const {
+        shader_compilation_data compile(const fs::path& folder, std::string_view name, const shaderc::CompileOptions& options) const {
             return compile(get_files_for_shader(folder, name), name, std::move(options));
         }
 

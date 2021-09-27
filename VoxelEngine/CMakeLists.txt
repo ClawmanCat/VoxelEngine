@@ -21,6 +21,7 @@ create_target(
     PUBLIC CONAN_PKG::spirv-cross
     PUBLIC CONAN_PKG::shaderc
     PUBLIC CONAN_PKG::vulkan-sdk
+    PUBLIC CONAN_PKG::glew
 )
 
 # Allow automatic selection of the actor when making actor-dependent function calls.
@@ -34,4 +35,5 @@ generate_include_header(VoxelEngine event event_system.hpp)
 generate_include_header(VoxelEngine utility utility.hpp)
 generate_include_header(VoxelEngine utility/traits traits.hpp)
 
+generate_include_header(VoxelEngine platform/graphics/opengl graphics.hpp)
 generate_include_header(VoxelEngine platform/graphics/vulkan graphics.hpp)

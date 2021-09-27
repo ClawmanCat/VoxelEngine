@@ -83,13 +83,22 @@ namespace ve::gfx {
         template <std::size_t N> struct material_vertex {
             vec<N, float> position;
             vec<N, float> normal;
+            vec<N, float> tangent;
 
-            vec2f uv;
+            // To reduce vertex size, assume all textures to be subtextures of the same texture.
+            // The texture atlas provides a method to guarantee this is the case.
+            vec2f uv_color;
+            vec2f uv_normal;
+            vec2f uv_material;
             u8 texture_index;
 
-            u8 material_index;
 
-            ve_vertex_layout(material_vertex, position, normal, uv, texture_index, material_index);
+            ve_vertex_layout(
+                material_vertex,
+                position, normal, tangent,
+                uv_color, uv_normal, uv_material,
+                texture_index
+            );
         };
 
         using material_vertex_2d = material_vertex<2>;

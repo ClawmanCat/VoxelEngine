@@ -6,6 +6,7 @@
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
 #include VE_GFX_HEADER(shader/shader.hpp)
+#include VE_GFX_HEADER(shader/shader_helpers.hpp)
 
 #include <shaderc/shaderc.hpp>
 
@@ -43,12 +44,12 @@ namespace ve::gfx {
         void set_compile_options(const auto& options) { compile_options = make_unique<shaderc::CompileOptions>(options); }
     private:
         shader_compiler compiler;
-        unique<shaderc::CompileOptions> compile_options; // Non-assignable.
+        unique<shaderc::CompileOptions> compile_options; // Non-assignable so use pointer.
 
         hash_map<std::string, shared<gfxapi::shader>> shaders;
 
 
-        shader_cache(void) : compile_options(make_unique<shaderc::CompileOptions>()) {}
+        shader_cache(void) : compile_options(make_unique<shaderc::CompileOptions>(gfxapi::shader_helpers::default_compile_options())) {}
 
 
         template <typename Vertex> shared<gfxapi::shader> load_shader(const auto& files_or_folder, std::string_view name) {

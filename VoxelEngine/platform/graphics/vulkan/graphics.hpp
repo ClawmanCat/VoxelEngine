@@ -4,29 +4,3 @@
 
 #pragma once
 
-#include <VoxelEngine/platform/graphics/vulkan/context/context.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/context/context_helpers.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/context/queue_data.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/object/buffer.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/object/command_buffer.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/object/framebuffer.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/object/image.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/object/memory.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/object/render_context.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/object/render_target.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/object/resource.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/pipeline/pipeline.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/pipeline/pipeline_attachment.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/pipeline/pipeline_category.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/pipeline/pipeline_settings.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/pipeline/rasterization_pipeline.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/presentation/canvas.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/presentation/window_helpers.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/shader/layout.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/shader/shader.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/shader/stage.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/texture/image_formats.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/utility/debug.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/utility/utility.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/vertex/tensor_format.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/vertex/vertex_buffer.hpp>
