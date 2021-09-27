@@ -14,13 +14,13 @@ namespace ve::gfx::vulkan {
 
 
         device_memory(void) = default;
-        ve_swap_move_only(device_memory, handle);
+        ve_swap_move_only(device_memory, handle, properties, size);
 
 
         explicit device_memory(
             VkMemoryRequirements requirements,
             VkMemoryPropertyFlags properties = gpu_memory
-        ) {
+        ) : properties(properties) {
             VkMemoryAllocateInfo allocate_info {
                 .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
                 .allocationSize  = requirements.size,

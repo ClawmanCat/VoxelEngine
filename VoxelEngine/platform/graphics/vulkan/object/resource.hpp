@@ -32,6 +32,18 @@ namespace ve::gfx::vulkan {
         ve_dereference_as(value);
 
 
+        // Relinquish control of the resource.
+        Resource release(void) {
+            return std::exchange(value, VK_NULL_HANDLE);
+        }
+
+        // Take control of the resource, keeping the current destructor.
+        void store(Resource&& resource) {
+            if (value != VK_NULL_HANDLE) destructor(std::move(value));
+            value = std::move(resource);
+        }
+
+
         constexpr operator Resource& (void) { return value; }
         constexpr operator const Resource& (void) const { return value; }
     };

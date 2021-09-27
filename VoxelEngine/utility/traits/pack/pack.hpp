@@ -61,7 +61,19 @@ namespace ve::meta {
         }
     
         template <typename Pack> constexpr static bool contains_all = contains_all_impl<Pack>();
-        template <typename Pack> constexpr static bool is_same = contains_all<Pack> && Pack::template contains_all<self>;
+
+
+        template <typename Pack> consteval static bool is_same_impl(void) {
+            if constexpr (size != Pack::size) return false;
+            else {
+                constexpr bool head_same = std::is_same_v<head, typename Pack::head>;
+
+                if constexpr (size == 1) return head_same;
+                else return head_same && tail::template is_same<typename Pack::tail>;
+            }
+        }
+
+        template <typename Pack> constexpr static bool is_same = is_same_impl<Pack>();
         
     
     
@@ -103,6 +115,15 @@ namespace ve::meta {
         }
 
         using reverse = ve_deptr(reverse_impl);
+
+
+        constexpr static auto unique_impl(void) {
+            if constexpr (size == 0) return ve_beptr(empty){};
+            else if constexpr (tail::template contains<head>) return tail::unique_impl();
+            else return ve_beptr(typename pack<head>::template append_pack<ve_deptr(tail::unique_impl)>){};
+        }
+
+        using unique = typename ve_deptr(reverse::unique_impl)::reverse;
 
         
         // Invokes pred for each element in the pack. Returns early if pred returns false.

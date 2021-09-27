@@ -15,6 +15,7 @@ namespace ve::gfx::vulkan {
 
 
         // Assure Vulkan is loaded before any reference to the context is ever made.
+        // (Attempting to get the context will initialize the singleton, and this initializer.)
         raii_function<void_fn, void_fn> sdl_vulkan_initializer = {
             bind<0>(SDL_Vulkan_LoadLibrary, nullptr),
             ve_wrap_callable(SDL_Vulkan_UnloadLibrary)
@@ -78,9 +79,7 @@ namespace ve::gfx::vulkan {
             .physical_device = std::move(physical_device),
             .logical_device  = std::move(logical_device),
             .queues          = std::move(queues),
-            .debugger        = std::move(debugger),
-            .vulkan_windows  = { },
-            .active_window   = nullptr
+            .debugger        = std::move(debugger)
         };
     }
 }

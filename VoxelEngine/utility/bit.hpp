@@ -16,4 +16,13 @@ namespace ve {
     constexpr u8 lsb(T value) {
         return std::countr_zero(value);
     }
+
+
+    template <typename Ctr> requires (std::is_trivial_v<typename Ctr::value_type> && std::contiguous_iterator<typename Ctr::iterator>)
+    constexpr std::span<const u8> to_byte_span(const Ctr& ctr) {
+        return std::span<const u8> {
+            reinterpret_cast<const u8*>(&*ctr.begin()),
+            ctr.size() * sizeof(typename Ctr::value_type)
+        };
+    }
 }

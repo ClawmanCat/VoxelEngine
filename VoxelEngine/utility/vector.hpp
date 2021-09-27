@@ -125,37 +125,37 @@ namespace ve {
 
 
     template <typename A, typename B> struct combine_result {
-        std::vector<ref<A>> unmatched_a;
-        std::vector<ref<B>> unmatched_b;
-        std::vector<std::pair<ref<A>, ref<B>>> matched;
+        std::vector<A*> unmatched_a;
+        std::vector<B*> unmatched_b;
+        std::vector<std::pair<A*, B*>> matched;
     };
 
     // Given two containers, A and B, makes pairs of elements from both containers where pred(a, b) returns true,
     // and returns these pairs, together with all unmatched elements in a combine_result.
     template <typename A, typename B, typename Pred>
     inline auto combine_into_pairs(A& a, B& b, Pred pred) {
-        using AV = typename A::value_type;
-        using BV = typename B::value_type;
+        using AV = std::conditional_t<std::is_const_v<A>, std::add_const_t<typename A::value_type>, typename A::value_type>;
+        using BV = std::conditional_t<std::is_const_v<B>, std::add_const_t<typename B::value_type>, typename B::value_type>;
 
 
         combine_result<AV, BV> result;
 
         // Assume all elements of B to be unmatched, then remove them as they get matched.
         // Note: removed elements are just swapped to the end of the vector, then erased all at once once at the end.
-        result.unmatched_b = b | views::transform(construct<ref<BV>>()) | ranges::to<std::vector>;
+        result.unmatched_b = b | views::addressof | ranges::to<std::vector>;
         auto real_end = result.unmatched_b.end();
 
         for (auto& ae : a) {
             for (auto& be : b) {
                 if (pred(ae, be)) {
-                    real_end = std::remove(result.unmatched_b.begin(), real_end, be);
-                    result.matched.emplace_back(ref<AV>(ae), ref<BV>(be));
+                    real_end = std::remove(result.unmatched_b.begin(), real_end, &be);
+                    result.matched.emplace_back(&ae, &be);
 
                     goto matched; // Skip adding ae to unmatched list, since we just matched it.
                 }
             }
 
-            result.unmatched_a.push_back(ref<AV> { ae });
+            result.unmatched_a.push_back(&ae);
             matched:;
         }
 

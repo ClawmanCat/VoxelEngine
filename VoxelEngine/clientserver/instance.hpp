@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/ecs/registry.hpp>
 #include <VoxelEngine/clientserver/instance_id.hpp>
 #include <VoxelEngine/clientserver/instance_events.hpp>
 #include <VoxelEngine/event/simple_event_dispatcher.hpp>
@@ -15,19 +16,54 @@ namespace ve {
     struct overridable_function_tag {};
 
 
+    class instance;
+
+
+    class instance_registry {
+    public:
+        static instance_registry& instance(void);
+
+
+        void update_all(nanoseconds dt);
+
+
+        void add_instance(class instance* instance) {
+            instances.push_back(instance);
+        }
+
+        void remove_instance(class instance* instance) {
+            std::erase(instances, instance);
+        }
+
+    private:
+        // Assume few instances.
+        std::vector<class instance*> instances;
+    };
+
+
     // Base class for client & server.
     // Can also be used as unified client / server instance for scenarios where multiplayer support is not required.
-    class instance : public arbitrary_storage, public subscribe_only_view<instance_dispatcher_t> {
+    class instance :
+        public registry,
+        public arbitrary_storage,
+        public subscribe_only_view<instance_dispatcher_t>
+    {
     public:
-        instance(void) : id(random_uuid()) {}
+        instance(void) : id(random_uuid()) {
+            instance_registry::instance().add_instance(this);
+        }
 
-        virtual ~instance(void) = default;
+        virtual ~instance(void) {
+            instance_registry::instance().remove_instance(this);
+        }
+
         ve_immovable(instance);
 
 
         void update(nanoseconds dt) {
             dispatch_event(instance_pre_tick_event { dt, tick_count });
 
+            registry::update(dt);
             update(dt, overridable_function_tag { });
 
             ++tick_count;
@@ -40,7 +76,6 @@ namespace ve {
         }
 
 
-        VE_GET_MREF(ecs_registry);
         VE_GET_CREF(id);
         VE_GET_VAL(tick_count);
     protected:
@@ -49,7 +84,6 @@ namespace ve {
         virtual void update(nanoseconds dt, overridable_function_tag) {}
 
     private:
-        entt::registry ecs_registry;
         instance_id id;
         u64 tick_count = 0;
     };

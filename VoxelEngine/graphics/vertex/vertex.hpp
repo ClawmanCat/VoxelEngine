@@ -15,6 +15,8 @@ namespace ve::gfx {
         std::size_t offset, size;
     };
 
+    template <typename T> constexpr static bool has_vertex_layout = requires { T::get_vertex_layout(); };
+
 
     template <typename T> constexpr vertex_attribute make_vertex_attribute(std::string_view name, std::size_t offset) {
         using base_type = typename meta::glm_traits<T>::value_type;
@@ -39,7 +41,7 @@ namespace ve::gfx {
 
 
     #define ve_impl_vertex_layout_macro(R, D, E) \
-    (make_vertex_attribute<decltype(D::E)>(BOOST_PP_STRINGIZE(E), offsetof(D, E)))
+    (ve::gfx::make_vertex_attribute<decltype(D::E)>(BOOST_PP_STRINGIZE(E), offsetof(D, E)))
 
     #define ve_vertex_layout(cls, ...)                      \
     constexpr static auto get_vertex_layout(void) {         \

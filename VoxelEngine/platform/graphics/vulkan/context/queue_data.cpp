@@ -1,6 +1,7 @@
 #include <VoxelEngine/platform/graphics/vulkan/context/queue_data.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/context/context.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/context/context_helpers.hpp>
+#include <VoxelEngine/platform/graphics/vulkan/presentation/canvas.hpp>
 #include <VoxelEngine/graphics/presentation/window.hpp>
 #include <VoxelEngine/utility/vector.hpp>
 
@@ -73,9 +74,20 @@ namespace ve::gfx::vulkan {
     }
 
 
-    queue_data& get_queue(queue_family::enum_t family) {
+    const queue_data& get_queue(queue_family::enum_t family) {
+        VE_DEBUG_ASSERT(queue_family::is_global(family), "To get a window-specific queue, please provide a window.");
+        return get_context()->queues[family - queue_family::first_global_family];
+    }
+
+
+    const queue_data& get_queue(queue_family::enum_t family, const canvas& canvas) {
         return queue_family::is_global(family)
-            ? get_context()->queues[family]
-            : get_context()->active_window->get_canvas()->get_queues()[family];
+           ? get_context()->queues[family - queue_family::first_global_family]
+           : canvas.get_queues()[family - queue_family::first_window_family];
+    }
+
+
+    const queue_data& get_queue(queue_family::enum_t family, const window& window) {
+        return get_queue(family, *window.get_canvas());
     }
 }

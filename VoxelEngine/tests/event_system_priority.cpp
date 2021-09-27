@@ -2,6 +2,7 @@
 #include <VoxelEngine/tests/event_system_common.hpp>
 #include <VoxelEngine/event/event_system.hpp>
 #include <VoxelEngine/utility/traits/pick.hpp>
+#include <VoxelEngine/utility/priority.hpp>
 
 #include <thread>
 

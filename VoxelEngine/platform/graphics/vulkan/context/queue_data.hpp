@@ -9,6 +9,10 @@
 
 namespace ve::gfx {
     class window;
+
+    namespace vulkan {
+        class canvas;
+    }
 }
 
 
@@ -46,5 +50,7 @@ namespace ve::gfx::vulkan {
     extern std::vector<u32> get_window_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 
-    extern queue_data& get_queue(queue_family::enum_t family);
+    extern const queue_data& get_queue(queue_family::enum_t family);
+    extern const queue_data& get_queue(queue_family::enum_t family, const canvas& canvas);
+    extern const queue_data& get_queue(queue_family::enum_t family, const window& window);
 }

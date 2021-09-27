@@ -2,6 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/graphics/shader/compiler.hpp>
+#include <VoxelEngine/utility/io/paths.hpp>
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
 #include VE_GFX_HEADER(shader/shader.hpp)
@@ -21,33 +22,44 @@ namespace ve::gfx {
         }
 
 
-        shared<gfxapi::shader> get_or_load_shader(const std::vector<fs::path>& files, std::string_view name) const {
+        template <typename Vertex> shared<gfxapi::shader> get_or_load_shader(const std::vector<fs::path>& files, std::string_view name) {
             if (auto it = shaders.find(name); it != shaders.end()) return it->second;
-            return load_shader(files, name);
+            return load_shader<Vertex>(files, name);
         }
 
 
-        shared<gfxapi::shader> get_or_load_shader(const fs::path& folder, std::string_view name) const {
+        template <typename Vertex> shared<gfxapi::shader> get_or_load_shader(const fs::path& folder, std::string_view name) {
             if (auto it = shaders.find(name); it != shaders.end()) return it->second;
-            return load_shader(folder, name);
+            return load_shader<Vertex>(folder, name);
         }
+
+
+        template <typename Vertex> shared<gfxapi::shader> get_or_load_shader(std::string_view name) {
+            return get_or_load_shader<Vertex>(io::paths::PATH_SHADERS, name);
+        }
+
+
+        const auto& get_compile_options(void) const { return *compile_options; }
+        void set_compile_options(const auto& options) { compile_options = make_unique<shaderc::CompileOptions>(options); }
     private:
         shader_compiler compiler;
-        shaderc::CompileOptions compile_options;
+        unique<shaderc::CompileOptions> compile_options; // Non-assignable.
 
         hash_map<std::string, shared<gfxapi::shader>> shaders;
 
 
-        shader<gfxapi::shader> load_shader(const auto& files_or_folder, std::string_view name) {
+        shader_cache(void) : compile_options(make_unique<shaderc::CompileOptions>()) {}
+
+
+        template <typename Vertex> shared<gfxapi::shader> load_shader(const auto& files_or_folder, std::string_view name) {
             auto [it, success] = shaders.emplace(
                 std::string { name },
-                gfxapi::make_shader(compiler.compile(files_or_folder, name, compile_options))
+                make_shared<gfxapi::shader>(
+                    gfxapi::make_shader<Vertex>(compiler.compile(files_or_folder, name, *compile_options))
+                )
             );
 
             return it->second;
         }
-
-    public:
-        VE_GET_SET_CREF(compile_options);
     };
 }

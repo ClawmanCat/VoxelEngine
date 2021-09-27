@@ -44,7 +44,6 @@ namespace ve::gfx::vulkan {
             pixel_format(args.pixel_format),
             fmt_info(args.format_info ? *(args.format_info) : image_formats.at(args.pixel_format)),
             usage(args.usage),
-            layout(args.layout),
             mipmap_levels(args.mipmap_levels),
             mipmap_filter(args.mipmap_filter)
         {
@@ -310,7 +309,7 @@ namespace ve::gfx::vulkan {
         image_format_info fmt_info;
 
         VkImageUsageFlags usage;
-        VkImageLayout layout;
+        VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         u32 mipmap_levels = 1;
         VkFilter mipmap_filter = VK_FILTER_LINEAR;
@@ -364,9 +363,12 @@ namespace ve::gfx::vulkan {
             pixel_format  = args.pixel_format;
             fmt_info      = args.format_info ? *(args.format_info) : image_formats.at(args.pixel_format);
             usage         = args.usage;
-            layout        = args.layout;
             mipmap_levels = args.mipmap_levels;
             mipmap_filter = args.mipmap_filter;
+
+            // Note: no transition is done!
+            // Unlike with new images, the image could be in any state when we receive it.
+            layout = args.layout;
         }
 
 

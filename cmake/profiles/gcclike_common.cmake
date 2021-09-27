@@ -46,4 +46,10 @@ function(load_common_profile)
 
     # Usage of magic_enum requires a large recursion depth.
     set_compiler_option(-fbracket-depth=1024)
+
+    # Don't hide part of the backtrace for template errors.
+    set_compiler_option(-ftemplate-backtrace-limit=0)
+
+    # Conan packages don't have PDBs. We don't need a warning for every package that there is no debug info.
+    add_link_options(/ignore:4099)
 endfunction()

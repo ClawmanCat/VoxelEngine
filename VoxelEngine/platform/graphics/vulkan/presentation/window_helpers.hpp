@@ -27,7 +27,7 @@ namespace ve::gfx::vulkan {
     inline present_mode present_mode_vk_to_ve(VkPresentModeKHR mode) {
         switch (mode) {
             case VK_PRESENT_MODE_IMMEDIATE_KHR: return present_mode::IMMEDIATE;
-            case VK_PRESENT_MODE_FIFO_KHR:      return present_mode::DOUBLE_BUFFERED;
+            case VK_PRESENT_MODE_FIFO_KHR:      return present_mode::VSYNC;
             case VK_PRESENT_MODE_MAILBOX_KHR:   return present_mode::TRIPLE_BUFFERED;
             default:                            VE_ASSERT(false, "Unsupported presentation mode.");
         }
@@ -39,7 +39,7 @@ namespace ve::gfx::vulkan {
     inline VkPresentModeKHR present_mode_ve_to_vk(present_mode mode) {
         switch (mode) {
             case present_mode::IMMEDIATE:       return VK_PRESENT_MODE_IMMEDIATE_KHR;
-            case present_mode::DOUBLE_BUFFERED: return VK_PRESENT_MODE_FIFO_KHR;
+            case present_mode::VSYNC:           return VK_PRESENT_MODE_FIFO_KHR;
             case present_mode::TRIPLE_BUFFERED: return VK_PRESENT_MODE_MAILBOX_KHR;
         }
     }
@@ -65,6 +65,6 @@ namespace ve::gfx::vulkan {
 
         // Guaranteed to be supported.
         // (https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkPresentModeKHR.html)
-        return present_mode::DOUBLE_BUFFERED;
+        return present_mode::VSYNC;
     }
 }

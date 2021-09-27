@@ -30,7 +30,7 @@ namespace ve::gfx {
             std::vector<fs::path> files;
 
             for (const auto& entry : fs::directory_iterator(folder)) {
-                if (entry.is_regular_file() && entry.path().filename() == name) {
+                if (entry.is_regular_file() && io::get_filename_from_multi_extension(entry.path()) == name) {
                     files.push_back(entry.path());
                 }
             }

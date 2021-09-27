@@ -42,6 +42,15 @@ namespace ve::gfx::reflect {
 
         std::string name;
         const gfxapi::pipeline_category* pipeline;
+
+
+        const auto& get_input_stage(void) const {
+            return *ranges::find_if(stages, [](const auto& kv) { return kv.first->first; });
+        }
+
+        const auto& get_output_stage(void) const {
+            return *ranges::find_if(stages, [](const auto& kv) { return kv.first->last; });
+        }
     };
 
 

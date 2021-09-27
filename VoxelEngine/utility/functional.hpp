@@ -40,6 +40,12 @@ namespace ve {
     template <typename T> constexpr inline auto construct(void) {
         return [](auto&&... args) { return T { fwd(args)... }; };
     }
+
+
+    // Returns a predicate that casts its argument to the given type.
+    template <typename T> constexpr inline auto cast(void) {
+        return [](auto&& arg) { return static_cast<T>(arg); };
+    }
     
     
     template <typename Cls, typename T> constexpr inline auto get_field(mem_var<Cls, T> member) {

@@ -17,8 +17,9 @@ create_target(
     PUBLIC CONAN_PKG::glm
     PUBLIC CONAN_PKG::sdl2
     PUBLIC CONAN_PKG::stb
-    # spirv-cross from the Vulkan SDK has _ITERATOR_DEBUG_LEVEL=0 and cannot be used in debug builds.
+    # spirv-cross and shaderc from the Vulkan SDK have _ITERATOR_DEBUG_LEVEL=0 and cannot be used in debug builds.
     PUBLIC CONAN_PKG::spirv-cross
+    PUBLIC CONAN_PKG::shaderc
     PUBLIC CONAN_PKG::vulkan-sdk
 )
 

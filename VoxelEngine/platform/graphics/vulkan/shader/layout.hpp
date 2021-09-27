@@ -107,33 +107,30 @@ namespace ve::gfx::vulkan {
 
     template <typename Vertex>
     inline vertex_layout get_vertex_layout(const reflect::shader_reflection& reflection) {
-        constexpr auto vertex_attributes = get_vertex_attributes<Vertex>();
+        constexpr auto vertex_attributes = Vertex::get_vertex_layout();
 
-        const auto& [input_stage, input_attributes] = *ranges::find_if(
-            reflection.stages,
-            [](const auto& kv) { return kv.first->first; }
-        );
+        const auto& [input_stage, attributes] = reflection.get_input_stage();
 
 
         auto matches = combine_into_pairs(
             vertex_attributes,
-            input_attributes,
+            attributes.inputs,
             [](const auto& va, const auto& ia) { return va.name == ia.name; }
         );
 
 
-        for (const auto& unmatched_va : matches.unmatched_a) {
-            VE_LOG_WARN(
+        for (const auto& unmatched_va : matches.unmatched_a | views::indirect) {
+            VE_LOG_WARN(cat(
                 "Shader ", reflection.name, " has no input variable for vertex attribute ",
                 unmatched_va.name, " in vertex of type ", ctti::nameof<Vertex>().cppstring(), "."
-            );
+            ));
         }
 
-        for (const auto& unmatched_ia : matches.unmatched_b) {
-            VE_LOG_ERROR(
+        for (const auto& unmatched_ia : matches.unmatched_b | views::indirect) {
+            VE_LOG_ERROR(cat(
                 "Shader ", reflection.name, " requires input variable ", unmatched_ia.name,
                 " but it is not provided by vertex of type ", ctti::nameof<Vertex>().cppstring(), "."
-            );
+            ));
         }
 
         if(!matches.unmatched_b.empty()) {
@@ -144,16 +141,17 @@ namespace ve::gfx::vulkan {
         vertex_layout result;
         for (const auto& [vertex_attrib, input_attrib] : matches.matched) {
             result.vertex_bindings.push_back(VkVertexInputBindingDescription {
-                .binding   = input_attrib.binding,
-                .stride    = vertex_attrib.size,
+                .binding   = (u32) input_attrib->binding,
+                .stride    = (u32) vertex_attrib->size,
                 .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
             });
 
             result.vertex_attributes.push_back(VkVertexInputAttributeDescription {
-                .location = input_attrib.location,
-                .binding  = input_attrib.binding,
-                .format   = detail::vulkan_format_for_attribute(vertex_attrib),
-                .offset   = vertex_attrib.offset
+                .location = (u32) input_attrib->location,
+                .binding  = (u32) input_attrib->binding,
+                // TODO: FIX THIS!
+                .format   = VK_FORMAT_R32G32B32A32_SFLOAT, //detail::vulkan_format_for_attribute(*vertex_attrib),
+                .offset   = (u32) vertex_attrib->offset
             });
         }
 

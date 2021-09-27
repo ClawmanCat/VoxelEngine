@@ -68,4 +68,28 @@ namespace ve::gfx::vulkan::detail {
             );
         }
     }
+
+
+    inline vk_resource<VkSemaphore> create_semaphore(VkSemaphoreCreateFlags flags = 0) {
+        VkSemaphoreCreateInfo info { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, .flags = flags };
+
+        VkSemaphore semaphore;
+        if (vkCreateSemaphore(get_context()->logical_device, &info, nullptr, &semaphore) != VK_SUCCESS) {
+            VE_ASSERT(false, "Failed to create Vulkan semaphore.");
+        }
+
+        return { std::move(semaphore), bind<0, 2>(vkDestroySemaphore, get_context()->logical_device.value, nullptr) };
+    }
+
+
+    inline vk_resource<VkFence> create_fence(VkFenceCreateFlags flags = 0) {
+        VkFenceCreateInfo info { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = flags };
+
+        VkFence fence;
+        if (vkCreateFence(get_context()->logical_device, &info, nullptr, &fence) != VK_SUCCESS) {
+            VE_ASSERT(false, "Failed to create Vulkan fence.");
+        }
+
+        return { std::move(fence), bind<0, 2>(vkDestroyFence, get_context()->logical_device.value, nullptr) };
+    }
 }

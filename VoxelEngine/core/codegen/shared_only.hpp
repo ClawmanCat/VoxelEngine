@@ -51,7 +51,15 @@ BOOST_PP_REPEAT(                                                        \
 // This prevents undefined behaviour for classes that inherit from std::enable_shared_from_this.
 // Note that the hidden type is required, as the constructor must be public for make_shared to work.
 // Usage: ve_shared_only(my_class, args...) : some_member(arg) { ... }
-#define ve_shared_only(cls, ...)                                        \
+//
+// Since ve_shared_only is commonly used in conjunction with std::enable_shared_from_this,
+// it is sometimes desirable to construct the pointer first, so shared_from_this() is valid,
+// and then initialize the object.
+// For this purpose the _then version of this macro can be used to call some method after the constructor.
+// Usage:
+//    ve_shared_only_then(my_class, init, args...) : some_member(arg) { ... }
+//    void init(void) { ... }
+#define ve_impl_shared_only(cls, then, ...)                             \
 private:                                                                \
     struct hidden_constructor_t {                                       \
         explicit hidden_constructor_t(void) = default;                  \
@@ -59,18 +67,25 @@ private:                                                                \
                                                                         \
 public:                                                                 \
     static ve::shared<cls> create(auto&&... args) {                     \
-        return ve::make_shared<cls>(                                    \
+        auto ptr = ve::make_shared<cls>(                                \
             hidden_constructor_t{},                                     \
             fwd(args)...                                                \
         );                                                              \
+                                                                        \
+        then;                                                           \
+        return ptr;                                                     \
     }                                                                   \
                                                                         \
     cls(hidden_constructor_t __VA_OPT__(,) __VA_ARGS__)
 
 
+#define ve_shared_only(cls, ...) ve_impl_shared_only(cls, /* no op */, __VA_ARGS__)
+#define ve_shared_only_then(cls, then, ...) ve_impl_shared_only(cls, ptr->then(), __VA_ARGS__)
+
+
 // Equivalent to above, but allows default parameters and multiple constructors.
 // Parameters should be passed as (type, name) or (type, name, value)
-#define ve_complex_shared_only(cls, ...)                                \
+#define ve_impl_complex_shared_only(cls, then, ...)                     \
 private:                                                                \
     struct BOOST_PP_CAT(hidden_constructor_t_, __LINE__) {              \
         explicit BOOST_PP_CAT(hidden_constructor_t_, __LINE__)(void)    \
@@ -79,7 +94,7 @@ private:                                                                \
                                                                         \
 public:                                                                 \
     static ve::shared<cls> create(ve_impl_param_list(__VA_ARGS__)) {    \
-        return ve::make_shared<cls>(                                    \
+        auto ptr = ve::make_shared<cls>(                                \
             BOOST_PP_CAT(hidden_constructor_t_, __LINE__){},            \
             /* fwd(name) for every tuple in __VA_ARGS__ */              \
             BOOST_PP_SEQ_ENUM(                                          \
@@ -88,9 +103,16 @@ public:                                                                 \
                 )                                                       \
             )                                                           \
         );                                                              \
+                                                                        \
+        then;                                                           \
+        return ptr;                                                     \
     }                                                                   \
                                                                         \
     cls(                                                                \
         BOOST_PP_CAT(hidden_constructor_t_, __LINE__)                   \
         __VA_OPT__(,) ve_impl_param_list(__VA_ARGS__)                   \
     )
+
+
+#define ve_complex_shared_only(cls, ...) ve_impl_complex_shared_only(cls, /* no op */, __VA_ARGS__)
+#define ve_complex_shared_only_then(cls, then, ...) ve_impl_complex_shared_only(cls, ptr->then(), __VA_ARGS__)

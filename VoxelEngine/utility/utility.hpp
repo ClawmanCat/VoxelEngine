@@ -28,6 +28,7 @@
 #include <VoxelEngine/utility/logger.hpp>
 #include <VoxelEngine/utility/math.hpp>
 #include <VoxelEngine/utility/performance_timer.hpp>
+#include <VoxelEngine/utility/priority.hpp>
 #include <VoxelEngine/utility/raii.hpp>
 #include <VoxelEngine/utility/random.hpp>
 #include <VoxelEngine/utility/repeat.hpp>

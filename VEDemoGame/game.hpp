@@ -3,7 +3,8 @@
 #include <VoxelEngine/dependent/game_callbacks.hpp>
 #include <VoxelEngine/clientserver/client.hpp>
 #include <VoxelEngine/clientserver/server.hpp>
-#include <VoxelEngine/graphics/presentation/window.hpp>
+#include <VoxelEngine/graphics/graphics.hpp>
+#include <VoxelEngine/ecs/ecs.hpp>
 
 
 namespace demo_game {
@@ -24,7 +25,7 @@ namespace demo_game {
     private:
         static inline ve::client client = { };
         static inline ve::server server = { };
-        static inline std::optional<ve::gfx::window> window = std::nullopt;
+        static inline ve::shared<ve::gfx::window> window = nullptr;
     };
 }
 

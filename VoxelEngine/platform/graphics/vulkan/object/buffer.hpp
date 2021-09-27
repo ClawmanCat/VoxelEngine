@@ -137,6 +137,9 @@ namespace ve::gfx::vulkan {
         }
 
 
+        bool has_storage(void) const { return handle != VK_NULL_HANDLE; }
+
+
         VE_GET_CREF(handle);
         VE_GET_CREF(memory);
         VE_GET_CREF(usage);

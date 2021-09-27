@@ -2,9 +2,11 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/graphics/presentation/present_mode.hpp>
+#include <VoxelEngine/graphics/presentation/window_registry.hpp>
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
 #include VE_GFX_HEADER(presentation/canvas.hpp)
+#include VE_GFX_HEADER(presentation/window_helpers.hpp)
 
 #include <SDL_video.h>
 
@@ -13,7 +15,7 @@ namespace ve::gfx {
     using sdl_windowflags_t = std::underlying_type_t<SDL_WindowFlags>;
 
 
-    class window {
+    class window : public std::enable_shared_from_this<window> {
     public:
         constexpr static inline i32 WINDOW_CENTERED = SDL_WINDOWPOS_CENTERED;
 
@@ -29,11 +31,11 @@ namespace ve::gfx {
             bool start_maximized      = true;
             bool graphics_window      = true;
             sdl_windowflags_t flags   = SDL_WINDOW_RESIZABLE;
-            present_mode present_mode = present_mode::DOUBLE_BUFFERED;
+            present_mode present_mode = present_mode::VSYNC;
         };
 
 
-        explicit window(const arguments& args) {
+        ve_shared_only_then(window, register_window, const arguments& args) : std::enable_shared_from_this<window>() {
             handle = SDL_CreateWindow(
                 args.title.c_str(),
                 args.position.x, args.position.y,
@@ -41,23 +43,33 @@ namespace ve::gfx {
                 args.flags | (args.graphics_window ? gfxapi::get_windowflags() : 0)
             );
 
+            if (args.start_maximized) maximize();
+
 
             if (args.graphics_window) {
                 gfxapi::get_or_create_context(handle);
-                canvas = gfxapi::canvas(this);
+                canvas = make_shared<gfxapi::canvas>(this, args.present_mode);
             }
-
-
-            if (args.start_maximized) maximize();
         }
 
 
         ~window(void) {
+            window_registry::instance().remove_window(shared_from_this());
             if (handle) SDL_DestroyWindow(handle);
         }
 
 
         ve_swap_move_only(window, handle, canvas);
+
+
+        void begin_frame(void) {
+            if (canvas) canvas->begin_frame();
+        }
+
+
+        void end_frame(void) {
+            if (canvas) canvas->end_frame();
+        }
 
 
         void minimize(void) { SDL_MinimizeWindow(handle); }
@@ -107,9 +119,15 @@ namespace ve::gfx {
 
 
         VE_GET_CREF(handle);
-        VE_GET_MREF(canvas);
+        VE_GET_VAL(canvas);
     private:
         SDL_Window* handle = nullptr;
-        std::optional<gfxapi::canvas> canvas;
+        shared<gfxapi::canvas> canvas = nullptr;
+
+
+        // Called after construction by window::create.
+        void register_window(void) {
+            window_registry::instance().add_window(shared_from_this());
+        }
     };
 }

@@ -3,13 +3,12 @@
 #include <VoxelEngine/utility/assert.hpp>
 #include <VoxelEngine/utility/io/paths.hpp>
 #include <VoxelEngine/utility/thread/thread_pool.hpp>
+#include <VoxelEngine/clientserver/instance.hpp>
 #include <VoxelEngine/dependent/plugin_registry.hpp>
 #include <VoxelEngine/dependent/game_callbacks.hpp>
+#include <VoxelEngine/graphics/presentation/window_registry.hpp>
 
 #include <SDL.h>
-
-// TODO: Remove this!
-#include <VoxelEngine/platform/graphics/vulkan/graphics.hpp>
 
 
 namespace ve {
@@ -85,14 +84,20 @@ namespace ve {
     
     
     void engine::loop(void) {
+        static steady_clock::time_point last_tick = steady_clock::now();
+
         game_callbacks::pre_loop();
         engine::event_dispatcher.dispatch_event(engine_pre_loop_event { engine::tick_count });
 
+        gfx::window_registry::instance().begin_frame();
 
         thread_pool::instance().execute_main_thread_tasks();
+        instance_registry::instance().update_all(time_since(last_tick));
 
+        gfx::window_registry::instance().end_frame();
 
         ++engine::tick_count;
+        last_tick = steady_clock::now();
 
         engine::event_dispatcher.dispatch_event(engine_post_loop_event { engine::tick_count });
         game_callbacks::post_loop();

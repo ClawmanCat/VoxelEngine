@@ -14,5 +14,5 @@ namespace ve {
     }
     
     template <meta::pack_of_types RequiredTypes, meta::pack_of_types ExcludedTypes>
-    using view_type = decltype(detail::view_type_impl(RequiredTypes{}, ExcludedTypes{}));
+    using view_type_for = decltype(detail::view_type_impl(RequiredTypes{}, ExcludedTypes{}));
 }

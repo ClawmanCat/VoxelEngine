@@ -2,6 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/object/resource.hpp>
+#include <VoxelEngine/platform/graphics/vulkan/object/render_target.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/context/queue_data.hpp>
 
 #include <boost/pfr.hpp>
@@ -78,9 +79,6 @@ namespace ve::gfx::vulkan {
 
         // Only present if created with settings.enable_debugger = true.
         vk_resource<VkDebugUtilsMessengerEXT> debugger;
-
-        std::list<window*> vulkan_windows;
-        window* active_window;
     };
 
 

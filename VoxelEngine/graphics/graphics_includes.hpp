@@ -6,6 +6,7 @@
 
 #include <VoxelEngine/graphics/presentation/present_mode.hpp>
 #include <VoxelEngine/graphics/presentation/window.hpp>
+#include <VoxelEngine/graphics/presentation/window_registry.hpp>
 #include <VoxelEngine/graphics/shader/cache.hpp>
 #include <VoxelEngine/graphics/shader/compiler.hpp>
 #include <VoxelEngine/graphics/shader/include_handler.hpp>

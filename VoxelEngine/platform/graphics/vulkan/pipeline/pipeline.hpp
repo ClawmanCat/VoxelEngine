@@ -2,47 +2,40 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/pipeline/pipeline_settings.hpp>
-#include <VoxelEngine/platform/graphics/vulkan/object/framebuffer.hpp>
+#include <VoxelEngine/platform/graphics/vulkan/pipeline/pipeline_attachment.hpp>
+#include <VoxelEngine/platform/graphics/vulkan/object/render_target.hpp>
+#include <VoxelEngine/platform/graphics/vulkan/vertex/vertex_buffer.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/shader/shader.hpp>
 
 #include <vulkan/vulkan.hpp>
 
 
 namespace ve::gfx::vulkan {
-    namespace detail {
-        // A framebuffer plus a name, corresponding to an output of the final shader stage.
-        // Outputs from the shader to the given name will be written to the given framebuffer.
-        struct named_framebuffer {
-            const framebuffer* fb;
-            std::string name;
-        };
+    class pipeline {
+    public:
+        pipeline(const shared<shader>& shader_program, const shared<render_target>& target, const pipeline_settings& settings = {})
+            : target(target), shader_program(shader_program), settings(settings)
+        {}
+
+        virtual ~pipeline(void) = default;
+
+        ve_immovable(pipeline);
 
 
-        struct pipeline_create_data {
-            const std::vector<named_framebuffer>& targets;
-            const pipeline_settings& settings;
-            shared<shader> shader_program;
-        };
-    }
+        virtual void bind(void) = 0;
+        virtual void unbind(void) = 0;
+        virtual void draw(const vertex_buffer& vbo) = 0;
 
 
-    // TODO: Handle pipelines with multiple subpasses.
-    // This would need some extra abstraction for compute pipelines, as they currently don't support multi-pass rendering.
-    inline vk_resource<VkPipeline> create_pipeline(
-        const std::vector<detail::named_framebuffer>& targets,
-        const pipeline_settings& settings,
-        shared<shader> shader_program
-    ) {
-        VE_ASSERT(!targets.empty(), "Cannot create pipeline without any targets.");
+        VE_GET_VAL(target);
+        VE_GET_VAL(shader_program);
+        VE_GET_CREF(handle);
+        VE_GET_CREF(settings);
 
-        VE_ASSERT(
-            ranges::all_of(
-                targets | views::transform(ve_get_field(fb)) | views::indirect | views::transform(ve_get_field(get_image())),
-                equal_on(&image::get_size, targets[0].fb->get_image().get_size())
-            ),
-            "Cannot create pipeline from targets not sharing a common size."
-        );
-
-        return shader_program->get_pipeline()->create_fn({ targets, settings, shader_program });
-    }
+    protected:
+        vk_resource<VkPipeline> handle;
+        shared<render_target> target;
+        shared<shader> shader_program;
+        pipeline_settings settings;
+    };
 }

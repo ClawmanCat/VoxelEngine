@@ -6,20 +6,20 @@
 namespace ve::meta {
     namespace detail {
         template <
-            template <typename...> typename... Templates,
-            typename Nested
+            typename Nested,
+            template <typename...> typename... Templates
         > struct nest_impl { using type = Nested; };
         
         template <
+            typename Nested,
             template <typename...> typename Template,
-            template <typename...> typename... Templates,
-            typename Nested
-        > struct nest_impl<Template, Templates..., Nested> {
-            using type = Template<typename nest_impl<Templates..., Nested>::type>;
+            template <typename...> typename... Templates
+        > struct nest_impl<Nested, Template, Templates...> {
+            using type = Template<typename nest_impl<Nested, Templates...>::type>;
         };
     }
     
     
-    template <template <typename...> typename... Templates, typename Nested>
-    using nest = detail::nest_impl<Templates..., Nested>;
+    template <typename Nested, template <typename...> typename... Templates>
+    using nest = detail::nest_impl<Nested, Templates...>;
 }

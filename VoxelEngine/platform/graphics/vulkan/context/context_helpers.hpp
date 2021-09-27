@@ -234,8 +234,17 @@ namespace ve::gfx::vulkan::detail {
 
 
         auto extension_ptrs = device_extensions | views::transform(ve_get_field(c_str())) | ranges::to<std::vector>;
+
+
+        VkPhysicalDeviceExtendedDynamicStateFeaturesEXT dynamic_state {
+            .sType                = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
+            .extendedDynamicState = VK_TRUE
+        };
+
+
         VkDeviceCreateInfo device_info {
             .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext                   = (ranges::contains(device_extensions, "VK_EXT_extended_dynamic_state")) ? &dynamic_state : nullptr,
             .queueCreateInfoCount    = (u32) queue_info.size(),
             .pQueueCreateInfos       = queue_info.data(),
             .enabledExtensionCount   = (u32) extension_ptrs.size(),
@@ -270,7 +279,7 @@ namespace ve::gfx::vulkan::detail {
     inline vk_resource<VkCommandPool> create_command_pool(VkDevice device, u32 family) {
         VkCommandPoolCreateInfo info {
             .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .flags            = 0,
+            .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
             .queueFamilyIndex = family
         };
 

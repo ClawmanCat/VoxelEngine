@@ -6,6 +6,5 @@
 
 #include <VoxelEngine/event/delayed_event_dispatcher.hpp>
 #include <VoxelEngine/event/event_handler_id.hpp>
-#include <VoxelEngine/event/priority.hpp>
 #include <VoxelEngine/event/simple_event_dispatcher.hpp>
 #include <VoxelEngine/event/subscribe_only_view.hpp>

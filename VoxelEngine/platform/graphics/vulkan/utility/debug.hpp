@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/logger.hpp>
 #include <VoxelEngine/utility/functional.hpp>
+#include <VoxelEngine/utility/vector.hpp>
 #include <VoxelEngine/platform/graphics/vulkan/utility/utility.hpp>
 
 #include <vulkan/vulkan.hpp>
@@ -52,6 +53,11 @@ namespace ve::gfx::vulkan::detail {
             cat("[", type_str, " ", severity_str, "] ", data->pMessage),
             level
         );
+
+
+        #ifdef VE_DEBUG
+            if (level == logger::level::ERROR) VE_BREAKPOINT;
+        #endif
 
 
         return VK_FALSE;

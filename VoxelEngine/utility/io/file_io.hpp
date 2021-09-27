@@ -105,4 +105,13 @@ namespace ve::io {
             ? ""
             : path_string.substr(std::distance(path_string.begin(), last_dot) - 1);
     }
+
+
+    // Get the filename from a path, with the same considerations as the above method.
+    inline std::string get_filename_from_multi_extension(const fs::path& path) {
+        std::string ext  = get_full_extension(path);
+        std::string name = path.filename().string();
+
+        return name.substr(0, name.size() - ext.size());
+    }
 }

@@ -87,5 +87,8 @@ namespace ve::gfx::vulkan::detail {
             (ve_impl_vkfmt_size_seq)
             (ve_impl_vkfmt_type_seq)
         )
+
+
+        VE_UNREACHABLE;
     }
 }
