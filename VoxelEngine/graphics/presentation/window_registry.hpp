@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/vector.hpp>
+#include <VoxelEngine/utility/algorithm.hpp>
 
 
 namespace ve::gfx {

@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/traits/pick.hpp>
 #include <VoxelEngine/graphics/shader/compiler.hpp>
+#include <VoxelEngine/graphics/shader/layout_validator.hpp>
 
 #include <gl/glew.h>
 
@@ -61,10 +62,12 @@ namespace ve::gfx::opengl {
     inline shared<shader> make_shader(const shader_compilation_data& data) {
         std::vector<GLuint> stages;
 
-        std::vector<std::pair<const shader_stage*, const reflect::stage*>> refls;
-        for (const auto& [k, v] : data.reflection.stages) refls.emplace_back(k, &v);
-
         for (const auto& [stage, spirv] : data.spirv) {
+            // Assure the provided vertex type matches the inputs of the shader.
+            if (stage->first) {
+                validate_vertex_layout<Vertex>(data.reflection.stages.at(stage).inputs);
+            }
+
             GLuint id = glCreateShader(stage->opengl_type);
             VE_ASSERT(id, "Failed to create OpenGL shader object.");
 

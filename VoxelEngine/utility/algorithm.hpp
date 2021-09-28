@@ -26,13 +26,18 @@ namespace ve {
     template <typename T>
     inline void swap_erase_element(std::vector<T>& vec, const T& elem) {
         std::ptrdiff_t distance = (&elem - &vec[0]);
-        
+
         VE_DEBUG_ASSERT(
             distance >= 0 && distance < (std::ptrdiff_t) vec.size(),
             "Attempt to swap erase element not in vector."
         );
-    
+
         swap_erase_at(vec, distance);
+    }
+
+
+    constexpr inline bool one_of(const auto& first, const auto&... rest) {
+        return ((first == rest) || ...);
     }
     
     

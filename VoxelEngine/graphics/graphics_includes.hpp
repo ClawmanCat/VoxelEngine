@@ -10,6 +10,7 @@
 #include <VoxelEngine/graphics/shader/cache.hpp>
 #include <VoxelEngine/graphics/shader/compiler.hpp>
 #include <VoxelEngine/graphics/shader/include_handler.hpp>
+#include <VoxelEngine/graphics/shader/layout_validator.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>
 #include <VoxelEngine/graphics/shader/spirtype.hpp>
 #include <VoxelEngine/graphics/vertex/vertex.hpp>

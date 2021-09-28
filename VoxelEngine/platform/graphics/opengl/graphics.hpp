@@ -16,7 +16,9 @@
 #include <VoxelEngine/platform/graphics/opengl/shader/stage.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
-#include <VoxelEngine/platform/graphics/opengl/uniform/bind_uniform.hpp>
+#include <VoxelEngine/platform/graphics/opengl/uniform/uniform.hpp>
+#include <VoxelEngine/platform/graphics/opengl/uniform/uniform_bind_state.hpp>
+#include <VoxelEngine/platform/graphics/opengl/uniform/uniform_storage.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/resource.hpp>
 #include <VoxelEngine/platform/graphics/opengl/vertex/vertex_buffer.hpp>

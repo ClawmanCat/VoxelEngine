@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <VoxelEngine/utility/algorithm.hpp>
 #include <VoxelEngine/utility/arbitrary_storage.hpp>
 #include <VoxelEngine/utility/arg_parser.hpp>
 #include <VoxelEngine/utility/assert.hpp>
@@ -62,5 +63,4 @@
 #include <VoxelEngine/utility/traits/value.hpp>
 #include <VoxelEngine/utility/tuple_foreach.hpp>
 #include <VoxelEngine/utility/uuid.hpp>
-#include <VoxelEngine/utility/vector.hpp>
 #include <VoxelEngine/utility/version.hpp>

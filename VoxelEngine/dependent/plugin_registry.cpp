@@ -3,7 +3,7 @@
 #include <VoxelEngine/utility/assert.hpp>
 #include <VoxelEngine/utility/expected.hpp>
 #include <VoxelEngine/utility/delayed_cast.hpp>
-#include <VoxelEngine/utility/vector.hpp>
+#include <VoxelEngine/utility/algorithm.hpp>
 
 #include <magic_enum.hpp>
 

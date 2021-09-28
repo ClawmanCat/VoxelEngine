@@ -15,7 +15,7 @@ namespace ve::gfx::reflect {
 
     // Generates a dummy SPIRType for the type T so T can be checked for compatibility as a shader input.
     // TODO: Support trivial struct types to simplify UBO usage.
-    // TODO: Support texture types.
+    // TODO: Support sampler types.
     template <typename T> requires (
         std::is_scalar_v<T>        ||
         std::is_bounded_array_v<T> ||

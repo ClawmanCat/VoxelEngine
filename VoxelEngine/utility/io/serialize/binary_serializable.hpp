@@ -7,7 +7,7 @@
 #include <VoxelEngine/utility/io/serialize/decomposable_serializer.hpp>
 #include <VoxelEngine/utility/io/serialize/container_serializer.hpp>
 #include <VoxelEngine/utility/traits/always_false.hpp>
-#include <VoxelEngine/utility/vector.hpp>
+#include <VoxelEngine/utility/algorithm.hpp>
 
 
 namespace ve::serialize {

@@ -3,7 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/thread/dummy_mutex.hpp>
 #include <VoxelEngine/utility/traits/function_traits.hpp>
-#include <VoxelEngine/utility/vector.hpp>
+#include <VoxelEngine/utility/algorithm.hpp>
 #include <VoxelEngine/event/event_handler_id.hpp>
 
 #include <ctti/type_id.hpp>
