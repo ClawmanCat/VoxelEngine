@@ -3,11 +3,14 @@
 
 
 namespace ve::gfx::opengl {
-    api_context* get_or_create_context(SDL_Window* window) {
+    api_context* get_or_create_context(SDL_Window* window, const api_settings* settings) {
         static api_context ctx = [&] {
+            VE_ASSERT(window, "Please provide a window when creating the OpenGL context.");
+
             // Create context.
             api_context result = {
-                .handle = gl_resource<SDL_GLContext> { SDL_GL_CreateContext(window), SDL_GL_DeleteContext }
+                .handle   = gl_resource<SDL_GLContext> { SDL_GL_CreateContext(window), SDL_GL_DeleteContext },
+                .settings = *settings
             };
 
             // Initialize Glew.
@@ -23,6 +26,6 @@ namespace ve::gfx::opengl {
 
 
     api_context* get_context(void) {
-        return get_or_create_context(nullptr);
+        return get_or_create_context(nullptr, nullptr);
     }
 }

@@ -3,6 +3,28 @@
 
 
 namespace ve::gfx::reflect {
+    inline shader_object reflect_object(const spirv_cross::Compiler& compiler, const std::string& name, const spirv_cross::TypeID& type) {
+        auto spir_type = compiler.get_type(type);
+
+        shader_object object {
+            .name = name,
+            .type = spir_type
+        };
+
+        if (spir_type.basetype == primitive_t::Struct) {
+            for (std::size_t i = 0; i < spir_type.member_types.size(); ++i) {
+                object.members.push_back(reflect_object(
+                    compiler,
+                    compiler.get_member_name(spir_type.self, i),
+                    spir_type.member_types[i]
+                ));
+            }
+        }
+
+        return object;
+    }
+
+
     shader_reflection generate_reflection(std::string name, const vec_map<const gfxapi::shader_stage*, spirv_blob>& stages) {
         VE_DEBUG_ASSERT(!stages.empty(), "Shader must consist of at least one stage.");
 
@@ -18,7 +40,8 @@ namespace ve::gfx::reflect {
             std::pair { &spirv_cross::ShaderResources::stage_inputs,          &stage::inputs          },
             std::pair { &spirv_cross::ShaderResources::stage_outputs,         &stage::outputs         },
             std::pair { &spirv_cross::ShaderResources::uniform_buffers,       &stage::uniform_buffers },
-            std::pair { &spirv_cross::ShaderResources::push_constant_buffers, &stage::push_constants  }
+            std::pair { &spirv_cross::ShaderResources::push_constant_buffers, &stage::push_constants  },
+            std::pair { &spirv_cross::ShaderResources::sampled_images,        &stage::samplers        }
         };
 
 
@@ -32,11 +55,10 @@ namespace ve::gfx::reflect {
 
             for (auto [src, dst] : resource_map) {
                 for (const auto& resource : resources.*src) {
-                    (stage_result.*dst).push_back(attribute {
-                        .name     = resource.name,
-                        .type     = compiler.get_type(resource.type_id),
-                        .location = compiler.get_decoration(resource.id, spv::DecorationLocation),
-                        .binding  = compiler.get_decoration(resource.id, spv::DecorationBinding)
+                    auto& attrib = (stage_result.*dst).emplace_back(attribute {
+                        reflect_object(compiler, resource.name, resource.type_id),
+                        compiler.get_decoration(resource.id, spv::DecorationLocation),
+                        compiler.get_decoration(resource.id, spv::DecorationBinding)
                     });
                 }
             }

@@ -55,9 +55,7 @@ namespace ve::gfx {
         template <typename Vertex> shared<gfxapi::shader> load_shader(const auto& files_or_folder, std::string_view name) {
             auto [it, success] = shaders.emplace(
                 std::string { name },
-                make_shared<gfxapi::shader>(
-                    gfxapi::make_shader<Vertex>(compiler.compile(files_or_folder, name, *compile_options))
-                )
+                gfxapi::make_shader<Vertex>(compiler.compile(files_or_folder, name, *compile_options))
             );
 
             return it->second;

@@ -17,11 +17,26 @@ namespace ve::gfx::reflect {
     using spirv_blob = std::vector<u32>;
 
 
-    struct attribute {
+    // A shader object represents a variable in the shader.
+    // This is used for attributes, but also for e.g. the contents of a UBO.
+    struct shader_object {
         std::string name;
         primitive_t type;
+        std::vector<shader_object> members;
+    };
+
+
+    // An attribute is a shader object that has some external binding,
+    // e.g. it is a shader input, output or a uniform.
+    struct attribute : shader_object {
         std::size_t location;
         std::size_t binding;
+
+
+        attribute(const shader_object& obj, std::size_t location, std::size_t binding) :
+            shader_object(obj), location(location), binding(binding)
+        {}
+
 
         auto operator<=>(const attribute& other) const {
             if (auto cmp = (name <=> other.name); cmp != 0) return cmp;
@@ -34,6 +49,7 @@ namespace ve::gfx::reflect {
         std::vector<attribute> inputs, outputs;
         std::vector<attribute> uniform_buffers;
         std::vector<attribute> push_constants;
+        std::vector<attribute> samplers;
     };
 
 

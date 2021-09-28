@@ -53,7 +53,7 @@ namespace ve::gfx {
 
                 result.spirv.emplace(
                     &*stage_it,
-                    compile_stage(std::string { name }, io::read_text(file), stage_it->shaderc_type, options)
+                    compile_stage(std::string { name }, io::read_text(file), &*stage_it, options)
                 );
             }
 
@@ -67,14 +67,18 @@ namespace ve::gfx {
         }
 
     private:
-        spirv_blob compile_stage(const std::string& name, const io::text_file& data, shaderc_shader_kind type, const shaderc::CompileOptions& options) const {
+        spirv_blob compile_stage(const std::string& name, const io::text_file& data, const gfxapi::shader_stage* stage, const shaderc::CompileOptions& options) const {
             shaderc::Compiler compiler;
 
             std::string file_string = cat_range_with(data, "\n");
-            auto result = compiler.CompileGlslToSpv(file_string, type, name.c_str(), options);
+            auto result = compiler.CompileGlslToSpv(file_string, stage->shaderc_type, name.c_str(), options);
 
             if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-                throw std::runtime_error("Failed to compile shader stage: "s + result.GetErrorMessage());
+                throw std::runtime_error(cat(
+                    "Failed to compile ", stage->name,
+                    " for shader ", name, ":\n",
+                    result.GetErrorMessage()
+                ));
             }
 
             return spirv_blob { result.begin(), result.end() };

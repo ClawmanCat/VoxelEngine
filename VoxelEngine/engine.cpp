@@ -16,7 +16,7 @@ namespace ve {
         engine::arguments.feed((std::size_t) argc, (const char**) argv);
     
         // In debug mode, don't catch top-level exceptions so they can be intercepted by the debugger.
-        #ifndef VE_DEBUG
+        #ifndef VE_DEBUGX
         try {
         #endif
             while (true) {
@@ -34,7 +34,7 @@ namespace ve {
                         throw std::runtime_error("Illegal engine state.");
                 }
             }
-        #ifndef VE_DEBUG
+        #ifndef VE_DEBUGXX
         } catch (const std::exception& e) {
             VE_ASSERT(false, "Unhandled exception:", e.what());
         } catch (...) {

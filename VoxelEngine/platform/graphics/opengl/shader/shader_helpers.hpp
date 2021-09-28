@@ -2,6 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/io/paths.hpp>
+#include <VoxelEngine/graphics/shader/include_handler.hpp>
 
 #include <shaderc/shaderc.hpp>
 
@@ -15,7 +16,7 @@ namespace ve::gfx::opengl::shader_helpers {
             result.SetTargetEnvironment(shaderc_target_env_opengl, 430);
             result.AddMacroDefinition("VE_GRAPHICS_API", "opengl");
 
-            result.SetIncluder(make_unique<detail::include_handler>(io::paths::PATH_SHADERS));
+            result.SetIncluder(make_unique<gfx::detail::include_handler>(io::paths::PATH_SHADERS));
 
             result.SetAutoBindUniforms(true);
             result.SetAutoMapLocations(true);

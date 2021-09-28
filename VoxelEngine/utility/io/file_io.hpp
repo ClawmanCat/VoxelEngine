@@ -4,6 +4,8 @@
 #include <VoxelEngine/utility/string.hpp>
 #include <VoxelEngine/utility/io/image.hpp>
 
+#include <stb_image.h>
+
 #include <fstream>
 #include <cerrno>
 
@@ -54,7 +56,7 @@ namespace ve::io {
 
 
     inline void write_text(const fs::path& path, const text_file& text, write_mode mode = write_mode::OVERWRITE) {
-        fs::create_directories(path);
+        fs::create_directories(path.parent_path());
 
         std::ofstream stream { path, (std::ios::openmode) mode };
         if (stream.fail()) throw io_error { detail::get_error_string("open file stream", path) };
@@ -80,7 +82,7 @@ namespace ve::io {
 
 
     inline void write_data(const fs::path& path, const data_file& data, write_mode mode = write_mode::OVERWRITE) {
-        fs::create_directories(path);
+        fs::create_directories(path.parent_path());
 
         std::ofstream stream { path, std::ios::binary | (std::ios::openmode) mode };
         if (stream.fail()) throw io_error { detail::get_error_string("open file stream", path) };
@@ -88,6 +90,22 @@ namespace ve::io {
         stream.write((const char*) data.data(), (std::streamsize) data.size());
 
         if (!stream) throw io_error { detail::get_error_string("write file", path) };
+    }
+
+
+    inline image_rgba8 load_image(const fs::path& path) {
+        i32 w, h;
+
+        RGBA8* begin = reinterpret_cast<RGBA8*>(stbi_load(path.string().c_str(), &w, &h, nullptr, 4));
+        RGBA8* end   = begin + (w * h);
+
+        image_rgba8 result {
+            .data = std::vector<RGBA8> { begin, end },
+            .size = vec2ui { (u32) w, (u32) h }
+        };
+
+        stbi_image_free(reinterpret_cast<u8*>(begin));
+        return result;
     }
 
 

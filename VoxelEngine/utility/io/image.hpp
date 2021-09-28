@@ -4,12 +4,12 @@
 
 
 namespace ve {
-    struct image {
-        std::vector<u8> data;
-        vec2ui size;
+    using RGBA8 = vec4ub;
+    static_assert(sizeof(RGBA8) == 4 * sizeof(u8));
 
-        u8 channels, stride;
-        // No formats have more than 4 channels.
-        std::array<u8, 4> channel_depths;
+
+    struct image_rgba8 {
+        std::vector<RGBA8> data;
+        vec2ui size;
     };
 }
