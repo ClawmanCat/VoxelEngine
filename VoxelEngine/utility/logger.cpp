@@ -74,7 +74,7 @@ namespace ve {
             static auto log_filestream = std::ofstream(io::paths::PATH_LOGS / cat(gfxapi_name, ".log"));
 
             static auto logger_object = logger {
-                to_sentence_case(gfxapi_name),
+                to_uppercase(gfxapi_name),
                 logger::level::INFO,
                 std::cout,
                 log_filestream

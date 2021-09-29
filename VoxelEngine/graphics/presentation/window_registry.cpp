@@ -10,25 +10,24 @@ namespace ve::gfx {
 
 
     void window_registry::begin_frame(void) {
-        foreach([&](auto& window) { window.begin_frame(); });
+        for (auto* window : windows) window->begin_frame();
     }
 
 
     void window_registry::end_frame(void) {
-        foreach([&](auto& window) { window.end_frame(); });
+        for (auto* window : windows) window->end_frame();
     }
 
 
-    void window_registry::add_window(shared<window> window) {
+    void window_registry::add_window(window* window) {
         windows.push_back(window);
     }
 
 
-    void window_registry::remove_window(shared<window> window) {
-        std::erase_if(windows, [&] (const weak<class window>& maybe_remove) {
-            auto ptr = maybe_remove.lock();
-            return !ptr || ptr == window;
-        });
+    void window_registry::remove_window(window* window) {
+        // std::erase seems to throw with the MSVC STL if windows is empty. I think this is incorrect behaviour.
+        if (auto it = ranges::find(windows, window); it != windows.end()) {
+            windows.erase(it);
+        }
     }
-
 }

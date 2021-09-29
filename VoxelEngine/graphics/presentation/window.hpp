@@ -33,10 +33,16 @@ namespace ve::gfx {
             bool graphics_window        = true;
             sdl_windowflags_t flags     = SDL_WINDOW_RESIZABLE;
             present_mode_t present_mode = present_mode::VSYNC;
+
+            // Note: these are only used when the first graphics window is created.
+            const gfxapi::api_settings* api_settings = &gfxapi::default_api_settings;
         };
 
 
-        ve_shared_only_then(window, register_window, const arguments& args) : std::enable_shared_from_this<window>() {
+        ve_shared_only(window, const arguments& args) : std::enable_shared_from_this<window>() {
+            if (args.graphics_window) gfxapi::prepare_api_state(args.api_settings);
+
+
             handle = SDL_CreateWindow(
                 args.title.c_str(),
                 args.position.x, args.position.y,
@@ -48,14 +54,17 @@ namespace ve::gfx {
 
 
             if (args.graphics_window) {
-                gfxapi::get_or_create_context(handle);
+                gfxapi::get_or_create_context(handle, args.api_settings);
                 canvas = make_unique<gfxapi::canvas>(handle, args.present_mode);
             }
+
+
+            window_registry::instance().add_window(this);
         }
 
 
         ~window(void) {
-            window_registry::instance().remove_window(shared_from_this());
+            window_registry::instance().remove_window(this);
             if (handle) SDL_DestroyWindow(handle);
         }
 
@@ -145,11 +154,5 @@ namespace ve::gfx {
     private:
         SDL_Window* handle = nullptr;
         unique<gfxapi::canvas> canvas = nullptr;
-
-
-        // Called after construction by window::create.
-        void register_window(void) {
-            window_registry::instance().add_window(shared_from_this());
-        }
     };
 }

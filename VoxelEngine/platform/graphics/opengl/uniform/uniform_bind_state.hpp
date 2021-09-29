@@ -9,13 +9,13 @@ namespace ve::gfx::opengl {
     class uniform_storage;
 
 
-    class uniform_bind_state {
+    struct uniform_bind_state {
         struct combined_value {
-            void* value;
+            const void* value;
             const reflect::primitive_t* type;
         };
 
         std::stack<const uniform_storage*> uniform_stack;
-        hash_map<std::string_view, combined_value> bound_uniforms;
+        hash_map<std::string, combined_value> bound_uniforms;
     };
 }

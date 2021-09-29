@@ -19,6 +19,8 @@
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_bind_state.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_storage.hpp>
+#include <VoxelEngine/platform/graphics/opengl/utility/buffer.hpp>
+#include <VoxelEngine/platform/graphics/opengl/utility/debug.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/resource.hpp>
 #include <VoxelEngine/platform/graphics/opengl/vertex/vertex_buffer.hpp>

@@ -79,7 +79,6 @@ namespace ve::gfx::opengl {
     namespace combine_functions {
         constexpr inline auto add       = [](const auto& old_value, const auto& new_value) { return old_value + new_value; };
         constexpr inline auto multiply  = [](const auto& old_value, const auto& new_value) { return old_value * new_value; };
-        // Use perfect forwarding since uniform_producer will pass a rvalue for the new value.
-        constexpr inline auto overwrite = [](const auto& old_value, auto&& new_value) -> decltype(auto) { return fwd(new_value); };
+        constexpr inline auto overwrite = [](const auto& old_value, const auto& new_value) { return new_value; };
     }
 }

@@ -3,6 +3,21 @@
 
 
 namespace ve::gfx::opengl {
+    bool has_context = false;
+
+
+    void prepare_api_state(const api_settings* settings) {
+        if (has_context) return; // This method must be called before window creation.
+
+
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, SDL_TRUE);
+
+        if (settings->logging_enabled) {
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+        }
+    }
+
+
     api_context* get_or_create_context(SDL_Window* window, const api_settings* settings) {
         static api_context ctx = [&] {
             VE_ASSERT(window, "Please provide a window when creating the OpenGL context.");
@@ -18,6 +33,12 @@ namespace ve::gfx::opengl {
                 VE_ASSERT(false, "Failed to initialize Glew: ", (const char*) glewGetErrorString(glew_status));
             }
 
+            // Set up logger.
+            if (settings->logging_enabled) {
+                register_opengl_logger(settings->logging_callback);
+            }
+
+            has_context = true;
             return result;
         }();
 

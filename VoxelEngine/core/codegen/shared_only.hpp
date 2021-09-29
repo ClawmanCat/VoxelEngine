@@ -75,7 +75,16 @@ public:                                                                 \
         then;                                                           \
         return ptr;                                                     \
     }                                                                   \
-                                                                        \
+protected:                                                              \
+    /* Allow derived classes to be constructed. */                      \
+    /* Note: constraint is required to prevent infinite recursion. */   \
+    template <typename... Args> requires (!(std::is_same_v<             \
+        Args,                                                           \
+        hidden_constructor_t                                            \
+    > && ...)) cls(auto&&... args) :                                    \
+        cls(hidden_constructor_t{}, fwd(args)...)                       \
+    {}                                                                  \
+public:                                                                 \
     cls(hidden_constructor_t __VA_OPT__(,) __VA_ARGS__)
 
 
@@ -107,7 +116,17 @@ public:                                                                 \
         then;                                                           \
         return ptr;                                                     \
     }                                                                   \
-                                                                        \
+protected:                                                              \
+    /* Allow derived classes to be constructed. */                      \
+    /* Note: constraint is required to prevent infinite recursion. */   \
+    template <typename... Args> requires (!(std::is_same_v<             \
+        Args,                                                           \
+        BOOST_PP_CAT(hidden_constructor_t_, __LINE__)                   \
+    > && ...)) cls(auto&&... args) : cls(                               \
+        BOOST_PP_CAT(hidden_constructor_t_, __LINE__){},                \
+        fwd(args)...                                                    \
+    ) {}                                                                \
+public:                                                                 \
     cls(                                                                \
         BOOST_PP_CAT(hidden_constructor_t_, __LINE__)                   \
         __VA_OPT__(,) ve_impl_param_list(__VA_ARGS__)                   \

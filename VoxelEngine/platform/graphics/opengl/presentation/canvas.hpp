@@ -46,19 +46,14 @@ namespace ve::gfx::opengl {
                 GL_NEAREST
             );
 
-            // Only swap if SDL_GL_DOUBLEBUFFER is true.
-            if (mode.preferred_images > 1) SDL_GL_SwapWindow(owner);
+            SDL_GL_SwapWindow(owner);
         }
 
 
         void set_present_mode(present_mode_t mode) {
             VE_ASSERT(window_helpers::is_present_mode_supported(mode), "Unsupported present mode: ", mode.name);
 
-            // OpenGL does not allow manually specifying the swapchain size, so just use double buffering
-            // if we need more than one image.
-            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, (mode.preferred_images > 1) ? SDL_TRUE : SDL_FALSE);
             SDL_GL_SetSwapInterval(mode == present_mode::VSYNC ? 1 : 0);
-
             this->mode = mode;
         }
 

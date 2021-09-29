@@ -15,20 +15,9 @@ namespace ve::gfx {
         void begin_frame(void);
         void end_frame(void);
 
-        void add_window(shared<window> window);
-        void remove_window(shared<window> window);
+        void add_window(window* window);
+        void remove_window(window* window);
     private:
-        std::vector<weak<window>> windows;
-
-
-        void foreach(auto pred) {
-            for (auto it = windows.rbegin(); it != windows.rend(); ++it) {
-                if (auto handle = it->lock(); handle) {
-                    pred(*handle);
-                } else {
-                    swap_erase(windows, it.base());
-                }
-            }
-        }
+        std::vector<window*> windows;
     };
 }
