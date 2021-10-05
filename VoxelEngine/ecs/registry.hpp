@@ -19,7 +19,7 @@ namespace ve {
 
         void update(nanoseconds dt) {
             for (auto& [priority, systems] : systems_by_priority | views::reverse) {
-                for (auto& [id, system] : systems) system->update_fn(*this, system->storage, dt);
+                for (auto& [id, system] : systems) system->update(*this, dt);
             }
         }
 
@@ -27,22 +27,18 @@ namespace ve {
         // System Methods
         template <typename System> requires requires { typename System::ecs_system_tag; }
         std::pair<system_id, System&> add_system(System&& system) {
+            u16 priority = system.get_priority();
+
+
             auto [it, success] = systems.emplace(
                 next_system_id,
-                system_data {
-                    .storage    = (void*) new System(fwd(system)),
-                    .destructor = [](void* ptr) { ((System*) ptr)->~System(); },
-                    .update_fn  = [](registry& self, void* system, nanoseconds dt) {
-                        ((System*) system)->update(System::make_view(self.storage), dt);
-                    },
-                    .priority   = System::priority
-                }
+                make_unique<system_data<System>>(std::move(system), priority)
             );
 
-            systems_by_priority[System::priority].emplace(next_system_id, &it->second);
+            systems_by_priority[priority].emplace(next_system_id, it->second.get());
 
 
-            return { next_system_id++, *((System*) it->second.storage) };
+            return { next_system_id++, ((unique<system_data<System>>&) it->second)->system };
         }
 
 
@@ -50,7 +46,7 @@ namespace ve {
             auto it = systems.find(system);
             if (it == systems.end()) return;
 
-            systems_by_priority[it->second.priority].erase(system);
+            systems_by_priority[it->second->priority].erase(system);
             systems.erase(it);
         }
 
@@ -94,15 +90,28 @@ namespace ve {
         entt::registry storage;
 
 
-        struct system_data {
-            void* storage;
-            fn<void, void*> destructor;
-            fn<void, registry&, void*, nanoseconds> update_fn;
+        struct system_data_base {
+            explicit system_data_base(u16 priority) : priority(priority) {}
+
+            virtual ~system_data_base(void) = default;
+            virtual void update(registry& self, nanoseconds dt) = 0;
+
             u16 priority;
         };
 
-        hash_map<system_id, system_data> systems;
-        vec_map<u16, hash_map<system_id, system_data*>> systems_by_priority;
+        template <typename System> struct system_data : system_data_base {
+            system_data(System&& system, u16 priority) : system_data_base(priority), system(std::move(system)) {}
+
+            void update(registry& self, nanoseconds dt) override {
+                system.update(System::make_view(self.storage), dt);
+            }
+
+            System system;
+        };
+
+
+        hash_map<system_id, unique<system_data_base>> systems;
+        vec_map<u16, hash_map<system_id, system_data_base*>> systems_by_priority;
 
         system_id next_system_id = 0;
     };

@@ -22,7 +22,12 @@ namespace ve::gfx::reflect {
     struct shader_object {
         std::string name;
         primitive_t type;
+
+        // Note: fields below this comment are only set if the reflected object is a UBO or SSBO.
+        // TODO: it would be nice to have this for all structs, perhaps calculate manually since all uniforms are STD140 anyway?
+        std::size_t struct_size = 0;
         std::vector<shader_object> members;
+        std::size_t offset_in_parent = 0;
     };
 
 
@@ -48,6 +53,7 @@ namespace ve::gfx::reflect {
     struct stage {
         std::vector<attribute> inputs, outputs;
         std::vector<attribute> uniform_buffers;
+        std::vector<attribute> storage_buffers;
         std::vector<attribute> push_constants;
         std::vector<attribute> samplers;
     };
@@ -70,5 +76,6 @@ namespace ve::gfx::reflect {
     };
 
 
+    extern stage generate_stage_reflection(const gfxapi::shader_stage* stage, const spirv_blob& spirv);
     extern shader_reflection generate_reflection(std::string name, const vec_map<const gfxapi::shader_stage*, spirv_blob>& stages);
 }

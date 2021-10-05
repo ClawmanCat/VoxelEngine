@@ -138,9 +138,14 @@ namespace ve {
     // Given two containers, A and B, makes pairs of elements from both containers where pred(a, b) returns true,
     // and returns these pairs, together with all unmatched elements in a combine_result.
     template <typename A, typename B, typename Pred>
-    inline auto combine_into_pairs(A& a, B& b, Pred pred) {
-        using AV = std::conditional_t<std::is_const_v<A>, std::add_const_t<typename A::value_type>, typename A::value_type>;
-        using BV = std::conditional_t<std::is_const_v<B>, std::add_const_t<typename B::value_type>, typename B::value_type>;
+    inline auto combine_into_pairs(A&& a, B&& b, Pred pred) {
+        // Lvalue types.
+        using AL = std::remove_reference_t<A>;
+        using BL = std::remove_reference_t<B>;
+
+        // Value types.
+        using AV = std::conditional_t<std::is_const_v<AL>, std::add_const_t<typename AL::value_type>, typename AL::value_type>;
+        using BV = std::conditional_t<std::is_const_v<BL>, std::add_const_t<typename BL::value_type>, typename BL::value_type>;
 
 
         combine_result<AV, BV> result;

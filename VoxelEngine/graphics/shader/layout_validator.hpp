@@ -26,12 +26,13 @@ namespace ve::gfx {
                 ));
             }
 
-            if (reflect::compare_spirtypes(input.type, reflect::spirtype_for<Vertex>()) != std::strong_ordering::equal) {
+            // TODO: Compare types.
+            /*if (reflect::compare_spirtypes(input.type, reflect::spirtype_for<Vertex>()) != std::strong_ordering::equal) {
                 throw std::runtime_error(cat(
                     "Shader input ", input.name,
                     " has a type not compatible with that provided by vertex type ", ctti::nameof<Vertex>().cppstring()
                 ));
-            }
+            }*/
         }
     }
 }

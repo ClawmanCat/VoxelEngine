@@ -55,7 +55,7 @@ namespace ve::gfx {
 
             if (args.graphics_window) {
                 gfxapi::get_or_create_context(handle, args.api_settings);
-                canvas = make_unique<gfxapi::canvas>(handle, args.present_mode);
+                canvas = make_shared<gfxapi::canvas>(handle, args.present_mode);
             }
 
 
@@ -153,6 +153,6 @@ namespace ve::gfx {
         VE_GET_CREF(canvas);
     private:
         SDL_Window* handle = nullptr;
-        unique<gfxapi::canvas> canvas = nullptr;
+        shared<gfxapi::canvas> canvas = nullptr;
     };
 }

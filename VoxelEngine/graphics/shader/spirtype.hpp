@@ -17,9 +17,9 @@ namespace ve::gfx::reflect {
     // TODO: Support trivial struct types to simplify UBO usage.
     // TODO: Support sampler types.
     template <typename T> requires (
-        std::is_scalar_v<T>        ||
-        std::is_bounded_array_v<T> ||
-        meta::is_std_array_v<T>    ||
+        std::is_scalar_v<T>         ||
+        std::is_bounded_array_v<T>  ||
+        meta::is_std_array_v<T>     ||
         meta::glm_traits<T>::is_glm
     ) inline primitive_t spirtype_for(void) {
         auto push_front = [] (auto& v, auto&& elem) -> decltype(auto) { v.insert(v.begin(), fwd(elem)); return v; };

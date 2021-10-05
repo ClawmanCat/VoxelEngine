@@ -17,8 +17,17 @@ namespace demo_game {
 
     
     void game::post_init(void) {
+        using vertex_t = ve::gfx::vertex_types::texture_vertex_3d;
+
         game::window = ve::gfx::window::create(ve::gfx::window::arguments {
             .title = game::get_info()->display_name
+        });
+
+        game::client.add_system(ve::system_renderer<> {
+            make_shared<ve::gfxapi::single_pass_pipeline>(
+                game::window->get_canvas(),
+                ve::gfx::shader_cache::instance().get_or_load_shader<vertex_t>("simple")
+            )
         });
 
         ve::connect_local(game::client, game::server);

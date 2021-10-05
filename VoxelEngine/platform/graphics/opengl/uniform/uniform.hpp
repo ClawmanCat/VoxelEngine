@@ -3,22 +3,28 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/assert.hpp>
 #include <VoxelEngine/graphics/shader/spirtype.hpp>
+#include <VoxelEngine/graphics/shader/glsl_layout.hpp>
 
 
 namespace ve::gfx::opengl {
     struct uniform {
-        uniform(std::string&& name, reflect::primitive_t&& type) : name(std::move(name)), stored_type(std::move(type)) {}
+        uniform(std::string&& name, std::size_t size, reflect::primitive_t&& type) :
+            name(std::move(name)), size(size), stored_type(std::move(type))
+        {}
+
         virtual ~uniform(void) = default;
 
-        // Push combines the current value of the given uniform (if any) with the value stored in this uniform.
-        // The way this is done (overwrite, add, etc.) depends on the derived class itself.
-        // The result of a push is cached, and can be retrieved later using get.
-        // Because of the type erasure, this is easier than storing the combination on the receiving end.
-        // The engine guarantees that the type of the provided pointer is equal to the type referenced by stored_type.
-        virtual const void* push(const void* current_value) const = 0;
+        // Combines the current value of the uniform with this uniforms value in some derived-class-dependent way,
+        // and stores the result in this object.
+        // Note: this is a caching action so it can be considered const.
+        virtual void combine(const void* current_value) const = 0;
+        // Get the currently stored combined value of the uniform.
         virtual const void* get(void) const = 0;
+        // Gets the above value, but in the form of a buffer with std140 layout.
+        virtual void get_std140(std::vector<u8>& dest) const = 0;
 
         std::string name;
+        std::size_t size;
         reflect::primitive_t stored_type;
     };
 
@@ -27,16 +33,19 @@ namespace ve::gfx::opengl {
     class uniform_value : public uniform {
     public:
         uniform_value(std::string name, T value, Combine combine_fn) :
-            uniform(std::move(name), reflect::spirtype_for<T>()), value(std::move(value)), combine_fn(std::move(combine_fn))
+            uniform(std::move(name), sizeof(T), reflect::spirtype_for<T>()), combine_fn(std::move(combine_fn)), value(std::move(value))
         {}
 
-        const void* push(const void* current_value) const override {
+        void combine(const void* current_value) const override {
             combination = combine_fn(*((const T*) current_value), value);
-            return &combination;
         }
 
         const void* get(void) const override {
-            return &combination;
+            return &*combination;
+        }
+
+        void get_std140(std::vector<u8>& dest) const override {
+            store_std140_into(*combination, dest);
         }
 
     private:
@@ -51,16 +60,19 @@ namespace ve::gfx::opengl {
     class uniform_producer : public uniform {
     public:
         uniform_producer(std::string name, Produce produce_fn, Combine combine_fn) :
-            uniform(std::move(name), reflect::spirtype_for<T>()), produce_fn(std::move(produce_fn)), combine_fn(std::move(combine_fn))
+            uniform(std::move(name), sizeof(T), reflect::spirtype_for<T>()), produce_fn(std::move(produce_fn)), combine_fn(std::move(combine_fn))
         {}
 
-        const void* push(const void* current_value) const override {
+        void combine(const void* current_value) const override {
             combination = combine_fn(*((const T*) current_value), produce_fn());
-            return &combination;
         }
 
         const void* get(void) const override {
-            return &combination;
+            return &*combination;
+        }
+
+        void get_std140(std::vector<u8>& dest) const override {
+            store_std140_into(*combination, dest);
         }
 
     private:

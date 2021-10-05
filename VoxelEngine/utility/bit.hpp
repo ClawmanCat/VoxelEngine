@@ -18,6 +18,15 @@ namespace ve {
     }
 
 
+    // Gets the next address that is divisible by alignment.
+    // If the current address is divisible by alignment, it is returned.
+    // Note: alignment must be a power of two!
+    constexpr std::size_t next_aligned_address(std::size_t address, std::size_t alignment) {
+        std::size_t offset = address & (alignment - 1);
+        return (address - offset) + (alignment * std::size_t(offset != 0));
+    }
+
+
     template <typename Ctr> requires (std::is_trivial_v<typename Ctr::value_type> && std::contiguous_iterator<typename Ctr::iterator>)
     constexpr std::span<const u8> to_byte_span(const Ctr& ctr) {
         return std::span<const u8> {

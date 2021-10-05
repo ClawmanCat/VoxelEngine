@@ -9,6 +9,7 @@
 #include <VoxelEngine/graphics/presentation/window_registry.hpp>
 #include <VoxelEngine/graphics/shader/cache.hpp>
 #include <VoxelEngine/graphics/shader/compiler.hpp>
+#include <VoxelEngine/graphics/shader/glsl_layout.hpp>
 #include <VoxelEngine/graphics/shader/include_handler.hpp>
 #include <VoxelEngine/graphics/shader/layout_validator.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>

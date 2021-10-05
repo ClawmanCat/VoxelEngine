@@ -13,6 +13,12 @@ struct test_result {
 
     bool operator==(const test_result& o) const { return error == o.error; }
     bool operator!=(const test_result& o) const { return error != o.error; }
+
+
+    // Allow repeated assignment without having to check if a previous check failed.
+    void operator|=(const test_result& o) {
+        if (!error) error = o.error;
+    }
 };
 
 #define VE_TEST_SUCCESS test_result { std::nullopt, __FILE__ }

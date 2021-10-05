@@ -7,6 +7,7 @@
 #include <VoxelEngine/ecs/component/mesh_component.hpp>
 #include <VoxelEngine/ecs/component/named_component.hpp>
 #include <VoxelEngine/ecs/component/transform_component.hpp>
+#include <VoxelEngine/ecs/component/uniform_component.hpp>
 #include <VoxelEngine/ecs/entity/static_entity.hpp>
 #include <VoxelEngine/ecs/registry.hpp>
 #include <VoxelEngine/ecs/storage_group/group.hpp>

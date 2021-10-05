@@ -25,6 +25,32 @@ namespace ve {
     }
 
 
+    #define ve_make_decomposable_with_base(cls, base, ...)  \
+    constexpr static auto get_members(void) {               \
+        constexpr auto my_members = std::tuple {            \
+            BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_FOR_EACH(        \
+                ve_impl_decompose_macro,                    \
+                cls,                                        \
+                BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)       \
+            ))                                              \
+        };                                                  \
+                                                            \
+        constexpr bool base_has_members =                   \
+            [] <typename B = base> {                        \
+                return requires { B::get_members(); };      \
+            }();                                            \
+                                                            \
+        if constexpr (base_has_members) {                   \
+            return std::tuple_cat(                          \
+                base::get_members(),                        \
+                my_members                                  \
+            );                                              \
+        } else {                                            \
+            return my_members;                              \
+        }                                                   \
+    }
+
+
     template <typename T> constexpr static bool has_custom_decomposer_v = requires { T::get_members(); };
 
     template <typename T> constexpr static bool is_decomposable_v =

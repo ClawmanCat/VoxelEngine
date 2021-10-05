@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/ecs/component/uniform_component.hpp>
 #include <VoxelEngine/utility/decompose.hpp>
 
 
@@ -41,7 +42,18 @@ namespace ve {
         mat4f transform;
 
         static mat4f calculate_transform(const vec3f& position, const quatf& rotation) {
-            return glm::translate((mat4f) rotation, position);
+            return glm::translate(glm::mat4_cast(rotation), position);
+        }
+    };
+
+
+    struct transform_to_uniform : public uniform_component<transform_to_uniform, transform_component, mat4f> {
+        mat4f value(const transform_component& component) const {
+            return component.get_transform();
+        }
+
+        std::string name(const transform_component& component) const {
+            return "transform";
         }
     };
 }

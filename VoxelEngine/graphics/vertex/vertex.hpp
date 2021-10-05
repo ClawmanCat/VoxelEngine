@@ -8,7 +8,7 @@ namespace ve::gfx {
     struct vertex_attribute {
         std::string_view name;
 
-        enum { INT, UINT, FLOAT } base_type;
+        enum base_type_t { INT, UINT, FLOAT } base_type;
         std::size_t base_size;
         std::size_t rows, columns;
 

@@ -8,6 +8,8 @@
 #include <VoxelEngine/platform/graphics/opengl/context/render_context.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/category.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/framebuffer.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/settings.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/target.hpp>
 #include <VoxelEngine/platform/graphics/opengl/presentation/canvas.hpp>
 #include <VoxelEngine/platform/graphics/opengl/presentation/window_helpers.hpp>
@@ -18,9 +20,11 @@
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_bind_state.hpp>
+#include <VoxelEngine/platform/graphics/opengl/uniform/uniform_buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_storage.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/debug.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/resource.hpp>
+#include <VoxelEngine/platform/graphics/opengl/vertex/layout.hpp>
 #include <VoxelEngine/platform/graphics/opengl/vertex/vertex_buffer.hpp>

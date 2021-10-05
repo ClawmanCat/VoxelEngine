@@ -10,7 +10,7 @@ namespace ve::gfx::opengl {
     template <typename T> class buffer {
     public:
         buffer(void) = default;
-        explicit buffer(GLuint vao, GLenum type) : vao(vao), gl_type(type) {}
+        explicit buffer(GLenum type) : gl_type(type) {}
 
         ~buffer(void) {
             if (id) glDeleteBuffers(1, &id);
@@ -20,12 +20,16 @@ namespace ve::gfx::opengl {
         ve_field_comparable(buffer, id);
 
 
+        void bind(void) const {
+            glBindBuffer(gl_type, id);
+        }
+
+
         void write(const T* data, std::size_t count, std::size_t where = 0) {
             VE_ASSERT(gl_type != GL_INVALID_ENUM, "Cannot write to uninitialized buffer.");
 
             reserve(where + count);
 
-            glBindVertexArray(vao);
             glBindBuffer(gl_type, id);
             glBufferSubData(gl_type, where * sizeof(T), count * sizeof(T), data);
 
@@ -37,7 +41,6 @@ namespace ve::gfx::opengl {
             VE_ASSERT(gl_type != GL_INVALID_ENUM, "Cannot reserve space for uninitialized buffer.");
             if (count <= capacity) return;
 
-            glBindVertexArray(vao);
             GLuint new_id;
             glGenBuffers(1, &new_id);
             glBindBuffer(gl_type, new_id);
@@ -62,7 +65,6 @@ namespace ve::gfx::opengl {
         VE_GET_VAL(capacity);
         VE_GET_VAL(gl_type);
     private:
-        GLuint vao = 0;
         GLuint id = 0;
         std::size_t size = 0, capacity = 0;
         GLenum gl_type = GL_INVALID_ENUM;
