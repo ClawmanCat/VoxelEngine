@@ -12,6 +12,9 @@ namespace ve::gfx::opengl {
         std::size_t num_channels;
         std::size_t stride;
         std::array<u8, 4> channel_depths;
+
+
+        ve_eq_comparable(texture_format);
     };
 
 

@@ -21,7 +21,6 @@ namespace ve::gfx::opengl {
             std::size_t mipmap_levels = get_context()->settings.num_mipmap_levels,
             texture_filter filter = texture_filter::NEAREST
         ) :
-            uv { vec2f { 0.0f }, vec2f { 1.0f } },
             size(size),
             format(fmt),
             filter(filter)
@@ -50,8 +49,7 @@ namespace ve::gfx::opengl {
 
 
         void write(const image_rgba8& img, const vec2ui& where = vec2ui { 0 }) {
-            VE_ASSERT(format.components == GL_RGBA, "Cannot write RGBA image to non-RGBA texture.");
-
+            VE_ASSERT(format == texture_format_RGBA8, "Currently, texture::write only supports RGBA8 images.");
 
             glBindTexture(GL_TEXTURE_2D, id);
 
@@ -69,12 +67,25 @@ namespace ve::gfx::opengl {
         }
 
 
+        image_rgba8 read(void) const {
+            VE_ASSERT(format == texture_format_RGBA8, "Currently, texture::read only supports RGBA8 images.");
+
+            image_rgba8 result;
+            result.data.resize(size.x * size.y, RGBA8 { 0, 0, 0, 255 });
+            result.size = size;
+
+            glBindTexture(GL_TEXTURE_2D, id);
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, result.data.data());
+
+            return result;
+        }
+
+
         void bind(void) const {
             glBindTexture(GL_TEXTURE_2D, id);
         }
 
 
-        VE_GET_CREF(uv);
         VE_GET_CREF(size);
         VE_GET_CREF(format);
         VE_GET_VAL(id);
@@ -82,8 +93,6 @@ namespace ve::gfx::opengl {
         VE_GET_VAL(filter);
     private:
         GLuint id = 0;
-
-        std::array<vec2f, 2> uv;
         vec2ui size;
 
         texture_format format;

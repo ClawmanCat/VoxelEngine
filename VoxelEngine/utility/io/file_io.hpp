@@ -3,8 +3,10 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/string.hpp>
 #include <VoxelEngine/utility/io/image.hpp>
+#include <VoxelEngine/utility/assert.hpp>
 
 #include <stb_image.h>
+#include <stb_image_write.h>
 
 #include <fstream>
 #include <cerrno>
@@ -106,6 +108,17 @@ namespace ve::io {
 
         stbi_image_free(reinterpret_cast<u8*>(begin));
         return result;
+    }
+
+
+    inline void write_image(const fs::path& path, const image_rgba8& image) {
+        auto path_str = path.string();
+        auto ext      = path.extension();
+
+        if      (ext == ".png") stbi_write_png(path_str.c_str(), (i32) image.size.x, (i32) image.size.y, 4, image.data.data(), (i32) (sizeof(RGBA8) * image.size.y));
+        else if (ext == ".bmp") stbi_write_bmp(path_str.c_str(), (i32) image.size.x, (i32) image.size.y, 4, image.data.data());
+        else if (ext == ".jpg") stbi_write_jpg(path_str.c_str(), (i32) image.size.x, (i32) image.size.y, 4, image.data.data(), 100);
+        else VE_ASSERT(false, "Unsupported texture format:", ext.string().c_str());
     }
 
 

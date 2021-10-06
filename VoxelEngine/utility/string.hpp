@@ -1,8 +1,9 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/traits/is_type.hpp>
 #include <VoxelEngine/utility/functional.hpp>
+#include <VoxelEngine/utility/traits/is_type.hpp>
+#include <VoxelEngine/utility/traits/glm_traits.hpp>
 
 #include <boost/pfr.hpp>
 #include <ctti/type_id.hpp>
@@ -38,7 +39,25 @@ namespace ve {
         else if constexpr (requires (T t) { (std::string) t;   }) return (std::string) value;
         else if constexpr (requires (T t) { std::string { t }; }) return std::string { value };
         else if constexpr (requires (T t) { t.to_string();     }) return value.to_string();
-        
+
+        // If T is a GLM vector print its elements.
+        else if constexpr (meta::glm_traits<T>::is_vector) {
+            std::string result = "["s + std::to_string(value[0]);
+
+            for (std::size_t i = 1; i < meta::glm_traits<T>::num_rows; ++i) {
+                result += ", ";
+                result += std::to_string(value[i]);
+            }
+
+            result += "]";
+            return result;
+        }
+
+        // If T is bool, print true or false.
+        else if constexpr (std::is_same_v<T, bool>) {
+            return value ? "true" : "false";
+        }
+
         // If T is an exception, return the exception message.
         else if constexpr (std::is_base_of_v<std::exception, T>) {
             return value.what();
