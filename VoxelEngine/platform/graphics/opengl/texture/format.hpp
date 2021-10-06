@@ -22,4 +22,6 @@ namespace ve::gfx::opengl {
         texture_format { GL_RGBA,            GL_RGBA8,               4,  32, { 8,  8,  8,  8  } },
         texture_format { GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT32F,  1,  32, { 32, 0,  0,  0  } }
     );
+
+    inline const auto& texture_format_RGBA8 = *ranges::find_if(texture_formats, equal_on(&texture_format::pixel_format, GL_RGBA8));
 }

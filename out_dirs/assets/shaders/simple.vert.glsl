@@ -5,8 +5,11 @@
 
 
 // Uniforms
-layout (std140) uniform Uniforms {
+layout (std140) uniform U_Camera {
     Camera camera;
+};
+
+layout (std140) uniform U_Transform {
     mat4 transform;
 };
 

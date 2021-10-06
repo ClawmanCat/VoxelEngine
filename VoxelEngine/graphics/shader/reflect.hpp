@@ -1,8 +1,8 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/graphics/shader/spirtype.hpp>
 #include <VoxelEngine/utility/assert.hpp>
+#include <VoxelEngine/graphics/shader/object_type.hpp>
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
 #include VE_GFX_HEADER(shader/stage.hpp)
@@ -17,16 +17,15 @@ namespace ve::gfx::reflect {
     using spirv_blob = std::vector<u32>;
 
 
-    // A shader object represents a variable in the shader.
+    // Represents a variable in the shader.
     // This is used for attributes, but also for e.g. the contents of a UBO.
     struct shader_object {
         std::string name;
-        primitive_t type;
+        object_type type;
 
         // Note: fields below this comment are only set if the reflected object is a UBO or SSBO.
-        // TODO: it would be nice to have this for all structs, perhaps calculate manually since all uniforms are STD140 anyway?
-        std::size_t struct_size = 0;
         std::vector<shader_object> members;
+        std::size_t struct_size = 0;
         std::size_t offset_in_parent = 0;
     };
 
@@ -37,16 +36,9 @@ namespace ve::gfx::reflect {
         std::size_t location;
         std::size_t binding;
 
-
-        attribute(const shader_object& obj, std::size_t location, std::size_t binding) :
-            shader_object(obj), location(location), binding(binding)
+        attribute(shader_object&& obj, std::size_t location, std::size_t binding) :
+            shader_object(std::move(obj)), location(location), binding(binding)
         {}
-
-
-        auto operator<=>(const attribute& other) const {
-            if (auto cmp = (name <=> other.name); cmp != 0) return cmp;
-            return compare_spirtypes(type, other.type);
-        }
     };
 
 

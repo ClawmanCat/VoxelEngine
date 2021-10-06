@@ -2,39 +2,32 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/traits/glm_traits.hpp>
+#include <VoxelEngine/graphics/shader/object_type.hpp>
 
 
 namespace ve::gfx {
     struct vertex_attribute {
+        reflect::object_type type;
+
         std::string_view name;
-
-        enum base_type_t { INT, UINT, FLOAT } base_type;
-        std::size_t base_size;
-        std::size_t rows, columns;
-
         std::size_t offset, size;
     };
 
     template <typename T> constexpr static bool has_vertex_layout = requires { T::get_vertex_layout(); };
 
 
-    template <typename T> constexpr vertex_attribute make_vertex_attribute(std::string_view name, std::size_t offset) {
+    template <typename T> inline vertex_attribute make_vertex_attribute(std::string_view name, std::size_t offset) {
         using base_type = typename meta::glm_traits<T>::value_type;
         static_assert(std::is_scalar_v<base_type>, "Unsupported vertex attribute type.");
 
 
         vertex_attribute result {
+            .type      = reflect::object_type(meta::type_wrapper<T> { }),
             .name      = name,
-            .base_size = sizeof(base_type),
-            .rows      = meta::glm_traits<T>::num_rows,
-            .columns   = meta::glm_traits<T>::num_cols,
             .offset    = offset,
             .size      = sizeof(T)
         };
 
-        if constexpr      (std::is_floating_point_v<base_type>) result.base_type = vertex_attribute::FLOAT;
-        else if constexpr (std::is_signed_v<base_type>)         result.base_type = vertex_attribute::INT;
-        else if constexpr (std::is_unsigned_v<base_type>)       result.base_type = vertex_attribute::UINT;
 
         return result;
     }
@@ -44,14 +37,16 @@ namespace ve::gfx {
     (ve::gfx::make_vertex_attribute<decltype(D::E)>(BOOST_PP_STRINGIZE(E), offsetof(D, E)))
 
     #define ve_vertex_layout(cls, ...)                      \
-    constexpr static auto get_vertex_layout(void) {         \
-        return std::array {                                 \
+    static const auto& get_vertex_layout(void) {            \
+        const static std::array result {                    \
             BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_FOR_EACH(        \
                 ve_impl_vertex_layout_macro,                \
                 cls,                                        \
                 BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)       \
             ))                                              \
         };                                                  \
+                                                            \
+        return result;                                      \
     }
 
 

@@ -48,7 +48,7 @@ namespace ve::gfx {
             // (Yes, each element individually. Yes, this wastes massive amounts of space.)
             // STD430: Align the array and each element to alignof(element)
             else if constexpr (std::is_array_v<T> || meta::is_std_array_v<T>) {
-                using vt = std::remove_cvref_t<decltype(std::declval<T>()[0])>;
+                using vt = meta::array_value_type<T>;
 
                 return (Layout == glsl_layout::STD140)
                     ? std::max(get_glsl_alignment<Layout, vt>(), (std::size_t) 16)

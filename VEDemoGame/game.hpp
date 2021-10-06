@@ -23,9 +23,10 @@ namespace demo_game {
         
         static const ve::game_info* get_info(void);
     private:
-        static inline ve::client client = { };
-        static inline ve::server server = { };
+        static inline ve::client client { };
+        static inline ve::server server { };
         static inline ve::shared<ve::gfx::window> window = nullptr;
+        static inline ve::gfx::perspective_camera camera { };
     };
 }
 

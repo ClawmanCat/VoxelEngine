@@ -2,7 +2,6 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>
-#include <VoxelEngine/graphics/shader/spirtype.hpp>
 #include <VoxelEngine/graphics/shader/glsl_layout.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/buffer.hpp>
 

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <type_traits>
+
+
 namespace ve {
     namespace defs {
         template <typename Ret, typename... Args>
@@ -16,6 +19,14 @@ namespace ve {
         
         template <typename T>
         using ref = std::reference_wrapper<T>;
+
+
+        template <typename Cls, typename Ret, typename... Args>
+        using maybe_const_mem_fn = std::conditional_t<
+            std::is_const_v<Cls>,
+            const_mem_fn<Cls, Ret, Args...>,
+            mem_fn<Cls, Ret, Args...>
+        >;
     }
     
     using namespace defs;

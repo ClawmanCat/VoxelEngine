@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <VoxelEngine/graphics/camera/camera_uniform.hpp>
+#include <VoxelEngine/graphics/camera/perspective_camera.hpp>
 #include <VoxelEngine/graphics/presentation/present_mode.hpp>
 #include <VoxelEngine/graphics/presentation/window.hpp>
 #include <VoxelEngine/graphics/presentation/window_registry.hpp>
@@ -12,6 +14,8 @@
 #include <VoxelEngine/graphics/shader/glsl_layout.hpp>
 #include <VoxelEngine/graphics/shader/include_handler.hpp>
 #include <VoxelEngine/graphics/shader/layout_validator.hpp>
+#include <VoxelEngine/graphics/shader/object_type.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>
-#include <VoxelEngine/graphics/shader/spirtype.hpp>
+#include <VoxelEngine/graphics/uniform/uniform_combine_function.hpp>
+#include <VoxelEngine/graphics/uniform/uniform_convertible.hpp>
 #include <VoxelEngine/graphics/vertex/vertex.hpp>

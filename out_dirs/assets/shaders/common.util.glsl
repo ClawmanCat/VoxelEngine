@@ -3,3 +3,10 @@ struct Camera {
     vec3 position;
     float near;
 };
+
+
+struct Light {
+    vec3 position;
+    vec3 radiance;
+    float attenuation;
+};

@@ -44,6 +44,8 @@ namespace ve::gfx::opengl {
         pipeline_settings settings;
         shared<class shader> shader;
 
+        void bind_settings(void);
+
     public:
         VE_GET_SET_CREF(settings);
         VE_GET_SET_CREF(shader);

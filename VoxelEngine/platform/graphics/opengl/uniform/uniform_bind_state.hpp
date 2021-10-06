@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/graphics/shader/spirtype.hpp>
+#include <VoxelEngine/graphics/shader/object_type.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_buffer.hpp>
 
@@ -20,7 +20,7 @@ namespace ve::gfx::opengl {
             mutable uniform_buffer ubo;
             mutable bool ubo_dirty = true;
 
-            const reflect::primitive_t* type;
+            const reflect::object_type* type;
 
 
             // Pushes the current value of the uniform to the GPU. Call this before binding the UBO.
@@ -33,8 +33,14 @@ namespace ve::gfx::opengl {
             }
         };
 
+        const shader* storage_owner = nullptr;
         std::stack<const uniform_storage*> uniform_stack;
         hash_map<std::string_view, combined_value> bound_uniforms;
-        const shader* storage_owner = nullptr;
+
+        // When a UBO contains a single element, e.g. uniform Transform { mat4f transform; };
+        // it is often desirable to set the uniform by the name of its member, rather than by creating a separate
+        // struct to wrap it.
+        // Keep track of what UBOs only have a single member, and what UBO those member names map to.
+        hash_map<std::string_view, std::string_view> aliases;
     };
 }

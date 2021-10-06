@@ -4,8 +4,7 @@
 
 
 // Uniforms
-uniform int k;
-uniform sampler2D textures[32];
+uniform sampler2D textures[VE_MAX_FS_SAMPLERS];
 
 
 // Attributes

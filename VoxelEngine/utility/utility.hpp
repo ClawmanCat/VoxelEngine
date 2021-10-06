@@ -11,6 +11,7 @@
 #include <VoxelEngine/utility/bimap.hpp>
 #include <VoxelEngine/utility/bind_return.hpp>
 #include <VoxelEngine/utility/bit.hpp>
+#include <VoxelEngine/utility/cache.hpp>
 #include <VoxelEngine/utility/copy.hpp>
 #include <VoxelEngine/utility/decompose.hpp>
 #include <VoxelEngine/utility/delayed_cast.hpp>

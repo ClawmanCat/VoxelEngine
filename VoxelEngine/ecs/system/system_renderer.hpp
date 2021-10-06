@@ -12,36 +12,23 @@
 
 
 namespace ve {
-    namespace detail {
-        template <std::size_t N> struct nth {
-            template <typename... Ts> using type = typename meta::pack<typename Ts::template get<N>...>;
-        };
-
-
-        template <typename ComponentUniforms> using components_for_cu_pairs = typename ComponentUniforms
-            ::template expand_inside<nth<0>::template type>;
-
-        template <typename ComponentUniforms> using uniforms_for_cu_pairs = typename ComponentUniforms
-            ::template expand_inside<nth<1>::template type>;
-    }
-
-
     struct dont_render_by_default_tag {};
 
 
     template <
-        // Set of components which should be transformed into uniforms for each mesh plus a transform method for each such component.
-        // Transform methods should be classes implementing the uniform_component interface.
-        meta::pack_of_types ComponentUniforms = meta::pack<
-            meta::pack<transform_component, transform_to_uniform>
-        >,
+        // Set of components which should be transformed into uniforms for each mesh.
+        // Component classes provided here should implement ve::gfx::uniform_convertible.
+        // Note that entities that lack these components will be excluded from the renderer.
+        meta::pack_of_types ComponentUniforms = meta::pack<transform_component>,
         // Tags can be used to split meshes across different renderers.
         meta::pack_of_types RequiredTags = meta::pack<>,
         meta::pack_of_types ExcludedTags = meta::pack<dont_render_by_default_tag>
-    > class system_renderer : public system<
+    > requires (
+        ComponentUniforms::all([] <typename U> () { return requires { typename U::uniform_convertible_tag; }; })
+    ) class system_renderer : public system<
         system_renderer<RequiredTags, ExcludedTags>,
         typename RequiredTags
-            ::template append_pack<detail::components_for_cu_pairs<ComponentUniforms>>
+            ::template append_pack<ComponentUniforms>
             ::template append<mesh_component>
             ::unique,
         ExcludedTags
@@ -58,10 +45,6 @@ namespace ve {
 
 
         void update(view_type view, nanoseconds dt) {
-            using uniform_components = detail::components_for_cu_pairs<ComponentUniforms>;
-            using uniform_producers  = detail::uniforms_for_cu_pairs<ComponentUniforms>;
-
-
             // TODO: Prevent having to do this copy each update, allow the pipeline to accept the view or something similar?
             static thread_local std::vector<const gfxapi::vertex_buffer*> buffers;
             auto clear_on_exit = raii_function { no_op, [&] { buffers.clear(); } };
@@ -70,19 +53,11 @@ namespace ve {
                 const auto& mesh = view.template get<mesh_component>(entity);
 
                 [&] <typename... Components> (meta::pack<Components...>) {
-                    [&] <typename... Producers> (meta::pack<Producers...>) {
-                        ([&] <typename C, typename P> (const C& component, const P& producer) {
-                            // TODO: Cache these and use set_uniform_producer.
-                            mesh.buffer->template set_uniform_value<typename P::uniform_t>(
-                                producer.name(component),
-                                producer.value(component)
-                            );
-                        }(
-                            view.template get<Components>(entity),
-                            Producers{}
-                        ), ...);
-                    }(uniform_producers{});
-                }(uniform_components{});
+                    ([&] (const auto& cmp) {
+                        // TODO: Cache these and use set_uniform_producer?
+                        mesh.buffer->set_uniform_value(cmp);
+                    }(view.template get<Components>(entity)), ...);
+                }(ComponentUniforms{});
 
                 buffers.push_back(mesh.buffer.get());
             }

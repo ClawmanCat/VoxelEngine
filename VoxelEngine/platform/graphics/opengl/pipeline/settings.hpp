@@ -6,6 +6,7 @@
 
 
 namespace ve::gfx::opengl {
+    // Note: clear color and depth are set on a per-target basis, and can be found in render_target_settings instead.
     struct pipeline_settings {
         enum class topology_t : GLenum {
             POINTS         = GL_POINTS,
@@ -41,8 +42,5 @@ namespace ve::gfx::opengl {
         float line_width    = 1.0f;
         bool  depth_testing = true;
         bool  depth_clamp   = true;
-
-        vec4f clear_color = { 0.65f, 0.65f, 0.65f, 1.00f };
-        float clear_depth = 1.0f;
     };
 }

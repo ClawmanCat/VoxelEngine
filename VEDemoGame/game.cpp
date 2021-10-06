@@ -23,12 +23,17 @@ namespace demo_game {
             .title = game::get_info()->display_name
         });
 
-        game::client.add_system(ve::system_renderer<> {
-            make_shared<ve::gfxapi::single_pass_pipeline>(
-                game::window->get_canvas(),
-                ve::gfx::shader_cache::instance().get_or_load_shader<vertex_t>("simple")
-            )
-        });
+
+        auto pipeline = make_shared<ve::gfxapi::single_pass_pipeline>(
+            game::window->get_canvas(),
+            ve::gfx::shader_cache::instance().get_or_load_shader<vertex_t>("simple")
+        );
+
+        pipeline->set_uniform_producer(&game::camera);
+
+
+        game::client.add_system(ve::system_renderer<> { std::move(pipeline) });
+
 
         ve::connect_local(game::client, game::server);
     }

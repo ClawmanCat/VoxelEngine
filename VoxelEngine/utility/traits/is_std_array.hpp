@@ -15,4 +15,15 @@ namespace ve::meta {
     
     
     template <typename T> constexpr inline bool is_std_array_v = is_std_array<T>::value;
+
+
+    template <typename T> requires std::is_array_v<T> || is_std_array_v<T>
+    constexpr inline std::size_t array_size = [] {
+        if constexpr (is_std_array_v<T>) return std::tuple_size_v<T>;
+        else return sizeof(T) / sizeof(*std::declval<T>());
+    }();
+
+
+    template <typename T> requires std::is_array_v<T> || is_std_array_v<T>
+    using array_value_type = std::remove_reference_t<decltype(std::declval<T>()[0])>;
 }

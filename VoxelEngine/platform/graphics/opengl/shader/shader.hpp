@@ -38,9 +38,6 @@ namespace ve::gfx::opengl {
 
 
         void bind(render_context& ctx) {
-            glUseProgram(id);
-
-
             // If the shader used by the pipeline changed, the uniform storage may now contain dead pointers,
             // so clear it before the next render pass.
             // (Also the UBOs themselves may have changed.)
@@ -56,7 +53,7 @@ namespace ve::gfx::opengl {
                 for (const auto& ubo : stage.second.uniform_buffers) {
                     if (auto it = bound_state.find(ubo.name); it != bound_state.end()) {
                         // Uniform was already present. Don't reallocate if the type info matches.
-                        if (reflect::compare_spirtypes(*it->second.type, ubo.type) == std::strong_ordering::equal) {
+                        if (*it->second.type == ubo.type) {
                             // Note: we don't have to mark the UBO as dirty here:
                             // A new value must be pushed for the uniform before the UBO is synchronized,
                             // at which point the (std140) serialized versions of the values will be compared.
@@ -80,8 +77,18 @@ namespace ve::gfx::opengl {
                             .type         = &ubo.type
                         }
                     );
+
+                    // For UBO structs with one member, allow setting that member directly.
+                    // (See uniform_bind_state.hpp)
+                    if (ubo.members.size() == 1) {
+                        ctx.uniform_state.aliases.emplace(ubo.members[0].name, ubo.name);
+                    }
                 }
             }
+
+
+            glUseProgram(id);
+            vertex_layout.bind();
         }
 
 

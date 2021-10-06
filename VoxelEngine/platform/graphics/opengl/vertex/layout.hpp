@@ -5,13 +5,14 @@
 #include <VoxelEngine/utility/algorithm.hpp>
 #include <VoxelEngine/graphics/vertex/vertex.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>
+#include <VoxelEngine/graphics/shader/object_type.hpp>
 
 #include <magic_enum.hpp>
 #include <gl/glew.h>
 
 
 namespace ve::gfx::opengl::detail {
-    GLenum get_gl_attribute_type(typename vertex_attribute::base_type_t type, std::size_t size);
+    GLenum get_gl_attribute_type(typename reflect::object_type::base_type_t type, std::size_t size);
 
 
     struct vertex_layout {
@@ -60,8 +61,8 @@ namespace ve::gfx::opengl::detail {
         for (const auto& [attrib, input] : pairs.matched) {
             result.attributes.push_back(vertex_layout::attribute_data {
                 .location    = (GLuint) input->location,
-                .vector_rows = (GLuint) attrib->rows,
-                .base_type   = get_gl_attribute_type(attrib->base_type, attrib->base_size),
+                .vector_rows = (GLuint) attrib->type.rows,
+                .base_type   = get_gl_attribute_type(attrib->type.base_type, attrib->type.base_size),
                 .offset_ptr  = (const void*) attrib->offset
             });
         }
@@ -70,12 +71,14 @@ namespace ve::gfx::opengl::detail {
     }
 
 
-    inline GLenum get_gl_attribute_type(typename vertex_attribute::base_type_t type, std::size_t size) {
+    inline GLenum get_gl_attribute_type(typename reflect::object_type::base_type_t type, std::size_t size) {
+        using BT = reflect::object_type::base_type_t;
+
         #define ve_impl_unknown_attrib_size \
         VE_ASSERT(false, "No known conversion from", magic_enum::enum_name(type), "of size", size, "to OpenGL type.")
 
 
-        if (type == vertex_attribute::FLOAT) {
+        if (type == BT::FLOAT) {
             switch (size) {
                 case 4: return GL_FLOAT;
                 case 8: return GL_DOUBLE;
@@ -83,7 +86,7 @@ namespace ve::gfx::opengl::detail {
             }
         }
 
-        else if (type == vertex_attribute::INT) {
+        else if (type == BT::INT) {
             switch (size) {
                 case 1: return GL_BYTE;
                 case 2: return GL_SHORT;
@@ -92,7 +95,7 @@ namespace ve::gfx::opengl::detail {
             }
         }
 
-        else if (type == vertex_attribute::UINT) {
+        else if (type == BT::UINT) {
             switch(size) {
                 case 1: return GL_UNSIGNED_BYTE;
                 case 2: return GL_UNSIGNED_SHORT;
@@ -102,7 +105,7 @@ namespace ve::gfx::opengl::detail {
         }
 
         else {
-            VE_ASSERT(false, "Unsupported vertex base type.");
+            VE_ASSERT(false, "Unsupported vertex base type. Vertices may only contain scalar and vector elements.");
         }
 
         VE_UNREACHABLE;

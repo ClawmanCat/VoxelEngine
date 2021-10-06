@@ -3,32 +3,42 @@
 
 
 namespace ve::gfx::reflect {
-    inline shader_object reflect_object(
+    shader_object reflect_object(
         const spirv_cross::Compiler& compiler,
         const std::string& name,
-        const spirv_cross::TypeID& type,
+        const spirv_cross::SPIRType& type,
         std::size_t size,
         std::size_t offset,
-        bool is_ubo
+        const glsl_object_source& source
     ) {
-        auto spir_type = compiler.get_type(type);
-
         shader_object object {
             .name              = name,
-            .type              = spir_type,
+            .type              = object_type(type, compiler, source),
             .struct_size       = size,
             .offset_in_parent  = offset
         };
 
-        if (spir_type.basetype == primitive_t::Struct) {
-            for (std::size_t i = 0; i < spir_type.member_types.size(); ++i) {
+
+        if (type.basetype == spirv_cross::SPIRType::Struct) {
+            VE_ASSERT(
+                !std::holds_alternative<glsl_source_other_tag>(source),
+                "Cannot reflect over struct members for struct not contained within UBO or SSBO."
+            );
+
+
+            for (std::size_t i = 0; i < type.member_types.size(); ++i) {
+                std::size_t member_offset = 0;
+                if (std::holds_alternative<glsl_source_ubo_member>(source)) {
+                    member_offset = compiler.type_struct_member_offset(type, i);
+                }
+
                 object.members.push_back(reflect_object(
                     compiler,
-                    compiler.get_member_name(spir_type.self, i),
-                    spir_type.member_types[i],
-                    compiler.get_declared_struct_member_size(spir_type, i),
-                    is_ubo ? compiler.type_struct_member_offset(spir_type, i) : 0,
-                    is_ubo
+                    compiler.get_member_name(type.self, i),
+                    compiler.get_type(type.member_types[i]),
+                    compiler.get_declared_struct_member_size(type, i),
+                    member_offset,
+                    glsl_source_ubo_member { .parent = type, .index = i }
                 ));
             }
         }
@@ -57,17 +67,23 @@ namespace ve::gfx::reflect {
 
         for (auto [src, dst] : resource_map) {
             for (const auto& resource : resources.*src) {
-                bool is_ubo = (src == &spirv_cross::ShaderResources::uniform_buffers);
-                auto type   = compiler.get_type(resource.type_id);
+                const auto& type = compiler.get_type(resource.type_id);
+
+
+                glsl_object_source source = glsl_source_other_tag { };
+                if (src == &spirv_cross::ShaderResources::uniform_buffers || src == &spirv_cross::ShaderResources::storage_buffers) {
+                    source = glsl_source_ubo_tag { };
+                }
+
 
                 std::size_t struct_size = 0;
-                if (type.basetype == primitive_t::Struct) {
+                if (type.basetype == spirv_cross::SPIRType::Struct) {
                     struct_size = compiler.get_declared_struct_size(type);
                 }
 
 
                 auto& attrib = (result.*dst).emplace_back(attribute {
-                    reflect_object(compiler, resource.name, resource.type_id, struct_size, 0, is_ubo),
+                    reflect_object(compiler, resource.name, type, struct_size, 0, source),
                     compiler.get_decoration(resource.id, spv::DecorationLocation),
                     compiler.get_decoration(resource.id, spv::DecorationBinding)
                 });

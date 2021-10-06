@@ -10,11 +10,28 @@
 #include <type_traits>
 
 
+namespace ve {
+    template <typename T> constexpr inline std::size_t hash_of(const T& value) {
+        return std::hash<T>{}(value);
+    }
+}
+
+
 // Allow specifying a hash member function instead of overloading std::hash.
 template <typename T> requires requires (const T t) { { t.hash() } -> std::convertible_to<std::size_t>; }
 struct std::hash<T> {
     constexpr std::size_t operator()(const T& value) const {
         return value.hash();
+    }
+};
+
+// Allow hashing of containers.
+template <typename T> requires requires (const T t) { std::cbegin(t), std::cend(t); }
+struct std::hash<T> {
+    constexpr std::size_t operator()(const T& value) const {
+        std::size_t hash = 0;
+        for (const auto& elem : value) boost::hash_combine(hash, ve::hash_of(elem));
+        return hash;
     }
 };
 
@@ -25,7 +42,7 @@ constexpr std::size_t hash(void) const {                            \
     std::size_t hash = 0;                                           \
                                                                     \
     boost::pfr::for_each_field(*this, [&](const auto& elem) {       \
-        boost::hash_combine(hash, elem);                            \
+        boost::hash_combine(hash, ve::hash_of(elem));               \
     });                                                             \
                                                                     \
     return hash;                                                    \
@@ -33,7 +50,7 @@ constexpr std::size_t hash(void) const {                            \
 
 
 // Make the type automatically hashable on the given fields.
-#define ve_impl_hash_field(R, D, E) boost::hash_combine(hash, E);
+#define ve_impl_hash_field(R, D, E) boost::hash_combine(hash, ve::hash_of(E));
 
 #define ve_field_hashable(...)                                      \
 constexpr std::size_t hash(void) const {                            \

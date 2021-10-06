@@ -1,4 +1,8 @@
 #include <VoxelEngine/platform/graphics/opengl/context/api_context.hpp>
+#include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
+#include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
+#include <VoxelEngine/utility/io/file_io.hpp>
+#include <VoxelEngine/utility/io/paths.hpp>
 #include <VoxelEngine/utility/assert.hpp>
 
 
@@ -36,6 +40,20 @@ namespace ve::gfx::opengl {
             // Set up logger.
             if (settings->logging_enabled) {
                 register_opengl_logger(settings->logging_callback);
+            }
+
+            // Pre-initialize each texture unit with an actual texture.
+            // Because our shaders use a sampler2d[MAX_TEXTURES], not doing this can cause issues,
+            // even though we never actually sample from any uninitialized samplers.
+            const auto img = io::load_image(io::paths::PATH_TEXTURES / "unbound.png");
+            // Note: static so texture lifetime is extended to that of the program.
+            static auto tex = texture::create(texture_format_RGBA8, img.size, 1);
+            tex->write(img);
+
+            std::size_t max_texture_units = (std::size_t) gl_get<i32>(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+            for (std::size_t i = 0; i < max_texture_units; ++i) {
+                glActiveTexture(GL_TEXTURE0 + i);
+                tex->bind();
             }
 
             has_context = true;

@@ -2,14 +2,32 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/assert.hpp>
-#include <VoxelEngine/graphics/shader/spirtype.hpp>
+#include <VoxelEngine/graphics/shader/object_type.hpp>
 #include <VoxelEngine/graphics/shader/glsl_layout.hpp>
 
 
 namespace ve::gfx::opengl {
+    namespace detail {
+        template <typename T> struct struct_wrapper_for_t { T value; };
+
+        template <typename T> inline std::size_t object_hash_for(void) {
+            return reflect::object_type { meta::type_wrapper<T>{} }.hash();
+        }
+
+        // Required for matching T against struct { T } for one-member UBO aliases.
+        template <typename T> inline std::size_t wrapped_object_hash_for(void) {
+            return reflect::object_type { meta::type_wrapper<struct_wrapper_for_t<T>>{} }.hash();
+        }
+    }
+
+
     struct uniform {
-        uniform(std::string&& name, std::size_t size, reflect::primitive_t&& type) :
-            name(std::move(name)), size(size), stored_type(std::move(type))
+        template <typename T>
+        uniform(std::string&& name, std::size_t size, meta::type_wrapper<T>) :
+            name(std::move(name)),
+            size(size),
+            stored_type_hash(detail::object_hash_for<T>()),
+            wrapped_type_hash(detail::wrapped_object_hash_for<T>())
         {}
 
         virtual ~uniform(void) = default;
@@ -25,7 +43,8 @@ namespace ve::gfx::opengl {
 
         std::string name;
         std::size_t size;
-        reflect::primitive_t stored_type;
+        std::size_t stored_type_hash;
+        std::size_t wrapped_type_hash;
     };
 
 
@@ -33,7 +52,9 @@ namespace ve::gfx::opengl {
     class uniform_value : public uniform {
     public:
         uniform_value(std::string name, T value, Combine combine_fn) :
-            uniform(std::move(name), sizeof(T), reflect::spirtype_for<T>()), combine_fn(std::move(combine_fn)), value(std::move(value))
+            uniform(std::move(name), sizeof(T), meta::type_wrapper<T> { }),
+            combine_fn(std::move(combine_fn)),
+            value(std::move(value))
         {}
 
         void combine(const void* current_value) const override {
@@ -60,7 +81,9 @@ namespace ve::gfx::opengl {
     class uniform_producer : public uniform {
     public:
         uniform_producer(std::string name, Produce produce_fn, Combine combine_fn) :
-            uniform(std::move(name), sizeof(T), reflect::spirtype_for<T>()), produce_fn(std::move(produce_fn)), combine_fn(std::move(combine_fn))
+            uniform(std::move(name), sizeof(T), meta::type_wrapper<T> { }),
+            produce_fn(std::move(produce_fn)),
+            combine_fn(std::move(combine_fn))
         {}
 
         void combine(const void* current_value) const override {
@@ -86,11 +109,4 @@ namespace ve::gfx::opengl {
     // Deduction guide: assume T is the result of invoking Produce.
     template <typename Produce, typename Combine>
     uniform_producer(std::string, Produce, Combine) -> uniform_producer<std::invoke_result_t<Produce>, Produce, Combine>;
-
-
-    namespace combine_functions {
-        constexpr inline auto add       = [](const auto& old_value, const auto& new_value) { return old_value + new_value; };
-        constexpr inline auto multiply  = [](const auto& old_value, const auto& new_value) { return old_value * new_value; };
-        constexpr inline auto overwrite = [](const auto& old_value, const auto& new_value) { return new_value; };
-    }
 }

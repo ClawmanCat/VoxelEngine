@@ -32,6 +32,9 @@ namespace ve::gfx::opengl {
             glBindTexture(GL_TEXTURE_2D, id);
             glTexStorage2D(GL_TEXTURE_2D, (GLsizei) mipmap_levels, fmt.pixel_format, (GLsizei) size.x, (GLsizei) size.y);
 
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (filter == texture_filter::NEAREST ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR));
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (filter == texture_filter::NEAREST ? GL_NEAREST : GL_LINEAR));
             glGenerateMipmap(GL_TEXTURE_2D);
@@ -63,6 +66,11 @@ namespace ve::gfx::opengl {
             );
 
             glGenerateMipmap(GL_TEXTURE_2D);
+        }
+
+
+        void bind(void) const {
+            glBindTexture(GL_TEXTURE_2D, id);
         }
 
 
