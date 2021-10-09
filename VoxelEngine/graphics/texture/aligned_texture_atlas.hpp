@@ -7,12 +7,23 @@
 namespace ve::gfx {
     class aligned_texture_atlas : public texture_atlas<aligned_texture_atlas> {
     public:
-        explicit aligned_texture_atlas(const vec2ui& size = vec2ui { 4096 }, u32 alignment = 32) :
+        explicit aligned_texture_atlas(std::string name = "textures", const vec2ui& size = vec2ui { 4096 }, u32 alignment = 32) :
+            name(std::move(name)),
             atlas_size(size),
             atlas_alignment(alignment),
             texture(gfxapi::texture::create(gfxapi::texture_format_RGBA8, size))
         {
             VE_ASSERT(atlas_size % atlas_alignment == vec2ui { 0 }, "Atlas size must be divisible by alignment.");
+        }
+
+
+        texture_list get_uniform_textures(void) const override {
+            return { texture };
+        }
+
+
+        std::string get_uniform_name(void) const override {
+            return name;
         }
 
 
@@ -49,11 +60,14 @@ namespace ve::gfx {
         }
 
 
+        VE_GET_CREF(name);
         VE_GET_CREF(texture);
     private:
         // Can be used to distinguish texture coordinates from block coordinates.
         using blockpos = vec2ui;
 
+
+        std::string name;
 
         vec2ui atlas_size;
         u32 atlas_alignment;

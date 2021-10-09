@@ -18,6 +18,7 @@
 #include <VoxelEngine/utility/expected.hpp>
 #include <VoxelEngine/utility/functional.hpp>
 #include <VoxelEngine/utility/heterogeneous_key.hpp>
+#include <VoxelEngine/utility/invalidatable_transform.hpp>
 #include <VoxelEngine/utility/io/file_io.hpp>
 #include <VoxelEngine/utility/io/image.hpp>
 #include <VoxelEngine/utility/io/paths.hpp>
@@ -34,6 +35,7 @@
 #include <VoxelEngine/utility/raii.hpp>
 #include <VoxelEngine/utility/random.hpp>
 #include <VoxelEngine/utility/repeat.hpp>
+#include <VoxelEngine/utility/stack_polymorph.hpp>
 #include <VoxelEngine/utility/string.hpp>
 #include <VoxelEngine/utility/thread/assert_main_thread.hpp>
 #include <VoxelEngine/utility/thread/dummy_mutex.hpp>
@@ -42,6 +44,7 @@
 #include <VoxelEngine/utility/thread/threadsafe_counter.hpp>
 #include <VoxelEngine/utility/traits/always_false.hpp>
 #include <VoxelEngine/utility/traits/bind.hpp>
+#include <VoxelEngine/utility/traits/const_as.hpp>
 #include <VoxelEngine/utility/traits/dont_deduce.hpp>
 #include <VoxelEngine/utility/traits/evaluate_if_valid.hpp>
 #include <VoxelEngine/utility/traits/function_traits.hpp>

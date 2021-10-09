@@ -2,6 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/io/image.hpp>
+#include <VoxelEngine/graphics/uniform/uniform_sampler.hpp>
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
 #include VE_GFX_HEADER(texture/texture.hpp)
@@ -24,7 +25,7 @@ namespace ve::gfx {
     };
 
 
-    template <typename Derived> struct texture_atlas {
+    template <typename Derived> struct texture_atlas : public uniform_sampler {
         vec2ui size(void) const {
             VE_CRTP_CHECK(Derived, size);
             return static_cast<const Derived*>(this)->size();

@@ -1,4 +1,6 @@
 #include <VEDemoGame/game.hpp>
+#include <VEDemoGame/entity/howlee.hpp>
+
 #include <VoxelEngine/clientserver/connect.hpp>
 
 
@@ -19,9 +21,12 @@ namespace demo_game {
     void game::post_init(void) {
         using vertex_t = ve::gfx::vertex_types::texture_vertex_3d;
 
+
         game::window = ve::gfx::window::create(ve::gfx::window::arguments {
             .title = game::get_info()->display_name
         });
+
+        game::texture_manager = ve::make_shared<ve::gfx::texture_manager<>>();
 
 
         auto pipeline = make_shared<ve::gfxapi::single_pass_pipeline>(
@@ -30,9 +35,19 @@ namespace demo_game {
         );
 
         pipeline->set_uniform_producer(&game::camera);
-
+        pipeline->set_uniform_producer(game::texture_manager->get_atlas());
 
         game::client.add_system(ve::system_renderer<> { std::move(pipeline) });
+        game::client.add_system(ve::system_updater<> { });
+
+        for (ve::i32 x = -64; x < 64; ++x) {
+            for (ve::i32 z = -64; z < 64; ++z) {
+                howlee h { game::client };
+                h.transform.set_position(ve::vec3f { x, 0, z });
+
+                game::client.store_static_entity(std::move(h));
+            }
+        }
 
 
         ve::connect_local(game::client, game::server);

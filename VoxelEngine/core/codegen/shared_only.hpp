@@ -42,6 +42,12 @@ BOOST_PP_REPEAT(                                                        \
     seq                                                                 \
 )
 
+
+namespace ve::detail {
+    template <typename T, typename HT> constexpr static bool different = !std::is_same_v<T, HT>;
+}
+
+
 #pragma endregion helper_macros
 
 
@@ -57,7 +63,7 @@ BOOST_PP_REPEAT(                                                        \
 // and then initialize the object.
 // For this purpose the _then version of this macro can be used to call some method after the constructor.
 // Usage:
-//    ve_shared_only_then(my_class, init, args...) : some_member(arg) { ... }
+//    ve_shared_only_then(my_class, init(), args...) : some_member(arg) { ... }
 //    void init(void) { ... }
 #define ve_impl_shared_only(cls, then, ...)                             \
 private:                                                                \
@@ -78,10 +84,10 @@ public:                                                                 \
 protected:                                                              \
     /* Allow derived classes to be constructed. */                      \
     /* Note: constraint is required to prevent infinite recursion. */   \
-    template <typename... Args> requires (!(std::is_same_v<             \
+    template <typename... Args> requires (ve::detail::different<        \
         Args,                                                           \
         hidden_constructor_t                                            \
-    > && ...)) cls(auto&&... args) :                                    \
+    > && ...) cls(Args&&... args) :                                     \
         cls(hidden_constructor_t{}, fwd(args)...)                       \
     {}                                                                  \
 public:                                                                 \
@@ -119,10 +125,10 @@ public:                                                                 \
 protected:                                                              \
     /* Allow derived classes to be constructed. */                      \
     /* Note: constraint is required to prevent infinite recursion. */   \
-    template <typename... Args> requires (!(std::is_same_v<             \
+    template <typename... Args> requires (ve::detail::different<        \
         Args,                                                           \
         BOOST_PP_CAT(hidden_constructor_t_, __LINE__)                   \
-    > && ...)) cls(auto&&... args) : cls(                               \
+    > && ...) cls(Args&&... args) : cls(                                \
         BOOST_PP_CAT(hidden_constructor_t_, __LINE__){},                \
         fwd(args)...                                                    \
     ) {}                                                                \

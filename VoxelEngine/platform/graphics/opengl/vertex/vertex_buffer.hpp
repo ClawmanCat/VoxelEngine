@@ -32,7 +32,7 @@ namespace ve::gfx::opengl {
         ve_immovable(vertex_buffer);
 
 
-        virtual void draw(const render_context& ctx) const = 0;
+        virtual void draw(render_context& ctx) const = 0;
 
 
         VE_GET_VAL(vao);
@@ -53,8 +53,7 @@ namespace ve::gfx::opengl {
         {}
 
 
-
-        void draw(const render_context& ctx) const override {
+        void draw(render_context& ctx) const override {
             if (vbo.get_size() == 0) return;
 
             auto uniform_raii = raii_bind_uniforms(ctx);
@@ -76,19 +75,15 @@ namespace ve::gfx::opengl {
         void shrink_vertices(std::size_t count) {
             vbo.shrink(count);
         }
-    private:
-        buffer<Vertex> vbo;
 
     protected:
-        auto raii_bind_uniforms(const render_context& ctx) {
+        buffer<Vertex> vbo;
+
+        auto raii_bind_uniforms(render_context& ctx) const {
             return raii_function {
                 [&] {
                     uniform_storage::push(ctx.uniform_state);
-
-                    for (const auto& [name, value] : ctx.uniform_state.bound_uniforms) {
-                        value.synchronize_ubo();
-                        value.ubo.bind();
-                    }
+                    ctx.uniform_state.bind_state(ctx.renderpass->get_shader()->get_id());
                 },
                 [&] { uniform_storage::pop(ctx.uniform_state); }
             };
@@ -107,15 +102,15 @@ namespace ve::gfx::opengl {
         }
 
 
-        void draw(const render_context& ctx) const override {
-            if (vbo.get_size() == 0) return;
+        void draw(render_context& ctx) const override {
+            if (ebo.get_size() == 0) return;
 
             auto uniform_raii = raii_bind_uniforms(ctx);
 
             glBindVertexArray(vao);
             vbo.bind();
             ebo.bind();
-            glDrawElements((GLenum) ctx.renderpass->get_settings().topology, ebo.get_size(), get_index_type, nullptr);
+            glDrawElements((GLenum) ctx.renderpass->get_settings().topology, ebo.get_size(), get_index_type(), nullptr);
         }
 
 

@@ -22,11 +22,19 @@ namespace demo_game {
         static void post_exit(void);
         
         static const ve::game_info* get_info(void);
+
+
+        VE_GET_STATIC_CREF(window);
+        VE_GET_STATIC_CREF(texture_manager);
+        VE_GET_STATIC_MREF(client);
+        VE_GET_STATIC_MREF(server);
+        VE_GET_STATIC_MREF(camera);
     private:
         static inline ve::client client { };
         static inline ve::server server { };
-        static inline ve::shared<ve::gfx::window> window = nullptr;
         static inline ve::gfx::perspective_camera camera { };
+        static inline ve::shared<ve::gfx::window> window = nullptr;
+        static inline ve::shared<ve::gfx::texture_manager<>> texture_manager = nullptr;
     };
 }
 

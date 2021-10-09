@@ -4,7 +4,7 @@
 #include <VoxelEngine/utility/traits/maybe_const.hpp>
 
 
-// Makes working with templated callables easier.
+// Pass templated methods as callables without having to specify the template parameters first.
 #define ve_wrap_callable(...) \
 [](auto&&... args) { return __VA_ARGS__(fwd(args)...); }
 
@@ -45,6 +45,16 @@ namespace ve {
     // Returns a predicate that casts its argument to the given type.
     template <typename T> constexpr inline auto cast(void) {
         return [](auto&& arg) { return static_cast<T>(arg); };
+    }
+
+
+    // Convert between 2-element tuples and pairs.
+    template <typename A, typename B> inline std::pair<A, B> to_pair(std::tuple<A, B>&& tpl) {
+        return std::make_pair(std::move(std::get<0>(tpl)), std::move(std::get<1>(tpl)));
+    }
+
+    template <typename A, typename B> inline std::tuple<A, B> to_tuple(std::pair<A, B>&& pair) {
+        return std::make_tuple(std::move(std::get<0>(pair)), std::move(std::get<1>(pair)));
     }
     
     

@@ -26,6 +26,7 @@ create_target(
 
 # Allow automatic selection of the actor when making actor-dependent function calls.
 target_compile_definitions(VoxelEngine PRIVATE VE_BUILD_GAME)
+target_compile_definitions(VoxelEngine PUBLIC VE_GRAPHICS_API=${VE_GRAPHICS_API})
 
 generate_include_header(VoxelEngine core core.hpp)
 generate_include_header(VoxelEngine clientserver clientserver.hpp)

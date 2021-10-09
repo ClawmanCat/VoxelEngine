@@ -2,42 +2,16 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/cache.hpp>
+#include <VoxelEngine/utility/invalidatable_transform.hpp>
 #include <VoxelEngine/graphics/camera/camera_uniform.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_convertible.hpp>
 
 
-#define ve_impl_invalidate_macro(R, D, E) E.invalidate();
+#define ve_impl_cam_mutator(name, ...) \
+ve_impl_matrix_mutator(name, [](auto& mat) { mat.invalidate(); }, __VA_ARGS__)
 
-
-// Generate a method to update the given field and invalidate the given caches (varargs).
-#define ve_impl_cam_mutator(name, ...)                  \
-void set_##name(auto&& value) {                         \
-    this->name = value;                                 \
-                                                        \
-    BOOST_PP_SEQ_FOR_EACH(                              \
-        ve_impl_invalidate_macro,                       \
-        _,                                              \
-        BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)           \
-    );                                                  \
-}                                                       \
-                                                        \
-auto get_##name(void) const {                           \
-    return this->name;                                  \
-}
-
-
-// Same as above, but instead of a getter/setter, a method is generated to perform the given operation.
-#define ve_impl_cam_mutator_tf(name, field, op, ...)    \
-void name(auto&& value) {                               \
-    this->field op value;                               \
-                                                        \
-    BOOST_PP_SEQ_FOR_EACH(                              \
-        ve_impl_invalidate_macro,                       \
-        _,                                              \
-        BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)           \
-    );                                                  \
-}
-
+#define ve_impl_cam_mutator_tf(name, field, op, ...) \
+ve_impl_matrix_mutator_tf(name, [](auto& mat) { mat.invalidate(); }, field, op, __VA_ARGS__)
 
 
 namespace ve::gfx {

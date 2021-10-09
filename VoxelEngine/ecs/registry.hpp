@@ -2,12 +2,15 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/ecs/system/system.hpp>
-#include <VoxelEngine/utility/heterogeneous_key.hpp>
+#include <VoxelEngine/ecs/registry_helpers.hpp>
 
 #include <entt/entt.hpp>
 
 
 namespace ve {
+    class static_entity;
+
+
     class registry {
     public:
         using system_id = u32;
@@ -32,13 +35,13 @@ namespace ve {
 
             auto [it, success] = systems.emplace(
                 next_system_id,
-                make_unique<system_data<System>>(std::move(system), priority)
+                make_unique<detail::system_data<System>>(std::move(system), priority)
             );
 
             systems_by_priority[priority].emplace(next_system_id, it->second.get());
 
 
-            return { next_system_id++, ((unique<system_data<System>>&) it->second)->system };
+            return { next_system_id++, ((unique<detail::system_data<System>>&) it->second)->system };
         }
 
 
@@ -65,13 +68,40 @@ namespace ve {
         }
 
 
+        // For static entities, it is not required to store the instance in the registry, just to keep it alive.
+        // Although it can be useful to do so, so one need not store it manually.
+        template <typename Entity> requires std::is_base_of_v<static_entity, Entity>
+        Entity& store_static_entity(Entity&& entity) {
+            auto [it, success] = static_entities.emplace(
+                entity.get_id(),
+                make_unique<detail::static_entity_storage<Entity>>(std::move(entity))
+            );
+
+            return ((detail::static_entity_storage<Entity>*) it->second.get())->entity;
+        }
+
+
         void destroy_entity(entt::entity entity) {
             return storage.destroy(entity);
         }
 
 
-        template <typename Component> Component& set_component(entt::entity entity, Component&& component) {
-            return storage.emplace_or_replace(entity, fwd(component));
+        template <typename Component> Component& get_component(entt::entity entity) {
+            return storage.template get<Component>(entity);
+        }
+
+        template <typename Component> const Component& get_component(entt::entity entity) const {
+            return storage.template get<Component>(entity);
+        }
+
+
+        template <typename Component> requires (!std::is_reference_v<Component>) // Don't allow universal references here.
+        Component& set_component(entt::entity entity, Component&& component) {
+            return storage.template emplace_or_replace<Component>(entity, fwd(component));
+        }
+
+        template <typename Component> Component& set_component(entt::entity entity, const Component& component) {
+            return storage.template emplace_or_replace<Component>(entity, fwd(component));
         }
 
 
@@ -88,31 +118,21 @@ namespace ve {
         VE_GET_MREF(storage);
     private:
         entt::registry storage;
+        // TODO: Better cache locality would probably help here, since a system is likely to iterate over many of the same type of static entity in order.
+        // Consider using entt::storage with ve::stack_polymorph instead (with a fallback for very large entities), or store entities on a per-type basis.
+        hash_map<entt::entity, unique<detail::static_entity_storage_base>> static_entities;
 
 
-        struct system_data_base {
-            explicit system_data_base(u16 priority) : priority(priority) {}
-
-            virtual ~system_data_base(void) = default;
-            virtual void update(registry& self, nanoseconds dt) = 0;
-
-            u16 priority;
-        };
-
-        template <typename System> struct system_data : system_data_base {
-            system_data(System&& system, u16 priority) : system_data_base(priority), system(std::move(system)) {}
-
-            void update(registry& self, nanoseconds dt) override {
-                system.update(System::make_view(self.storage), dt);
-            }
-
-            System system;
-        };
-
-
-        hash_map<system_id, unique<system_data_base>> systems;
-        vec_map<u16, hash_map<system_id, system_data_base*>> systems_by_priority;
+        hash_map<system_id, unique<detail::system_data_base>> systems;
+        vec_map<u16, hash_map<system_id, detail::system_data_base*>> systems_by_priority;
 
         system_id next_system_id = 0;
+
+
+        friend class static_entity;
+
+        void on_static_entity_destroyed(entt::entity entity) {
+            static_entities.erase(entity);
+        }
     };
 }

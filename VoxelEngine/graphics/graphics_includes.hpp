@@ -19,6 +19,8 @@
 #include <VoxelEngine/graphics/texture/aligned_texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/generative_texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/texture_atlas.hpp>
+#include <VoxelEngine/graphics/texture/texture_manager.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_combine_function.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_convertible.hpp>
+#include <VoxelEngine/graphics/uniform/uniform_sampler.hpp>
 #include <VoxelEngine/graphics/vertex/vertex.hpp>

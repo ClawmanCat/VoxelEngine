@@ -8,6 +8,6 @@
 
 namespace ve {
     struct mesh_component {
-        shared<gfxapi::vertex_buffer> buffer;
+        shared<gfxapi::vertex_buffer> buffer = nullptr;
     };
 }

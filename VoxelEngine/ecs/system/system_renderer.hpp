@@ -26,7 +26,7 @@ namespace ve {
     > requires (
         ComponentUniforms::all([] <typename U> () { return requires { typename U::uniform_convertible_tag; }; })
     ) class system_renderer : public system<
-        system_renderer<RequiredTags, ExcludedTags>,
+        system_renderer<ComponentUniforms, RequiredTags, ExcludedTags>,
         typename RequiredTags
             ::template append_pack<ComponentUniforms>
             ::template append<mesh_component>
@@ -44,13 +44,14 @@ namespace ve {
         }
 
 
-        void update(view_type view, nanoseconds dt) {
+        void update(registry& owner, view_type view, nanoseconds dt) {
             // TODO: Prevent having to do this copy each update, allow the pipeline to accept the view or something similar?
             static thread_local std::vector<const gfxapi::vertex_buffer*> buffers;
             auto clear_on_exit = raii_function { no_op, [&] { buffers.clear(); } };
 
             for (auto entity : view) {
                 const auto& mesh = view.template get<mesh_component>(entity);
+                VE_DEBUG_ASSERT(mesh.buffer, "Attempt to render uninitialized mesh component.");
 
                 [&] <typename... Components> (meta::pack<Components...>) {
                     ([&] (const auto& cmp) {

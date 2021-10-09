@@ -46,23 +46,31 @@ namespace ve::gfx::opengl {
                 ctx.uniform_state.storage_owner = this;
             }
 
-            auto& bound_state = ctx.uniform_state.bound_uniforms;
 
+            // Reset number of used samplers and store sampler reflections so uniform_storage can fill them.
+            // TODO: Just reset storage objects, don't reallocate.
+            ctx.uniform_state.samplers.clear();
+
+            for (const auto& stage : reflection.stages) {
+                for (const auto& sampler : stage.second.samplers) {
+                    ctx.uniform_state.samplers.emplace(
+                        sampler.name,
+                        uniform_bind_state::sampler_info {
+                            .location = sampler.location,
+                            .count    = sampler.type.array_extents.empty()
+                                ? (std::size_t) 1
+                                : ranges::accumulate(sampler.type.array_extents, 1, std::multiplies<>()),
+                            .textures = { }
+                        }
+                    );
+                }
+            }
+
+
+            auto& bound_state = ctx.uniform_state.bound_uniforms;
 
             for (const auto& stage : reflection.stages) {
                 for (const auto& ubo : stage.second.uniform_buffers) {
-                    if (auto it = bound_state.find(ubo.name); it != bound_state.end()) {
-                        // Uniform was already present. Don't reallocate if the type info matches.
-                        if (*it->second.type == ubo.type) {
-                            // Note: we don't have to mark the UBO as dirty here:
-                            // A new value must be pushed for the uniform before the UBO is synchronized,
-                            // at which point the (std140) serialized versions of the values will be compared.
-                            // The UBO may be marked as dirty at that point, if the serialized data differs from that in the UBO.
-                            it->second.value = nullptr;
-                            continue;
-                        }
-                    }
-
                     // Note on lifetime: uniforms are bound on this structure while a pipeline is bound with this shader.
                     // The only possible invalidation occurs when the pipeline switches shaders,
                     // which is handled by keeping track of which shader owns the storage of the current uniform state.

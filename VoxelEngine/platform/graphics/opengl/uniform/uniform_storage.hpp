@@ -4,6 +4,7 @@
 #include <VoxelEngine/utility/traits/dont_deduce.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_combine_function.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_convertible.hpp>
+#include <VoxelEngine/graphics/uniform/uniform_sampler.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_bind_state.hpp>
 
@@ -30,6 +31,13 @@ namespace ve::gfx::opengl {
                 storage.value = uniform->get();
                 update_std140_value(storage, uniform.get());
             }
+
+
+            for (const auto& [name, sampler] : samplers) {
+                auto& sampler_data = state.samplers.at(name);
+                sampler_data.textures = sampler->get_uniform_textures();
+            }
+
 
             state.uniform_stack.push(this);
             is_bound = true;
@@ -69,7 +77,11 @@ namespace ve::gfx::opengl {
 
         void set_uniform(unique<uniform>&& uniform) {
             VE_ASSERT(!is_bound, "Cannot modify uniform storage while it is being used.");
-            uniforms.insert_or_assign(uniform->name, std::move(uniform));
+
+            // Constructing of the string must occur before moving the uniform,
+            // as order of evaluation within the function parameters is undefined.
+            std::string name = uniform->name;
+            uniforms.insert_or_assign(std::move(name), std::move(uniform));
         }
 
 
@@ -104,8 +116,17 @@ namespace ve::gfx::opengl {
                 src->get_uniform_combine_function()
             );
         }
+
+        // Note: not part of any UBO, but still handled here to prevent having a completely separate interface for samplers.
+        // See uniform_sampler.hpp for more information.
+        // Note: pointer is stored and must remain valid until the uniform is removed or the storage is destroyed.
+        void set_uniform_producer(shared<uniform_sampler> src) {
+            samplers[src->get_uniform_name()] = std::move(src);
+        }
     private:
-        hash_map<std::string_view, unique<uniform>> uniforms;
+        hash_map<std::string, unique<uniform>> uniforms;
+        hash_map<std::string, shared<uniform_sampler>> samplers;
+
         mutable bool is_bound = false;
 
 
@@ -119,7 +140,7 @@ namespace ve::gfx::opengl {
 
             // Only mark the UBO as dirty if the buffer actually changed.
             target.ubo_dirty =
-                temporary_storage.size() == target.value_std140.size() &&
+                temporary_storage.size() != target.value_std140.size() ||
                 memcmp(temporary_storage.data(), target.value_std140.data(), temporary_storage.size()) != 0;
 
             if (!target.ubo_dirty) return;

@@ -39,9 +39,9 @@ namespace ve {
         }
 
 
-        void update(view_type view, nanoseconds dt) {
+        void update(registry& owner, view_type view, nanoseconds dt) {
             VE_CRTP_CHECK(Derived, update);
-            static_cast<Derived*>(this)->update(view, dt);
+            static_cast<Derived*>(this)->update(owner, view, dt);
         }
 
         

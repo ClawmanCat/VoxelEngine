@@ -21,8 +21,8 @@ namespace ve {
         named_component& operator=(named_component&&) = default;
 
 
-        named_component(const T& o) : T(o) {}
-        named_component(T&& o) : T(std::move(o)) {}
+        template <typename... Args>
+        explicit named_component(Args&&... args) : T(fwd(args)...) {}
 
 
         named_component& operator=(const T& o) {

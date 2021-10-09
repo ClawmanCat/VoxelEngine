@@ -2,14 +2,27 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/graphics/texture/texture_atlas.hpp>
+#include <VoxelEngine/graphics/texture/aligned_texture_atlas.hpp>
 
 
 namespace ve::gfx {
     template <typename Atlas> class generative_texture_atlas : public texture_atlas<generative_texture_atlas<Atlas>> {
     public:
-        explicit generative_texture_atlas(std::function<unique<Atlas>(void)> constructor) :
-            atlases { constructor() }, constructor(std::move(constructor))
-        {}
+        explicit generative_texture_atlas(std::string name = "textures", std::function<unique<Atlas>(void)> constructor = [] { return make_unique<Atlas>(); }) :
+            name(std::move(name)), constructor(std::move(constructor))
+        {
+            atlases.emplace_back(this->constructor());
+        }
+
+
+        texture_list get_uniform_textures(void) const override {
+            return atlases | views::indirect | views::transform(ve_get_field(get_texture())) | ranges::to<std::vector>();
+        }
+
+
+        std::string get_uniform_name(void) const override {
+            return name;
+        }
 
 
         vec2ui size(void) const {
@@ -43,7 +56,7 @@ namespace ve::gfx {
 
         std::vector<subtexture> store_all(const std::vector<const image_rgba8*>& images) {
             // Attempt inserting into an existing atlas.
-            for (auto& [i, atlas] : atlases | views::enumerate) {
+            for (auto [i, atlas] : atlases | views::enumerate) {
                 try {
                     return set_bindings(atlas->store_all(images), (u8) i);
                 } catch (const atlas_full_error &e) {}
@@ -54,7 +67,10 @@ namespace ve::gfx {
             return set_bindings(atlases.back()->store_all(images), u8(atlases.size() - 1));
         }
 
+
+        VE_GET_CREF(name);
     private:
+        std::string name;
         std::vector<unique<Atlas>> atlases;
         std::function<unique<Atlas>(void)> constructor;
 
@@ -69,4 +85,7 @@ namespace ve::gfx {
             return src;
         }
     };
+
+
+    using aligned_generative_texture_atlas = generative_texture_atlas<aligned_texture_atlas>;
 }
