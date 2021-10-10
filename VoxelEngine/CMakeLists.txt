@@ -33,6 +33,7 @@ generate_include_header(VoxelEngine clientserver clientserver.hpp)
 generate_include_header(VoxelEngine ecs ecs.hpp)
 generate_include_header(VoxelEngine graphics graphics_includes.hpp graphics.hpp)
 generate_include_header(VoxelEngine event event_system.hpp)
+generate_include_header(VoxelEngine input input.hpp)
 generate_include_header(VoxelEngine utility utility.hpp)
 generate_include_header(VoxelEngine utility/traits traits.hpp)
 

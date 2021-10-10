@@ -44,6 +44,7 @@ namespace ve::detail {
 
     template <typename Entity> struct static_entity_storage : static_entity_storage_base {
         explicit static_entity_storage(Entity&& entity) : entity(std::move(entity)) {}
+
         Entity entity;
     };
 }

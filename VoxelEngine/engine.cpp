@@ -7,6 +7,7 @@
 #include <VoxelEngine/dependent/plugin_registry.hpp>
 #include <VoxelEngine/dependent/game_callbacks.hpp>
 #include <VoxelEngine/graphics/presentation/window_registry.hpp>
+#include <VoxelEngine/input/input_manager.hpp>
 
 #include <SDL.h>
 
@@ -70,7 +71,12 @@ namespace ve {
 
         SDL_SetMainReady();
         SDL_Init(SDL_INIT_EVERYTHING);
-        
+
+        input_manager::instance().add_handler(
+            [](const exit_requested_event&) { engine::exit(); },
+            priority::LOWEST // Give the game the opportunity to handle this event first.
+        );
+
         
         plugin_registry::instance().scan_folder(io::paths::PATH_PLUGINS);
         plugin_registry::instance().try_load_all_plugins(false);
@@ -91,6 +97,7 @@ namespace ve {
 
         gfx::window_registry::instance().begin_frame();
 
+        input_manager::instance().update(engine::tick_count);
         thread_pool::instance().execute_main_thread_tasks();
         instance_registry::instance().update_all(time_since(last_tick));
 

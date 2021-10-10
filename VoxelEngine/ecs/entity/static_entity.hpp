@@ -26,10 +26,11 @@ namespace ve {
         }
 
         ~static_entity(void) {
-            if (id != entt::null) [[likely]] {
-                get_registry().on_static_entity_destroyed(id);
-                get_registry().destroy_entity(id);
-            }
+            // - If the entity is not owned by a static_entity_storage, we don't need to remove it from there.
+            // - If the entity *is* owned by a static_entity_storage, the only way to destroy it is through there,
+            //   so we don't need to ever manually remove it from there.
+            if (id != entt::null) [[likely]] get_registry().destroy_entity(id);
+            id = entt::null;
         }
 
 

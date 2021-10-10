@@ -2,6 +2,8 @@
 #include <VEDemoGame/entity/howlee.hpp>
 
 #include <VoxelEngine/clientserver/connect.hpp>
+#include <VoxelEngine/input/input.hpp>
+#include <VoxelEngine/engine.hpp>
 
 
 namespace demo_game {

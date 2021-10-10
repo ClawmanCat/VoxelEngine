@@ -23,6 +23,7 @@ namespace ve::gfx::opengl {
         ) :
             size(size),
             format(fmt),
+            mipmap_levels(mipmap_levels),
             filter(filter)
         {
             glGenTextures(1, &id);
