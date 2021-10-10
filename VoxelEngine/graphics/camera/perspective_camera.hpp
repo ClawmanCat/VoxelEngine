@@ -18,11 +18,12 @@ namespace ve::gfx {
     class perspective_camera : public uniform_convertible<perspective_camera, camera_uniform> {
     public:
         explicit perspective_camera(
-            float fov      = glm::radians(90.0f),
-            float near     = 0.01f,
-            vec3f position = vec3f { 0 },
-            quatf rotation = quatf {   },
-            vec3f scaling  = vec3f { 1 }
+            float fov          = glm::radians(90.0f),
+            float aspect_ratio = 1.0f,
+            float near         = 0.01f,
+            vec3f position     = vec3f { 0 },
+            quatf rotation     = glm::identity<quatf>(),
+            vec3f scaling      = vec3f { 1 }
         ) :
             projection(&perspective_camera::update_projection, this),
             view_projection(&perspective_camera::update_view_projection, this),
@@ -30,6 +31,7 @@ namespace ve::gfx {
             rotation(rotation),
             scaling(scaling),
             fov(fov),
+            aspect_ratio(aspect_ratio),
             near_plane(near)
         {}
 

@@ -15,6 +15,9 @@ namespace ve {
     // created from that class, and can be accessed as if they were class members.
     class static_entity {
     public:
+        static_entity(void) = default;
+
+
         explicit static_entity(registry& registry) :
             id(registry.create_entity()),
             registry(&registry)
@@ -38,8 +41,8 @@ namespace ve {
                 get_registry().destroy_entity(id);
             }
 
-            this->registry = other.registry;
-            this->id       = other.id;
+            registry = other.registry;
+            id       = other.id;
 
             set(self_component { this });
             other.id = entt::null;

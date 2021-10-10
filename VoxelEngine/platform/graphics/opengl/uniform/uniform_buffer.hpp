@@ -29,16 +29,24 @@ namespace ve::gfx::opengl {
 
 
         template <typename T> void store_object(const T& object) {
-            auto data = to_std140(object);
+            // Either the types must match, or the UBO must have one element and the type of that element must match.
+            // This allows us to e.g. set an uniform like "uniform MyUniform { mat4 mat; }" with just a matrix rather than a struct containing one.
+            VE_DEBUG_ASSERT(
+                reflect::object_type { meta::type_wrapper<T>{} } == reflection->type ||
+                (
+                    reflection->members.size() == 1 &&
+                    reflect::object_type { meta::type_wrapper<T>{} } == reflection->members[0].type
+                ),
+                "Cannot convert object of type ", ctti::nameof<T>(), " to UBO ", reflection->name, ": ",
+                "The objects have different types and the UBO does not consist of a single element matching the type either."
+            );
 
-            // TODO: Validate object layout more thoroughly.
-            // Provided T must either match the UBO type directly, or be the unique element of the UBO.
-            store_bytes(data);
+            store_bytes(to_std140(object));
         }
 
 
         void store_bytes(std::span<const u8> data) {
-            VE_ASSERT(data.size() == reflection->struct_size, "Incorrect object type for UBO.");
+            VE_ASSERT(data.size() == reflection->struct_size, "Incorrect object type for UBO: size mismatch.");
 
             ubo.write(data.data(), data.size());
             VE_DEBUG_ONLY(written = true);

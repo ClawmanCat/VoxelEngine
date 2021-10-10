@@ -34,6 +34,7 @@ namespace ve {
 
             for (auto entity : view) {
                 const auto& updater = view.template get<update_component>(entity);
+                VE_DEBUG_ASSERT(updater.value, "Entity has nullptr as its update function.");
 
                 ctx.entity = entity;
                 updater(ctx, dt);

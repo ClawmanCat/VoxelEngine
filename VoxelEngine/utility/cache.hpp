@@ -21,10 +21,10 @@ namespace ve {
 
 
         // Never return mutable references: value can only be set through updater.
-        operator const T&(void) const { revalidate(); return value; }
-        const T& operator*(void) const { revalidate(); return value; }
+        operator const T&(void)   const { revalidate(); return  value; }
+        const T& operator*(void)  const { revalidate(); return  value; }
         const T* operator->(void) const { revalidate(); return &value; }
-        const T& get_value(void) const { revalidate(); return value; }
+        const T& get_value(void)  const { revalidate(); return  value; }
 
 
         VE_GET_BOOL_IS(valid);
@@ -39,7 +39,10 @@ namespace ve {
     class member_cache {
     public:
         member_cache(Updater updater, Cls* owner) : updater(std::move(updater)), owner(owner) {}
-        ve_swap_move_only(member_cache, value, updater, valid, owner);
+
+        // Note: we're moving into this object, so this object's owner is still valid, while the other object's owner is not.
+        // The owner field should therefore not be swapped in this case.
+        ve_swap_move_only(member_cache, value, updater, valid);
 
 
         void invalidate(void) const {
@@ -52,10 +55,10 @@ namespace ve {
 
 
         // Never return mutable references: value can only be set through updater.
-        operator const T&(void) const { revalidate(); return value; }
-        const T& operator*(void) const { revalidate(); return value; }
+        operator const T&(void)   const { revalidate(); return  value; }
+        const T& operator*(void)  const { revalidate(); return  value; }
         const T* operator->(void) const { revalidate(); return &value; }
-        const T& get_value(void) const { revalidate(); return value; }
+        const T& get_value(void)  const { revalidate(); return  value; }
 
 
         VE_GET_BOOL_IS(valid);

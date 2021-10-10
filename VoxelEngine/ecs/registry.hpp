@@ -6,6 +6,9 @@
 
 #include <entt/entt.hpp>
 
+#include <VoxelEngine/utility/assert.hpp>
+#include <ctti/nameof.hpp>
+
 
 namespace ve {
     class static_entity;
@@ -72,8 +75,9 @@ namespace ve {
         // Although it can be useful to do so, so one need not store it manually.
         template <typename Entity> requires std::is_base_of_v<static_entity, Entity>
         Entity& store_static_entity(Entity&& entity) {
+            entt::entity id = entity.get_id();
             auto [it, success] = static_entities.emplace(
-                entity.get_id(),
+                id,
                 make_unique<detail::static_entity_storage<Entity>>(std::move(entity))
             );
 

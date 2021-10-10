@@ -58,7 +58,11 @@ namespace ve::gfx::opengl {
         {}
 
         void combine(const void* current_value) const override {
-            combination = combine_fn(*((const T*) current_value), value);
+            if (current_value) {
+                combination = combine_fn(*((const T*) current_value), value);
+            } else {
+                combination = value;
+            }
         }
 
         const void* get(void) const override {
@@ -87,7 +91,11 @@ namespace ve::gfx::opengl {
         {}
 
         void combine(const void* current_value) const override {
-            combination = combine_fn(*((const T*) current_value), produce_fn());
+            if (current_value) {
+                combination = combine_fn(*((const T*) current_value), produce_fn());
+            } else {
+                combination = produce_fn();
+            }
         }
 
         const void* get(void) const override {

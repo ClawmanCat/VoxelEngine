@@ -16,7 +16,7 @@ ve_impl_matrix_mutator_tf(name, [&](auto& mat) { update_transform(); }, field, o
 namespace ve {
     struct transform_component : public gfx::uniform_convertible<transform_component, mat4f> {
     public:
-        explicit transform_component(const vec3f& position = {}, const quatf& rotation = {}) :
+        explicit transform_component(const vec3f& position = vec3f { 0 }, const quatf& rotation = glm::identity<quatf>()) :
             position(position),
             rotation(rotation)
         {
@@ -24,8 +24,8 @@ namespace ve {
         }
 
 
-        ve_impl_tc_mutator(position, position, transform);
-        ve_impl_tc_mutator(rotation, rotation, transform);
+        ve_impl_tc_mutator(position, transform);
+        ve_impl_tc_mutator(rotation, transform);
         ve_impl_tc_mutator_tf(move,   position, +=, transform);
         ve_impl_tc_mutator_tf(rotate, rotation, *=, transform);
 
@@ -53,7 +53,7 @@ namespace ve {
         mat4f transform;
 
         void update_transform(void) {
-            glm::translate(glm::mat4_cast(rotation), position);
+            transform = glm::translate(glm::mat4_cast(rotation), position);
         }
     };
 }

@@ -40,8 +40,8 @@ namespace demo_game {
         game::client.add_system(ve::system_renderer<> { std::move(pipeline) });
         game::client.add_system(ve::system_updater<> { });
 
-        for (ve::i32 x = -64; x < 64; ++x) {
-            for (ve::i32 z = -64; z < 64; ++z) {
+        for (ve::i32 x = -32; x < 32; ++x) {
+            for (ve::i32 z = -32; z < 32; ++z) {
                 howlee h { game::client };
                 h.transform.set_position(ve::vec3f { x, 0, z });
 
