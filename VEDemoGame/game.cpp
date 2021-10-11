@@ -31,15 +31,26 @@ namespace demo_game {
         game::texture_manager = ve::make_shared<ve::gfx::texture_manager<>>();
 
 
+        static auto win2 = ve::gfx::window::create(ve::gfx::window::arguments { .title = "W2" });
+        static auto pip2 = make_shared<ve::gfxapi::single_pass_pipeline>(
+            win2->get_canvas(),
+            ve::gfx::shader_cache::instance().get_or_load_shader<vertex_t>("simple")
+        );
+
+
         auto pipeline = make_shared<ve::gfxapi::single_pass_pipeline>(
             game::window->get_canvas(),
             ve::gfx::shader_cache::instance().get_or_load_shader<vertex_t>("simple")
         );
 
         pipeline->set_uniform_producer(&game::camera);
+        pip2->set_uniform_producer(&game::camera);
+
         pipeline->set_uniform_producer(game::texture_manager->get_atlas());
+        pip2->set_uniform_producer(game::texture_manager->get_atlas());
 
         game::client.add_system(ve::system_renderer<> { std::move(pipeline) });
+        game::client.add_system(ve::system_renderer<> { pip2 });
         game::client.add_system(ve::system_updater<> { });
 
         for (ve::i32 x = -32; x < 32; ++x) {

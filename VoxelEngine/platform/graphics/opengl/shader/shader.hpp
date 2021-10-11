@@ -71,18 +71,30 @@ namespace ve::gfx::opengl {
 
             for (const auto& stage : reflection.stages) {
                 for (const auto& ubo : stage.second.uniform_buffers) {
+                    auto& ubos = ctx.uniform_state.bound_uniforms;
+
+                    // Reuse existing UBOs where possible.
+                    // Caching happens inside UBO itself, so no GPU writes are done if the value is the same next time the state is bound.
+                    if (auto it = ubos.find(ubo.name); it != ubos.end()) {
+                        it->second.value = nullptr;
+                        it->second.value_std140.clear();
+                        it->second.type = &ubo.type;
+
+                        continue;
+                    }
+
+
                     // Note on lifetime: uniforms are bound on this structure while a pipeline is bound with this shader.
                     // The only possible invalidation occurs when the pipeline switches shaders,
                     // which is handled by keeping track of which shader owns the storage of the current uniform state.
                     // (See usage of ctx.uniform_state.storage_owner)
-                    ctx.uniform_state.bound_uniforms.insert_or_assign(
+                    ubos.emplace(
                         ubo.name,
                         uniform_bind_state::combined_value {
                             .value        = nullptr,
                             .value_std140 = std::vector<u8> { },
-                            .ubo          = uniform_buffer(&ubo),
-                            .ubo_dirty    = true,
-                            .type         = &ubo.type
+                            .type         = &ubo.type,
+                            .ubo          = uniform_buffer(&ubo)
                         }
                     );
 

@@ -29,7 +29,7 @@ namespace ve::gfx::opengl {
                 // layout always have the first struct member at offset 0.
                 uniform->combine(storage.value);
                 storage.value = uniform->get();
-                update_std140_value(storage, uniform.get());
+                uniform->get_std140(storage.value_std140);
             }
 
 
@@ -51,7 +51,7 @@ namespace ve::gfx::opengl {
                 auto& storage = get_storage_for(state, name);
 
                 storage.value = uniform->get();
-                update_std140_value(storage, uniform.get());
+                uniform->get_std140(storage.value_std140);
             }
         }
 
@@ -62,9 +62,7 @@ namespace ve::gfx::opengl {
 
             for (const auto& [name, uniform] : uniforms) {
                 auto& storage = get_storage_for(state, name);
-
                 storage.value = nullptr;
-                storage.ubo_dirty = true;
             }
 
             if (!state.uniform_stack.empty()) {
@@ -128,28 +126,6 @@ namespace ve::gfx::opengl {
         hash_map<std::string, shared<uniform_sampler>> samplers;
 
         mutable bool is_bound = false;
-
-
-        static void update_std140_value(uniform_bind_state::combined_value& target, const struct uniform* uniform) {
-            // Prevent unnecessary heap allocations by keeping some storage to push the std140 object into,
-            // so we can memcmp it with the old value.
-            static thread_local std::vector<u8> temporary_storage;
-            // get_std140 clears the buffer beforehand, no manual clear necessary.
-            uniform->get_std140(temporary_storage);
-
-
-            // Only mark the UBO as dirty if the buffer actually changed.
-            target.ubo_dirty =
-                temporary_storage.size() != target.value_std140.size() ||
-                memcmp(temporary_storage.data(), target.value_std140.data(), temporary_storage.size()) != 0;
-
-            if (!target.ubo_dirty) return;
-
-
-            // While just using operator= would probably be fine, the standard makes no guarantees about memory reuse in that case.
-            target.value_std140.resize(temporary_storage.size());
-            memcpy(target.value_std140.data(), temporary_storage.data(), temporary_storage.size());
-        }
 
 
         static uniform_bind_state::combined_value& get_storage_for(uniform_bind_state& state, std::string_view name) {

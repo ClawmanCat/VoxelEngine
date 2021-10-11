@@ -5,18 +5,26 @@
 
 namespace ve::gfx::opengl {
     void single_pass_pipeline::draw(const std::vector<const vertex_buffer*>& buffers, render_context& ctx) {
+        if (!get_target()->requires_rendering_this_frame()) return;
+
+
         ctx.pipelines.push(this);
         ctx.renderpass = this;
 
-        bind_settings();
+        get_target()->bind();
         shader->bind(ctx);
+        bind_settings();
+
         uniform_storage::push(ctx.uniform_state);
+
 
         for (const auto& buffer : buffers) {
             buffer->draw(ctx);
         }
 
+
         uniform_storage::pop(ctx.uniform_state);
+
         ctx.renderpass = nullptr;
         ctx.pipelines.pop();
     }

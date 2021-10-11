@@ -22,35 +22,50 @@ namespace ve {
 
         auto now = steady_clock::now();
         SDL_Event event;
-        std::optional<SDL_Event> exit_event;
 
         while (SDL_PollEvent(&event)) {
+            // SDL sometimes sends events for windows that have already closed. In this case, SDL_GetWindowFromID returns null.
             auto window_of = [] (const auto& sub_event) {
-                return gfx::window_registry::instance().get_window(SDL_GetWindowFromID(sub_event.windowID));
+                auto* sdl_window = SDL_GetWindowFromID(sub_event.windowID);
+                return sdl_window ? gfx::window_registry::instance().get_window(sdl_window) : nullptr;
             };
 
 
             switch (event.type) {
                 case SDL_KEYDOWN:
                 case SDL_KEYUP:
-                    handle_key_event(event, window_of(event.key), tick, now);
+                    if (auto* window = window_of(event.key); window) {
+                        handle_key_event(event, window, tick, now);
+                    }
+
                     break;
                 case SDL_MOUSEBUTTONDOWN:
                 case SDL_MOUSEBUTTONUP:
-                    handle_mouse_button_event(event, window_of(event.button), tick, now);
+                    if (auto* window = window_of(event.button); window) {
+                        handle_mouse_button_event(event, window, tick, now);
+                    }
+
                     break;
                 case SDL_MOUSEMOTION:
-                    handle_mouse_move_event(event, window_of(event.motion), tick, now);
+                    if (auto* window = window_of(event.motion); window) {
+                        handle_mouse_move_event(event, window, tick, now);
+                    }
+
                     break;
                 case SDL_MOUSEWHEEL:
-                    handle_mouse_wheel_event(event, window_of(event.wheel), tick, now);
+                    if (auto* window = window_of(event.wheel); window) {
+                        handle_mouse_wheel_event(event, window, tick, now);
+                    }
+
                     break;
                 case SDL_WINDOWEVENT:
-                    handle_window_event(event, window_of(event.window), tick, now);
+                    if (auto* window = window_of(event.window); window) {
+                        handle_window_event(event, window, tick, now);
+                    }
+
                     break;
                 case SDL_QUIT:
-                    // Delay quit event until after all other events have been handled.
-                    exit_event = event;
+                    dispatch_event(exit_requested_event { });
                     break;
                 default:
                     VE_DEBUG_ONLY(
@@ -113,9 +128,6 @@ namespace ve {
                 }
             }
         }
-
-
-        if (exit_event) dispatch_event(exit_requested_event { });
     }
 
 

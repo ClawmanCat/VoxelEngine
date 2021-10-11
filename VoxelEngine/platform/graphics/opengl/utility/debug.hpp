@@ -60,6 +60,11 @@ namespace ve::gfx::opengl {
             cat(source_string, "/", type_string, ": ", std::string { message, message + message_length }, " (", message_id, ")"),
             level
         );
+
+
+        VE_DEBUG_ONLY(
+            if (level >= logger::level::WARNING) VE_BREAKPOINT;
+        );
     }
 
 

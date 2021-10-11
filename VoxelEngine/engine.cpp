@@ -92,6 +92,7 @@ namespace ve {
     void engine::loop(void) {
         static steady_clock::time_point last_tick = steady_clock::now();
 
+
         game_callbacks::pre_loop();
         engine::event_dispatcher.dispatch_event(engine_pre_loop_event { engine::tick_count });
 

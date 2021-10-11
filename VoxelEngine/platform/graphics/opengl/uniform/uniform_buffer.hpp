@@ -18,8 +18,8 @@ namespace ve::gfx::opengl {
             ubo.reserve(reflection->struct_size);
         }
 
-        VE_DEBUG_ONLY(ve_swap_move_only(uniform_buffer, reflection, ubo, written));
-        VE_RELEASE_ONLY(ve_swap_move_only(uniform_buffer, reflection, ubo));
+        VE_DEBUG_ONLY(ve_rt_swap_move_only(uniform_buffer, reflection, ubo, current_value, written));
+        VE_RELEASE_ONLY(ve_rt_swap_move_only(uniform_buffer, reflection, ubo, current_value));
 
 
         void bind(void) const {
@@ -48,12 +48,24 @@ namespace ve::gfx::opengl {
         void store_bytes(std::span<const u8> data) {
             VE_ASSERT(data.size() == reflection->struct_size, "Incorrect object type for UBO: size mismatch.");
 
+            if (data.size() == current_value.size() && memcmp(current_value.data(), data.data(), data.size()) == 0) {
+                // Stored value is equal to current value, do nothing.
+                return;
+            }
+
+            current_value.resize(data.size());
+            memcpy(current_value.data(), data.data(), data.size());
+
             ubo.write(data.data(), data.size());
             VE_DEBUG_ONLY(written = true);
         }
     private:
         const reflect::attribute* reflection;
+
+        // UBOs are typically very small, so its worth caching the value CPU side so we can skip redundant writes.
         buffer<u8> ubo;
+        std::vector<u8> current_value;
+
         VE_DEBUG_ONLY(bool written = false);
     };
 }

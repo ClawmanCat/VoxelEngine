@@ -20,15 +20,16 @@ namespace ve::gfx {
 
         if (args.graphics_window) {
             gfxapi::get_or_create_context(handle, args.api_settings);
-            canvas = make_shared<gfxapi::canvas>(handle, args.present_mode);
+            canvas = make_shared<gfxapi::canvas>(this, args.present_mode);
         }
 
 
         // Clicking the close button simply triggers the event, but does not actually call SDL_DestroyWindow.
-        /*if (args.exit_button_closes_window) input_manager::instance().add_handler(
+        // This is only an issue with multiple windows, as closing the final window triggers an SDL_QuitEvent anyway.
+        if (args.exit_button_closes_window) input_manager::instance().add_handler(
             [this] (const window_closed_event& event) { if (event.window == this) close(); },
             priority::LOWEST
-        );*/
+        );
 
 
         window_registry::instance().add_window(this);
