@@ -58,8 +58,9 @@ namespace ve {
     struct mouse_state {
         std::array<mouse_button_state, magic_enum::enum_count<mouse_button>()> buttons;
 
-        vec2i position;
-        i32   wheel_position;
+        vec2i   position;
+        i32     wheel_position;
+        keymods mods;
     };
 
 

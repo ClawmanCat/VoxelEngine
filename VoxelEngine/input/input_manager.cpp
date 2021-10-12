@@ -281,17 +281,11 @@ namespace ve {
 
 
     void input_manager::handle_mouse_move_event(SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now) {
-        current_mouse_state.position += vec2i { event.motion.x, event.motion.y };
-
-
         if (!current_mouse_move) {
             // Begin new mouse movement tracker.
             current_mouse_move = ongoing_mouse_event { current_mouse_state };
             dispatch_event(mouse_move_start_event { window, current_mouse_state });
         }
-
-        dispatch_event(mouse_moved_event { window, current_mouse_move->begin_state, prev_mouse_state, current_mouse_state });
-
 
         for (mouse_button button : magic_enum::enum_values<mouse_button>()) {
             auto& current_drag = current_mouse_drag[(u32) button];
@@ -302,7 +296,18 @@ namespace ve {
                     current_drag = ongoing_mouse_event { current_mouse_state };
                     dispatch_event(mouse_drag_start_event { window, button, current_mouse_state });
                 }
+            }
+        }
 
+
+        current_mouse_state.position += vec2i { event.motion.xrel, event.motion.yrel };
+        current_mouse_state.mods = get_current_keymods();
+
+        dispatch_event(mouse_moved_event { window, current_mouse_move->begin_state, prev_mouse_state, current_mouse_state });
+
+        for (mouse_button button : magic_enum::enum_values<mouse_button>()) {
+            if (current_mouse_state.buttons[(u32) button].is_down) {
+                auto& current_drag = current_mouse_drag[(u32) button];
                 dispatch_event(mouse_drag_event { window, button, current_drag->begin_state, prev_mouse_state, current_mouse_state });
             }
         }
@@ -310,14 +315,14 @@ namespace ve {
 
 
     void input_manager::handle_mouse_wheel_event(SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now) {
-        current_mouse_state.wheel_position += event.wheel.y;
-
-
         if (!current_mouse_wheel_move) {
             // Begin new mouse wheel movement tracker.
             current_mouse_wheel_move = ongoing_mouse_event { current_mouse_state };
             dispatch_event(mouse_wheel_move_start_event { window, current_mouse_state });
         }
+
+        current_mouse_state.wheel_position += event.wheel.y;
+        current_mouse_state.mods = get_current_keymods();
 
         dispatch_event(mouse_wheel_moved_event { window, current_mouse_wheel_move->begin_state, prev_mouse_state, current_mouse_state });
     }

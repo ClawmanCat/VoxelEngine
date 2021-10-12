@@ -17,7 +17,7 @@ test_result test_main(void) {
     };
 
     // 32x32 atlas should store (32 / 8)^2 = 16 textures.
-    ve::gfx::aligned_texture_atlas atlas { ve::vec2ui { 32 }, 8 };
+    ve::gfx::aligned_texture_atlas atlas { "Atlas", ve::vec2ui { 32 }, 8 };
 
     try {
         // Run twice to check that clearing the atlas actually works.

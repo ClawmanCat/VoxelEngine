@@ -3,8 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/cache.hpp>
 #include <VoxelEngine/utility/invalidatable_transform.hpp>
-#include <VoxelEngine/graphics/camera/camera_uniform.hpp>
-#include <VoxelEngine/graphics/uniform/uniform_convertible.hpp>
+#include <VoxelEngine/graphics/camera/camera.hpp>
 
 
 #define ve_impl_cam_mutator(name, ...) \
@@ -15,7 +14,7 @@ ve_impl_matrix_mutator_tf(name, [](auto& mat) { mat.invalidate(); }, field, op, 
 
 
 namespace ve::gfx {
-    class perspective_camera : public uniform_convertible<perspective_camera, camera_uniform> {
+    class perspective_camera : public camera<perspective_camera> {
     public:
         explicit perspective_camera(
             float fov          = glm::radians(90.0f),

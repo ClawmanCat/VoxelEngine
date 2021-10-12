@@ -21,6 +21,7 @@
 #include <VoxelEngine/utility/traits/null_type.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
 #include <VoxelEngine/utility/traits/pack/pack_helpers.hpp>
+#include <VoxelEngine/utility/traits/pack/pack_ops.hpp>
 #include <VoxelEngine/utility/traits/pick.hpp>
 #include <VoxelEngine/utility/traits/reference_as.hpp>
 #include <VoxelEngine/utility/traits/sequence.hpp>

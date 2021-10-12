@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <VoxelEngine/graphics/camera/camera.hpp>
 #include <VoxelEngine/graphics/camera/camera_uniform.hpp>
 #include <VoxelEngine/graphics/camera/perspective_camera.hpp>
 #include <VoxelEngine/graphics/presentation/present_mode.hpp>
