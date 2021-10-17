@@ -60,6 +60,8 @@ namespace ve::gfx::opengl {
 
             glBindVertexArray(vao);
             vbo.bind();
+
+            ctx.renderpass->get_shader()->get_vertex_layout().bind();
             glDrawArrays((GLenum) ctx.renderpass->get_settings().topology, 0, (GLsizei) vbo.get_size());
         }
 
@@ -110,6 +112,8 @@ namespace ve::gfx::opengl {
             glBindVertexArray(vao);
             vbo.bind();
             ebo.bind();
+
+            ctx.renderpass->get_shader()->get_vertex_layout().bind();
             glDrawElements((GLenum) ctx.renderpass->get_settings().topology, ebo.get_size(), get_index_type(), nullptr);
         }
 

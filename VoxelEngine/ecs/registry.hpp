@@ -76,6 +76,7 @@ namespace ve {
         template <typename Entity> requires std::is_base_of_v<static_entity, Entity>
         Entity& store_static_entity(Entity&& entity) {
             entt::entity id = entity.get_id();
+
             auto [it, success] = static_entities.emplace(
                 id,
                 make_unique<detail::static_entity_storage<Entity>>(std::move(entity))

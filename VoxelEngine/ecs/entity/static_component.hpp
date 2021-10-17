@@ -13,7 +13,7 @@
 
 
 namespace ve::detail {
-    // This is an ugly workaround to prevent static properties from being uninitialized.
+    // This is an ugly workaround to prevent static properties from being uninitialized (i.e. not in the registry).
     // The trick here is that given the following code:
     // meta::null_type a = property_initializer { this };
     // meta::null_type b = property_initializer { this } = SomeInitializer;
@@ -29,7 +29,9 @@ namespace ve::detail {
 
         template <typename Arg> requires std::is_constructible_v<T, Arg>
         property_initializer& operator=(Arg&& arg) {
-            Init(parent, fwd(arg));
+            // Note: if we're moving out of some other entity, that entity will already have values for the components.
+            // Since we will take their ID, make sure to not overwrite those components with empty values.
+            if (!(parent->get_flags() & ve::static_entity_flags::move_constructed)) Init(parent, fwd(arg));
             return *this;
         }
 

@@ -15,7 +15,7 @@ namespace ve {
     }
 
 
-    input_binder::input_handle input_binder::bind(binary_input&& input, typename binary_input::handler_t&& handler) {
+    input_binder::input_handle input_binder::bind(binary_input input, typename binary_input::handler_t handler) {
         auto key = input.input;
 
         binary_handlers[key].push_back(handler_data<binary_input> {
@@ -28,7 +28,7 @@ namespace ve {
     }
 
 
-    input_binder::input_handle input_binder::bind(motion_input&& input, typename motion_input::handler_t&& handler) {
+    input_binder::input_handle input_binder::bind(motion_input input, typename motion_input::handler_t handler) {
         auto key = input.input;
 
         motion_handlers[key].push_back(handler_data<motion_input> {
@@ -41,6 +41,16 @@ namespace ve {
     }
 
 
+    input_binder::input_handle input_binder::bind(std::string_view alias, typename binary_input::handler_t handler) {
+        return bind(binary_aliases.at(alias), std::move(handler));
+    }
+
+
+    input_binder::input_handle input_binder::bind(std::string_view alias, typename motion_input::handler_t handler) {
+        return bind(motion_aliases.at(alias), std::move(handler));
+    }
+
+
     void input_binder::unbind(input_handle handle) {
         std::visit(
             visitor {
@@ -49,6 +59,22 @@ namespace ve {
             },
             handle.key
         );
+    }
+
+
+    void input_binder::alias(std::string name, binary_input input) {
+        binary_aliases.emplace(std::move(name), std::move(input));
+    }
+
+
+    void input_binder::alias(std::string name, motion_input input) {
+        motion_aliases.emplace(std::move(name), std::move(input));
+    }
+
+
+    void input_binder::unalias(std::string_view name) {
+        binary_aliases.erase(name);
+        motion_aliases.erase(name);
     }
 
 
@@ -117,15 +143,17 @@ namespace ve {
                     for (const auto& [id, input, handler] : it->second) {
                         // Check if the given handler should be invoked for the given input.
                         // The exact signature to call depends on the event type.
-                        bool matches = meta::pick<(!is_binary && requires { e.button; })>(
-                            [&](const auto& i, const auto& s, const auto& e) { return i.matches(s.mods, When, e.button); },
-                            [&](const auto& i, const auto& s, const auto& e) { return i.matches(s.mods, When); }
+                        bool trigger = meta::pick<(!is_binary && requires { e.button; })>(
+                            [&](const auto& i, const auto& s, const auto& e) { return i.should_trigger(s.mods, When, e.button); },
+                            [&](const auto& i, const auto& s, const auto& e) { return i.should_trigger(s.mods, When); }
                         )(input, state, e);
 
 
-                        if (matches) {
-                            if constexpr (is_binary) std::invoke(handler, state.mods, When);
-                            else std::invoke(handler, event_begin_field(e), event_prev_field(e), event_current_field(e), state.mods, When);
+                        if (trigger) {
+                            using handler_args = typename Input::handler_args;
+
+                            if constexpr (is_binary) std::invoke(handler, handler_args { state.mods, When, e.window });
+                            else std::invoke(handler, handler_args { event_begin_field(e), event_prev_field(e), event_current_field(e), state.mods, When, e.window });
                         }
                     }
                 });

@@ -31,14 +31,19 @@ namespace ve::gfx::opengl {
 
 
     void single_pass_pipeline::bind_settings(void) {
+        std::array gl_toggles { glDisable, glEnable };
+
+
         // Note: OpenGL handles the primitive topology on a per-buffer basis,
         // so that setting does not need to be set here.
         glPolygonMode(GL_FRONT_AND_BACK, (GLenum) settings.polygon_mode);
-        glCullFace((GLenum) settings.cull_mode);
         glFrontFace((GLenum) settings.cull_direction);
         glLineWidth(settings.line_width);
 
-        std::array gl_toggles { glDisable, glEnable };
+        auto no_cull = pipeline_settings::cull_mode_t::NO_CULLING;
+        gl_toggles[settings.cull_mode != no_cull](GL_CULL_FACE);
+        if (settings.cull_mode != no_cull) glCullFace((GLenum) settings.cull_mode);
+
         gl_toggles[settings.depth_testing](GL_DEPTH_TEST);
         gl_toggles[settings.depth_clamp](GL_DEPTH_CLAMP);
     }

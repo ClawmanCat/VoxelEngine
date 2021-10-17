@@ -24,4 +24,5 @@
 #include <VoxelEngine/graphics/uniform/uniform_combine_function.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_convertible.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_sampler.hpp>
+#include <VoxelEngine/graphics/vertex/utility.hpp>
 #include <VoxelEngine/graphics/vertex/vertex.hpp>

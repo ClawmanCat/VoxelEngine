@@ -29,8 +29,8 @@ namespace ve {
                     camera_controller_component<Camera>
                 >(entity);
 
-                camera.camera->set_position(transform.get_position());
-                camera.camera->set_rotation(transform.get_rotation());
+                camera.camera->set_position(transform.position);
+                camera.camera->set_rotation(transform.rotation);
             }
         }
 

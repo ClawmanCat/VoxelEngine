@@ -214,6 +214,16 @@ namespace ve {
     }
 
 
+    void input_manager::set_mouse_capture(bool enabled) {
+        SDL_SetRelativeMouseMode((SDL_bool) enabled);
+    }
+
+
+    bool input_manager::has_mouse_capture(void) const {
+        return (bool) SDL_GetRelativeMouseMode();
+    }
+
+
     void input_manager::handle_key_event(SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now) {
         auto& old_state = get_mutable_key_state(event.key.keysym.sym);
 

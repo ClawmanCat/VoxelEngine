@@ -15,6 +15,7 @@
 #include <VoxelEngine/utility/copy.hpp>
 #include <VoxelEngine/utility/decompose.hpp>
 #include <VoxelEngine/utility/delayed_cast.hpp>
+#include <VoxelEngine/utility/direction.hpp>
 #include <VoxelEngine/utility/expected.hpp>
 #include <VoxelEngine/utility/friend.hpp>
 #include <VoxelEngine/utility/functional.hpp>

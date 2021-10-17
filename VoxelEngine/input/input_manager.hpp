@@ -53,6 +53,9 @@ namespace ve {
 
         keymods get_current_keymods(void) const;
 
+        void set_mouse_capture(bool enabled);
+        bool has_mouse_capture(void) const;
+
         VE_GET_CREF(current_mouse_move);
         VE_GET_CREF(current_mouse_drag);
         VE_GET_CREF(current_mouse_wheel_move);

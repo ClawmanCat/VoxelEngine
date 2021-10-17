@@ -90,8 +90,8 @@ namespace ve {
     
     
     void engine::loop(void) {
-        static steady_clock::time_point last_tick = steady_clock::now();
-
+        static nanoseconds last_dt = 1s / 60; // Provide some reasonable fake value for the first tick.
+        auto tick_begin = steady_clock::now();
 
         game_callbacks::pre_loop();
         engine::event_dispatcher.dispatch_event(engine_pre_loop_event { engine::tick_count });
@@ -100,15 +100,15 @@ namespace ve {
 
         input_manager::instance().update(engine::tick_count);
         thread_pool::instance().execute_main_thread_tasks();
-        instance_registry::instance().update_all(time_since(last_tick));
+        instance_registry::instance().update_all(last_dt);
 
         gfx::window_registry::instance().end_frame();
 
-        ++engine::tick_count;
-        last_tick = steady_clock::now();
-
         engine::event_dispatcher.dispatch_event(engine_post_loop_event { engine::tick_count });
         game_callbacks::post_loop();
+
+        ++engine::tick_count;
+        last_dt = time_since(tick_begin);
     }
     
     

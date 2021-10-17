@@ -30,13 +30,13 @@ namespace ve::gfx::opengl {
             CULL_FRONT = GL_FRONT,
             CULL_BACK  = GL_BACK,
             CULL_BOTH  = GL_FRONT_AND_BACK
-        } cull_mode = cull_mode_t::CULL_BACK;
+        } cull_mode = cull_mode_t::NO_CULLING;
 
 
         enum class cull_direction_t : GLenum {
             CLOCKWISE         = GL_CW,
             COUNTER_CLOCKWISE = GL_CCW
-        } cull_direction = cull_direction_t::CLOCKWISE;
+        } cull_direction = cull_direction_t::COUNTER_CLOCKWISE;
 
 
         float line_width    = 1.0f;

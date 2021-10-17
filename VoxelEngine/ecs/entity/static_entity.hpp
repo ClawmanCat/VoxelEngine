@@ -9,15 +9,19 @@
 
 
 namespace ve {
+    namespace static_entity_flags {
+        // Indicates that the entity was constructed from another one, so use the components from that entity,
+        // instead of initializing new ones. This is used by VE_COMPONENT initializers in derived classes.
+        constexpr inline u8 move_constructed = 0b0000'0001;
+    }
+
+
     // While entities need not be associated with any class, it is often useful to create an entity class
     // as a template for many identical entities.
     // By extending this base class, a class may add static components. These components are present on all entities
     // created from that class, and can be accessed as if they were class members.
     class static_entity {
     public:
-        static_entity(void) = default;
-
-
         explicit static_entity(registry& registry) :
             id(registry.create_entity()),
             registry(&registry)
@@ -29,8 +33,10 @@ namespace ve {
             // - If the entity is not owned by a static_entity_storage, we don't need to remove it from there.
             // - If the entity *is* owned by a static_entity_storage, the only way to destroy it is through there,
             //   so we don't need to ever manually remove it from there.
-            if (id != entt::null) [[likely]] get_registry().destroy_entity(id);
-            id = entt::null;
+            if (id != entt::null) {
+                get_registry().destroy_entity(id);
+                id = entt::null;
+            }
         }
 
 
@@ -44,6 +50,7 @@ namespace ve {
 
             registry = other.registry;
             id       = other.id;
+            flags    = other.flags | static_entity_flags::move_constructed;
 
             set(self_component { this });
             other.id = entt::null;
@@ -97,8 +104,17 @@ namespace ve {
 
 
         VE_GET_VAL(id);
+        VE_GET_VAL(flags);
     private:
         entt::entity id = entt::null;
         class registry* registry = nullptr;
+
+        u8 flags = 0;
     };
+
+
+    template <typename T> requires std::is_base_of_v<static_entity, T>
+    inline T& get_self(entt::entity id, registry& registry) {
+        return *((T*) registry.template get_component<self_component>(id).self);
+    }
 }

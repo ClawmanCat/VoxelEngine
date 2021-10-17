@@ -1,9 +1,10 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/graphics/camera/camera.hpp>
+#include <VoxelEngine/utility/direction.hpp>
 #include <VoxelEngine/utility/cache.hpp>
 #include <VoxelEngine/utility/invalidatable_transform.hpp>
-#include <VoxelEngine/graphics/camera/camera.hpp>
 
 
 #define ve_impl_cam_mutator(name, ...) \
@@ -36,24 +37,49 @@ namespace ve::gfx {
 
 
         ve_impl_cam_mutator(position,     view_projection);
-        ve_impl_cam_mutator(rotation,     view_projection);
         ve_impl_cam_mutator(scaling,      view_projection);
         ve_impl_cam_mutator(fov,          view_projection, projection);
         ve_impl_cam_mutator(aspect_ratio, view_projection, projection);
         ve_impl_cam_mutator(near_plane,   view_projection, projection);
 
         ve_impl_cam_mutator_tf(move,   position, +=, view_projection);
-        ve_impl_cam_mutator_tf(rotate, rotation, *=, view_projection);
         ve_impl_cam_mutator_tf(scale,  scaling,  *=, view_projection);
 
+
+        void set_rotation(const quatf& quat) {
+            rotation = glm::normalize(quat);
+            view_projection.invalidate();
+        }
+
+        void rotate(const quatf& quat) {
+            rotation = glm::normalize(rotation * quat);
+            view_projection.invalidate();
+        }
 
         void rotate(const vec3f& axis, float angle) {
             rotate(glm::angleAxis(angle, axis));
         }
 
 
+        quatf get_rotation(void) const {
+            return rotation;
+        }
+
+        vec3f get_euler_angles(void) const {
+            return glm::eulerAngles(rotation);
+        }
+
+
         mat4f get_projection_matrix(void) const { return projection; }
         mat4f get_view_projection_matrix(void) const { return view_projection; }
+
+
+        vec3f forward(void)  const { return direction::FORWARD * rotation;  }
+        vec3f backward(void) const { return direction::BACKWARD * rotation; }
+        vec3f up(void)       const { return direction::UP * rotation;       }
+        vec3f down(void)     const { return direction::DOWN * rotation;     }
+        vec3f left(void)     const { return direction::LEFT * rotation;     }
+        vec3f right(void)    const { return direction::RIGHT * rotation;    }
 
 
         std::string get_uniform_name(void) const {
@@ -90,7 +116,7 @@ namespace ve::gfx {
             mat4f view = glm::identity<mat4f>();
             view  = glm::scale(view, scaling);
             view *= glm::mat4_cast(rotation);
-            view  = glm::translate(view, position);
+            view  = glm::translate(view, -position);
 
             return (*projection) * view;
         }
