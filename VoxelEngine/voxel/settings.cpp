@@ -29,7 +29,8 @@ namespace ve::voxel::detail {
     }
 
 
-    std::array<const tile*, 2> default_get_skip_tile_list(void) {
-        return { tiles::TILE_AIR, tiles::TILE_UNKNOWN };
+    const std::array<const tile*, 2>& default_get_skip_tile_list(void) {
+        const static std::array tiles { tiles::TILE_AIR, tiles::TILE_UNKNOWN };
+        return tiles;
     }
 }

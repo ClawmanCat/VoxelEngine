@@ -9,9 +9,6 @@
 
 
 namespace ve::voxel {
-    ve_friend_interface(chunk_access, chunk, data);
-
-
     class chunk : public tile_provider<chunk> {
     public:
         constexpr static bool is_bounded(void) {
@@ -23,12 +20,13 @@ namespace ve::voxel {
         }
 
 
-        tile_data& get_data(const tilepos& where) {
-            return data[flatten(where, voxel_settings::chunk_size)];
+        const tile_data& get_data(const tilepos& where) const {
+            return data[flatten(where, (tilepos::value_type) voxel_settings::chunk_size)];
         }
 
-        const tile_data& get_data(const tilepos& where) const {
-            return data[flatten(where, voxel_settings::chunk_size)];
+
+        void set_data(const tilepos& where, const tile_data& td) {
+            data[flatten(where, (tilepos::value_type) voxel_settings::chunk_size)] = td;
         }
 
 
@@ -60,4 +58,7 @@ namespace ve::voxel {
             }
         }
     };
+
+
+    ve_friend_interface(chunk_access, chunk, data);
 }

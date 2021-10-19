@@ -4,35 +4,62 @@
 #include <VoxelEngine/voxel/settings.hpp>
 #include <VoxelEngine/voxel/chunk/chunk.hpp>
 #include <VoxelEngine/voxel/tile_provider.hpp>
-#include <VoxelEngine/voxel/tile/tiles.hpp>
+#include <VoxelEngine/utility/traits/evaluate_if_valid.hpp>
+#include <VoxelEngine/utility/traits/null_type.hpp>
+
+#include <VoxelEngine/platform/graphics/graphics_includer.hpp>
+#include VE_GFX_HEADER(vertex/vertex_buffer.hpp)
 
 
 namespace ve::voxel {
+    class chunk_loader;
+    class chunk_generator;
+
+
+    namespace detail {
+        using vertex_t = tile_mesh::vertex_t;
+        using index_t  = ve_type_if_valid(tile_mesh::index_t);
+        using buffer_t = gfxapi::compound_vertex_buffer<vertex_t, index_t>;
+
+        using subbuffer_t = std::conditional_t<
+            tile_mesh::indexed,
+            // Cannot directly reference indexed_vertex_buffer with non-scalar index type, even if using ve_type_if_valid.
+            gfxapi::indexed_vertex_buffer<vertex_t, std::conditional_t<tile_mesh::indexed, index_t, u32>>,
+            gfxapi::unindexed_vertex_buffer<vertex_t>
+        >;
+    }
+
+
     class voxel_space : public tile_provider<voxel_space> {
     public:
-        tile_data& get_data(const tilepos& where) {
-            return get_data_common(where, *this);
-        }
+        explicit voxel_space(unique<chunk_generator>&& generator);
+        virtual ~voxel_space(void) = default;
 
-        const tile_data& get_data(const tilepos& where) const {
-            return get_data_common(where, *this);
-        }
+        virtual void update(nanoseconds dt);
 
-        bool is_loaded(const tilepos& chunkpos) const {
-            return chunks.contains(chunkpos);
-        }
+        const tile_data& get_data(const tilepos& where) const;
+        void set_data(const tilepos& where, const tile_data& td);
+        bool is_loaded(const tilepos& chunkpos) const;
     private:
-        hash_map<tilepos, unique<chunk>> chunks;
+        struct per_chunk_data {
+            unique<chunk> chunk;
+            shared<detail::subbuffer_t> subbuffer;
+            detail::buffer_t::buffer_handle handle;
+            bool needs_meshing;
+
+            std::size_t load_count;
+        };
 
 
-        static decltype(auto) get_data_common(const auto& where, auto& self) {
-            tilepos chunkpos = where / voxel_settings::chunk_size;
+        hash_map<tilepos, per_chunk_data> chunks;
+        shared<chunk_generator> generator;
+        std::vector<shared<chunk_loader>> chunk_loaders;
 
-            if (auto it = self.chunks.find(chunk_pos); it != self.chunks.end()) {
-                return (*(it->second))[where - chunkpos];
-            } else {
-                return tiles::TILE_UNKNOWN;
-            }
-        }
+        shared<detail::buffer_t> vertex_buffer;
+
+
+        friend class chunk_loader;
+        void load_chunk(const tilepos& where);
+        void unload_chunk(const tilepos& where);
     };
 }

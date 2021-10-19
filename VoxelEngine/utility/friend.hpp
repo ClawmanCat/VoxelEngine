@@ -4,7 +4,7 @@
 
 
 #define ve_impl_friend_accessor(R, D, E) \
-auto& BOOST_PP_CAT(get_, E) { return target->E; }
+auto& BOOST_PP_CAT(get_, E)(void) { return target->E; }
 
 
 // Define an interface which will provide accessors (for fields passed as __VA_ARGS__) for the given target.

@@ -1,3 +1,6 @@
+#pragma once
+
+
 // This tag can be used in the game pre-include header to overload settings structs within the engine.
 // This is done by forward declaring the settings template, and specializing it for the tag.
 // For example, to overload the struct ve::voxel::voxel_settings_t:

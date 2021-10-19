@@ -37,10 +37,10 @@ namespace ve::voxel {
 
         // Given a set of visible sides of this tile, appends vertices for those sides to the given mesh.
         // visible_sides is a bitfield where bit n corresponds to ve::directions[n].
-        virtual void append_mesh(tile_mesh& dest, u8 visible_sides, tile_metadata_t meta);
+        virtual void append_mesh(tile_mesh& dest, u8 visible_sides, tile_metadata_t meta) const;
 
 
-        virtual const fs::path& get_texture_for_side(direction_t direction, gfx::texture_type type, tile_metadata_t meta) {
+        virtual const fs::path& get_texture_for_side(direction_t direction, gfx::texture_type type, tile_metadata_t meta) const {
             return textures[(u32) type];
         }
 

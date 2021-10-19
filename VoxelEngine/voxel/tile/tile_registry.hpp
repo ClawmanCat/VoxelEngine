@@ -15,6 +15,7 @@ namespace ve::voxel {
         const tile* get_tile_for_state(const tile_data& td) const;
         tile_metadata_t get_effective_metastate(const tile_data& td) const;
         tile_data get_default_state(const tile* tile) const;
+        tile_data get_state(const tile* tile, tile_metadata_t meta) const;
         bool is_removable(const tile* tile) const;
     private:
         std::vector<const tile*> stateful_tiles;

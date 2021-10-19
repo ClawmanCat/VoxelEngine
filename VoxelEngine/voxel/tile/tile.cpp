@@ -20,7 +20,7 @@ namespace ve::voxel {
 
     // Given a set of visible sides of this tile, appends vertices for those sides to the given mesh.
     // visible_sides is a bitfield where bit n corresponds to ve::directions[n].
-    void tile::append_mesh(tile_mesh& dest, u8 visible_sides, tile_metadata_t meta) {
+    void tile::append_mesh(tile_mesh& dest, u8 visible_sides, tile_metadata_t meta) const {
         if (!rendered) return;
 
         for (u8 direction = 0; direction < (u8) directions.size(); ++direction) {

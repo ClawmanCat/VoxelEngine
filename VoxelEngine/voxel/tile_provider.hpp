@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/voxel/typedefs.hpp>
+#include <VoxelEngine/voxel/settings.hpp>
 #include <VoxelEngine/voxel/tile/tile.hpp>
 #include <VoxelEngine/voxel/tile/tile_data.hpp>
 #include <VoxelEngine/voxel/tile/tile_registry.hpp>
@@ -29,35 +29,40 @@ namespace ve::voxel {
                 VE_STATIC_CRTP_CHECK(Derived, get_extents);
                 return Derived::get_extents();
             } else {
-                return tilepos { max_value<i32>() };
+                return tilepos { max_value<tilepos::value_type> };
             }
         }
 
 
-        tile_data& get_data(const tilepos& where) {
-            VE_DEBUG_ASSERT(glm::abs(where) < get_extents(), "Attempt to access tile data outside bounds.");
-
-            // Can't use CRTP_CHECK here because of the const overload,
-            // if you get an error here, please implement this method in your derived class.
-            return Derived::operator[](where);
-        }
-
         const tile_data& get_data(const tilepos& where) const {
-            VE_DEBUG_ASSERT(glm::abs(where) < get_extents(), "Attempt to access tile data outside bounds.");
+            VE_DEBUG_ASSERT(glm::all(glm::abs(where) < get_extents()), "Attempt to access tile data outside bounds.");
 
-            // Can't use CRTP_CHECK here because of the const overload,
-            // if you get an error here, please implement this method in your derived class.
-            return Derived::operator[](where);
+            VE_CRTP_CHECK(Derived, get_data);
+            return static_cast<const Derived*>(this)->get_data(where);
         }
 
 
-        tile_state operator[](const tilepos& where) const {
+        void set_data(const tilepos& where, const tile_data& td) {
+            VE_CRTP_CHECK(Derived, set_data);
+            static_cast<Derived*>(this)->set_data(where, td);
+        }
+
+
+        tile_state get_state(const tilepos& where) const {
             const auto& state = get_state(where);
 
             return tile_state {
                 voxel_settings::get_tile_registry().get_tile_for_state(state),
                 voxel_settings::get_tile_registry().get_effective_metastate(state)
             };
+        }
+
+
+        void set_state(const tilepos& where, const tile_state& state) {
+            set_data(
+                where,
+                voxel_settings::get_tile_registry().get_state(state.tile, state.meta)
+            );
         }
     };
 }

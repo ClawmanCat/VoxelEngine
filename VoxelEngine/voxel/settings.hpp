@@ -25,7 +25,7 @@ namespace ve::voxel {
         extern tile_registry& default_get_tile_registry(void);
         extern gfx::texture_manager<>& default_get_texture_manager(void);
         extern gfx::mesh_types::material_mesh::vertex_t default_assemble_vertex(const vertex_assembler_arguments& args);
-        extern std::array<const tile*, 2> default_get_skip_tile_list(void);
+        extern const std::array<const tile*, 2>& default_get_skip_tile_list(void);
     }
 
 

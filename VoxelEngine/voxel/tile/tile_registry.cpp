@@ -12,7 +12,7 @@ namespace ve::voxel {
 
 
         auto register_at = [&] (auto& storage, auto id, auto index) {
-            storage.resize(std::max((std::size_t) index, storage.size()));
+            storage.resize(std::max((std::size_t) index + 1, storage.size()));
 
             storage[index] = tile;
             tile->id = id;
@@ -120,7 +120,7 @@ namespace ve::voxel {
 
 
     tile_metadata_t tile_registry::get_effective_metastate(const tile_data& td) const {
-        return (td.tile_id < voxel_settings ::reserved_stateless_tile_ids) ? td.metadata : 0;
+        return (td.tile_id < voxel_settings::reserved_stateless_tile_ids) ? td.metadata : 0;
     }
 
 
@@ -128,6 +128,18 @@ namespace ve::voxel {
         return tile->is_stateless()
             ? tile_data { tile->id, tile->metastate }
             : tile_data { tile->id, 0 };
+    }
+
+
+    tile_data tile_registry::get_state(const tile* tile, tile_metadata_t meta) const {
+        VE_DEBUG_ASSERT(
+            meta < tile->get_num_states(),
+            "Attempt to construct tiledata for tile with metadata outside the range of states for the tile."
+        );
+
+        return tile->is_stateless()
+            ? tile_data { tile->id, tile->metastate }
+            : tile_data { tile->id, meta };
     }
 
 

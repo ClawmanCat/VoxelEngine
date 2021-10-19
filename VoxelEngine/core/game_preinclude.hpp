@@ -16,9 +16,11 @@
 // Note that the game pre-include file may not include any engine headers itself, as this would produce a circular dependency.
 // An exception to this rule is the header VoxelEngine/core/game_preinclude_helpers.hpp, which provides facilities to overload aforementioned settings.
 #ifdef VE_GAME_PRE_INCLUDE
-    #if __has_include(<VE_GAME_PRE_INCLUDE>)
-        #include <VE_GAME_PRE_INCLUDE>
+    #define VE_GAME_PRE_INCLUDE_HEADER <VE_GAME_PRE_INCLUDE>
+
+    #if __has_include(VE_GAME_PRE_INCLUDE_HEADER)
+        #include VE_GAME_PRE_INCLUDE_HEADER
     #else
-        #warning "A game pre-include file is defined, but it does not exist."
+        #error "A game pre-include file is defined, but it does not exist."
     #endif
 #endif

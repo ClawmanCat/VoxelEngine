@@ -27,10 +27,9 @@ namespace ve::voxel {
 
 
             skip_tile_list(void) :
-                skip_data(voxel_settings::get_skip_tile_list()
-                    | views::transform([](const tile* t) { return voxel_settings::get_tile_registry().get_default_state(t); })
-                    | ranges::to<std::array>
-                )
+                skip_data(create_filled_array<skip_count>([] (std::size_t i) {
+                    return voxel_settings::get_tile_registry().get_default_state(voxel_settings::get_skip_tile_list()[i]);
+                }))
             {
                 for (const tile* t : voxel_settings::get_skip_tile_list()) {
                     VE_ASSERT(t->is_stateless(), "Only stateless tiles may be added to the mesher skip list.");
@@ -50,7 +49,7 @@ namespace ve::voxel {
     }
 
 
-    inline tile_mesh_t mesh_chunk(const voxel_space* space, const chunk* chunk, const tilepos& chunkpos) {
+    inline tile_mesh mesh_chunk(const voxel_space* space, const chunk* chunk, const tilepos& chunkpos) {
         static thread_local hash_map<detail::mesh_cache_key, tile_mesh> mesh_cache { };
         static detail::skip_tile_list skip_list { };
 
@@ -69,8 +68,8 @@ namespace ve::voxel {
         };
 
 
-        tile_mesh_t result;
-        chunk.foreach([&](const auto& where, const auto& data) {
+        tile_mesh result;
+        chunk->foreach([&](const auto& where, const auto& data) {
             if (skip_list.skip(data)) return;
 
 
@@ -86,7 +85,7 @@ namespace ve::voxel {
 
                 tile_data neighbour_data;
                 if (glm::any(neighbour < 0 || neighbour >= voxel_settings::chunk_size)) {
-                    neighbour_data = space->get_data(chunkpos * voxel_settings::chunk_size + neighbour);
+                    neighbour_data = space->get_data(chunkpos * tilepos { voxel_settings::chunk_size } + neighbour);
                 } else {
                     neighbour_data = chunk->get_data(neighbour);
                 }
@@ -95,7 +94,7 @@ namespace ve::voxel {
                 // If the neighbour is invisible, we need to render this side.
                 if (skip_list.skip(neighbour_data)) return true;
 
-                const tile* neighbour_tile = voxel_settings::get_tile_registry().get_tile_for_state(neighbour_data);
+                const class tile* neighbour_tile = voxel_settings::get_tile_registry().get_tile_for_state(neighbour_data);
                 tile_metadata_t neighbour_meta = voxel_settings::get_tile_registry().get_effective_metastate(neighbour_data);
 
                 // If this side is occluded by the neighbour, we don't have to render it.
@@ -104,7 +103,7 @@ namespace ve::voxel {
 
 
             // Push the given mesh to the back of the chunk mesh and denormalize it.
-            auto push_and_denormalize(const auto& mesh, const tilepos& pos) {
+            auto push_and_denormalize = [&](const auto& mesh, const tilepos& pos) {
                 std::size_t vertex_start = result.vertices.size();
                 result.vertices.insert(
                     result.vertices.end(),
@@ -124,7 +123,7 @@ namespace ve::voxel {
                 }
 
                 denormalize(result, where, vertex_start, index_start);
-            }
+            };
 
 
             u8 visible_sides = 0;
@@ -141,7 +140,7 @@ namespace ve::voxel {
 
 
             if (auto it = mesh_cache.find(key); it != mesh_cache.end()) {
-                push_and_denormalize(it->second);
+                push_and_denormalize(it->second, where);
             } else {
                 // Even though a heap allocation still needs to happen when the mesh is copied into the cache,
                 // this can still save several heap allocations as the mesh is pushed back into the buffer.
@@ -149,7 +148,7 @@ namespace ve::voxel {
                 temporary_storage.clear();
 
                 tile->append_mesh(temporary_storage, visible_sides, meta);
-                push_and_denormalize(temporary_storage);
+                push_and_denormalize(temporary_storage, where);
 
                 mesh_cache.emplace(key, std::move(temporary_storage));
             }
