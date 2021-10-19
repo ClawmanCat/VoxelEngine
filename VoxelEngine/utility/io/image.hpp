@@ -11,5 +11,35 @@ namespace ve {
     struct image_rgba8 {
         std::vector<RGBA8> data;
         vec2ui size;
+
+
+        RGBA8& operator[](const vec2ui& where) {
+            return data[where.x + where.y * size.x];
+        }
+
+        const RGBA8& operator[](const vec2ui& where) const {
+            return data[where.x + where.y * size.x];
+        }
+
+
+        template <typename Pred> void foreach(Pred pred) {
+            std::size_t i = 0;
+
+            for (u32 y = 0; y < size.y; ++y) {
+                for (u32 x = 0; x < size.x; ++x) {
+                    pred(vec2ui { x, y }, data[i++]);
+                }
+            }
+        }
+
+        template <typename Pred> void foreach(Pred pred) const {
+            std::size_t i = 0;
+
+            for (u32 y = 0; y < size.y; ++y) {
+                for (u32 x = 0; x < size.x; ++x) {
+                    pred(vec2ui { x, y }, data[i++]);
+                }
+            }
+        }
     };
 }

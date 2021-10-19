@@ -22,7 +22,7 @@
 namespace ve {
     namespace defs {
         // List of types that have vector aliases.
-        #define ve_impl_scalar_types ((i8, b))((u8, ub))((i16, s))((u16, us))((i32, i))((u32, ui))((i64, l))((u64, ul))((f32, f))((f64, d))
+        #define ve_impl_scalar_types ((i8, b))((u8, ub))((i16, s))((u16, us))((i32, i))((u32, ui))((i64, l))((u64, ul))((f32, f))((f64, d))((bool, bl))
 
         // Given a tuple E (type, suffix), and a template D generates a quaternion alias for the type.
         #define ve_impl_def_for_t(R, D, E) using BOOST_PP_CAT(D, BOOST_PP_TUPLE_ELEM(1, E)) = D<BOOST_PP_TUPLE_ELEM(0, E)>;

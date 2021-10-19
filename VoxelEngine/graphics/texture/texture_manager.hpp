@@ -32,6 +32,16 @@ namespace ve::gfx {
         }
 
 
+        // Invokes the given function to load the texture only if it is not loaded already.
+        template <typename Pred> requires std::is_invocable_r_v<image_rgba8, Pred>
+        subtexture get_or_load(std::string_view name, Pred pred) {
+            if (auto tex = get_if_exists(name); tex) return *tex;
+
+            const auto img = pred();
+            return load_to_common_texture(views::single(std::pair { name, &img }))[0];
+        }
+
+
         // Note: these methods guarantee that all loaded textures will be part of the same atlas texture.
         // Do not use these methods unless that is actually something you need.
         std::vector<subtexture> get_or_load_to_common_texture(const std::vector<const fs::path*>& paths) {
@@ -74,7 +84,7 @@ namespace ve::gfx {
 
 
         static std::string to_name(const fs::path& path) {
-            return fs::absolute(path).string();
+            return fs::canonical(path).string();
         }
 
 

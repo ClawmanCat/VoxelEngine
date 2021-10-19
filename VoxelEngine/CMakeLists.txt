@@ -31,11 +31,15 @@ target_compile_definitions(VoxelEngine PUBLIC VE_GRAPHICS_API=${VE_GRAPHICS_API}
 generate_include_header(VoxelEngine core core.hpp)
 generate_include_header(VoxelEngine clientserver clientserver.hpp)
 generate_include_header(VoxelEngine ecs ecs.hpp)
-generate_include_header(VoxelEngine graphics graphics_includes.hpp graphics.hpp)
 generate_include_header(VoxelEngine event event_system.hpp)
 generate_include_header(VoxelEngine input input.hpp)
+generate_include_header(VoxelEngine voxel voxel.hpp)
 generate_include_header(VoxelEngine utility utility.hpp)
 generate_include_header(VoxelEngine utility/traits traits.hpp)
+
+# For the actual graphics include header, we also want to include the platform graphics header,
+# so just autogenerate a different header and include that from the actual graphics header.
+generate_include_header(VoxelEngine graphics graphics_includes.hpp graphics.hpp)
 
 generate_include_header(VoxelEngine platform/graphics/opengl graphics.hpp)
 generate_include_header(VoxelEngine platform/graphics/vulkan graphics.hpp)

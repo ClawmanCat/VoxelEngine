@@ -4,6 +4,7 @@
 #include <VoxelEngine/utility/io/image.hpp>
 #include <VoxelEngine/utility/io/file_io.hpp>
 #include <VoxelEngine/utility/io/paths.hpp>
+#include <VoxelEngine/utility/color.hpp>
 
 
 test_result test_main(void) {
@@ -12,7 +13,7 @@ test_result test_main(void) {
 
 
     ve::image_rgba8 image {
-        .data = std::vector<ve::RGBA8>{ 8 * 8, ve::RGBA8 { 255, 0, 0, 255 } },
+        .data = std::vector<ve::RGBA8>{ 8 * 8, ve::colors::PURE_RED },
         .size = ve::vec2ui { 8, 8 }
     };
 

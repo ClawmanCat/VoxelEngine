@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/assert.hpp>
 #include <VoxelEngine/utility/traits/value.hpp>
 #include <VoxelEngine/utility/traits/always_false.hpp>
 #include <VoxelEngine/utility/traits/glm_traits.hpp>

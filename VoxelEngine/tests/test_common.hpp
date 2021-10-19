@@ -10,6 +10,13 @@
 struct test_result {
     std::optional<std::string> error;
     std::string test_name;
+    ve::u32 line;
+
+
+    test_result(std::optional<std::string> error, std::string test_name, ve::u32 line = 0)
+        : error(std::move(error)), test_name(std::move(test_name)), line(line)
+    {}
+
 
     bool operator==(const test_result& o) const { return error == o.error; }
     bool operator!=(const test_result& o) const { return error != o.error; }
@@ -17,12 +24,16 @@ struct test_result {
 
     // Allow repeated assignment without having to check if a previous check failed.
     void operator|=(const test_result& o) {
-        if (!error) error = o.error;
+        if (!error) {
+            error     = o.error;
+            test_name = o.test_name;
+            line      = o.line;
+        }
     }
 };
 
 #define VE_TEST_SUCCESS test_result { std::nullopt, __FILE__ }
-#define VE_TEST_FAIL(...) test_result { ve::cat(__VA_ARGS__), __FILE__ }
+#define VE_TEST_FAIL(...) test_result { ve::cat(__VA_ARGS__), __FILE__, __LINE__ }
 
 
 extern test_result test_main(void);
@@ -40,7 +51,7 @@ namespace ve::game_callbacks {
         auto result = test_main();
         
         if (!result.error) VE_LOG_INFO(cat("Test ", result.test_name, " completed successfully"));
-        else VE_LOG_ERROR(cat("Test ", result.test_name, " failed: ", *result.error));
+        else VE_LOG_ERROR(cat("Test ", result.test_name, " failed (line ", result.line, "): ", *result.error));
         
         engine::exit(result.error ? EXIT_FAILURE : EXIT_SUCCESS);
     }

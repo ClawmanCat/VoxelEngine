@@ -21,18 +21,29 @@ test_result test_main(void) {
     ve::gfx::aligned_texture_atlas atlas { "Atlas", ve::vec2ui { 32 }, 8 };
 
     try {
-        for (std::size_t j = 0; j < 17; ++j) {
-            atlas.store(image);
+        for (std::size_t j = 0; j < 16; ++j) {
+            subtextures.push_back(atlas.store(image));
         }
     } catch (const ve::gfx::atlas_full_error& e) {
-        return VE_TEST_SUCCESS;
+        ve::io::write_image(
+            ve::io::paths::PATH_LOGS / "test_texture_atlas_packing_output.png",
+            atlas.get_texture()->read()
+        );
+
+        return VE_TEST_FAIL("Atlas marked itself as full but not all textures that should've fit were inserted.");
     }
 
 
-    ve::io::write_image(
-        ve::io::paths::PATH_LOGS / "test_texture_atlas_overflow_output.png",
-        atlas.get_texture()->read()
-    );
+    test_result result = VE_TEST_SUCCESS;
+    auto img = atlas.get_texture()->read();
 
-    return VE_TEST_FAIL("Atlas accepted more textures than it had space for.");
+    img.foreach([&] (const ve::vec2ui& where, const ve::RGBA8& pixel) {
+        if (pixel != ve::colors::PURE_RED) result |= VE_TEST_FAIL("Atlas should be completely filled, but pixel at ", where, " is not set.");
+    });
+
+    if (result != VE_TEST_SUCCESS) {
+        ve::io::write_image(ve::io::paths::PATH_LOGS / "test_texture_atlas_packing_output.png", img);
+    }
+
+    return result;
 }

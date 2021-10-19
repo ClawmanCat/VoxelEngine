@@ -36,4 +36,36 @@ namespace ve {
         T half = pow(base, exp >> 1);
         return (exp & 1) ? (base * half * half) : (half * half);
     }
+
+
+    template <typename T, typename R>
+    constexpr bool in_range(T value, R min, R max) {
+        return value >= min && value < max;
+    }
+
+
+    template <typename T> constexpr T square(T value) {
+        return value * value;
+    }
+
+
+    template <typename T> constexpr T cube(T value) {
+        return value * value * value;
+    }
+
+
+    template <typename T>
+    constexpr inline T flatten(const vec3<T>& pos, T size) {
+        return pos.z + (pos.y * size) + (pos.x * square(size));
+    }
+
+
+    template <typename T>
+    constexpr inline vec3<T> unflatten(T pos, T size) {
+        T x = pos / square(size);
+        T y = (pos / size) % size;
+        T z = pos % size;
+
+        return { x, y, z };
+    }
 }
