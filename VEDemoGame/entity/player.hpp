@@ -11,7 +11,7 @@
 
 namespace demo_game {
     constexpr inline float epsilon                 = 1e-6f;
-    constexpr inline float player_speed            = 3.5f;
+    constexpr inline float player_speed            = 10.0f;
     constexpr inline float player_look_sensitivity = 1.0f;
 
 

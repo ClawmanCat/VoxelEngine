@@ -63,7 +63,7 @@ namespace ve::gfx {
 
 
         shader_compilation_data compile(const fs::path& folder, std::string_view name, const shaderc::CompileOptions& options) const {
-            return compile(get_files_for_shader(folder, name), name, std::move(options));
+            return compile(get_files_for_shader(folder, name), name, options);
         }
 
     private:

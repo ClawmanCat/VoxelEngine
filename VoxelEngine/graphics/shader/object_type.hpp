@@ -9,6 +9,7 @@
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
 
 #include <spirv_cross/spirv_reflect.hpp>
+#include <magic_enum.hpp>
 
 
 namespace ve::gfx::reflect {
@@ -44,7 +45,8 @@ namespace ve::gfx::reflect {
 
 
         ve_rt_eq_comparable(object_type);
-        ve_field_hashable(base_type, base_size, rows, columns, array_extents, struct_members);
+        // Note: size should not be hashed as it will produce different values between different source object layouts (C++, STD140, etc.)
+        ve_field_hashable(base_type, rows, columns, array_extents, struct_members);
 
         object_type(void) = default;
 
@@ -177,6 +179,29 @@ namespace ve::gfx::reflect {
             if (!struct_members.empty()) return false;
 
             return true;
+        }
+
+
+        std::string to_string(void) const {
+            std::string result;
+
+            if (base_type == base_type_t::STRUCT) {
+                result += "Struct { ";
+                result += cat_range_with(struct_members | views::transform(&object_type::to_string), ", ");
+                result += " }";
+            } else {
+                result += to_sentence_case(magic_enum::enum_name(base_type));
+            }
+
+            if (rows > 1 || columns > 1) {
+                result = cat("Tensor [", rows, " x ", columns, "] { ", result, " }");
+            }
+
+            if (!array_extents.empty()) {
+                result = cat("Array [", cat_range_with(array_extents, " x "), "] { ", result, " }");
+            }
+
+            return result;
         }
     };
 }

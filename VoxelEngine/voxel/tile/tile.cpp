@@ -1,4 +1,12 @@
 #include <VoxelEngine/voxel/tile/tile.hpp>
+#include <VoxelEngine/graphics/texture/texture_source.hpp>
+#include <VoxelEngine/graphics/texture/texture_utils.hpp>
+#include <VoxelEngine/graphics/texture/missing_texture.hpp>
+#include <VoxelEngine/utility/raii.hpp>
+#include <VoxelEngine/utility/functional.hpp>
+#include <VoxelEngine/utility/algorithm.hpp>
+#include <VoxelEngine/utility/cube.hpp>
+#include <VoxelEngine/utility/io/paths.hpp>
 
 
 namespace ve::voxel {
@@ -28,25 +36,64 @@ namespace ve::voxel {
                 static auto& texmgr = voxel_settings::get_texture_manager();
 
 
-                auto tex_color  = texmgr.get_or_load(get_texture_for_side(direction, gfx::texture_type::COLOR_TEXTURE, meta));
-                auto tex_normal = texmgr.get_or_load(get_texture_for_side(direction, gfx::texture_type::NORMAL_TEXTURE, meta));
+                gfx::file_image_source color_texture_src {
+                    &get_texture_for_side(direction, gfx::texture_type::COLOR_TEXTURE, meta),
+                    &gfx::missing_texture::color_texture
+                };
 
-                // For the material texture merge roughness, metalness and occlusion textures into a single RGB texture.
-                const auto& path_roughness = fs::canonical(get_texture_for_side(direction, gfx::texture_type::ROUGHNESS_TEXTURE, meta));
-                const auto& path_metalness = fs::canonical(get_texture_for_side(direction, gfx::texture_type::METALNESS_TEXTURE, meta));
-                const auto& path_occlusion = fs::canonical(get_texture_for_side(direction, gfx::texture_type::AMBIENT_OCCLUSION_TEXTURE, meta));
+                gfx::file_image_source normal_texture_src {
+                    &get_texture_for_side(direction, gfx::texture_type::NORMAL_TEXTURE, meta),
+                    &gfx::missing_texture::normal_texture
+                };
 
-                auto tex_material = texmgr.get_or_load(
-                    // TODO: Use a better way to identify resources.
-                    cat(path_roughness, "|", path_metalness, "|", path_occlusion),
+
+                constexpr std::array material_textures {
+                    gfx::texture_type::ROUGHNESS_TEXTURE,
+                    gfx::texture_type::METALNESS_TEXTURE,
+                    gfx::texture_type::AMBIENT_OCCLUSION_TEXTURE
+                };
+
+
+                auto to_path = [&](const auto& tex) {
+                    return fs::weakly_canonical(get_texture_for_side(direction, tex, meta));
+                };
+
+                auto paths = material_textures
+                    | views::transform(to_path)
+                    | ranges::to<std::vector>;
+
+
+                // Generate a new material texture from the roughness, metalness and ao maps if one doesn't exist already.
+                gfx::generative_image_source material_texture_src {
+                    cat_range_with(paths, "|"),
                     [&] {
-                        return gfx::make_material_texture(
-                            io::load_image(path_roughness),
-                            io::load_image(path_metalness),
-                            io::load_image(path_occlusion)
-                        );
+                        // Foreach component map, generate a texture source.
+                        auto sources = paths
+                            | views::transform([](const auto& p) { return gfx::file_image_source { &p, &gfx::missing_texture::material_texture }; })
+                            | ranges::to<std::vector>;
+
+
+                        // And acquire the image pointers.
+                        auto ptrs = create_filled_array<material_textures.size()>(produce((const image_rgba8*) nullptr));
+
+                        raii_function release_images { no_op, [&] {
+                            for (const auto& [i, ptr] : ptrs | views::enumerate) {
+                                if (ptr) sources[i].relinquish(ptr);
+                            }
+                        } };
+
+                        for (const auto& [i, src] : sources | views::enumerate) ptrs[i] = src.require();
+
+
+                        // And generate the texture.
+                        return gfx::make_material_texture(*ptrs[0], *ptrs[1], *ptrs[2]);
                     }
-                );
+                };
+
+
+                auto tex_color    = texmgr.get_or_load(color_texture_src);
+                auto tex_normal   = texmgr.get_or_load(normal_texture_src);
+                auto tex_material = texmgr.get_or_load(material_texture_src);
 
 
                 const auto& face_data = cube_face_data[direction];

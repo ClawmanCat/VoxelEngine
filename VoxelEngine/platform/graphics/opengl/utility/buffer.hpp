@@ -27,7 +27,9 @@ namespace ve::gfx::opengl {
 
         void write(const T* data, std::size_t count, std::size_t where = 0) {
             VE_ASSERT(gl_type != GL_INVALID_ENUM, "Cannot write to uninitialized buffer.");
+            VE_ASSERT(where <= size, "Write beyond end of buffer would leave uninitialized data.");
 
+            if (count == 0) return;
             reserve(where + count);
 
             glBindBuffer(gl_type, id);

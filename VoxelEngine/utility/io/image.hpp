@@ -42,4 +42,12 @@ namespace ve {
             }
         }
     };
+
+
+    inline image_rgba8 filled_image(const vec2ui& size, const RGBA8& color) {
+        return image_rgba8 {
+            .data = std::vector<RGBA8>(size.x * size.y, color),
+            .size = size
+        };
+    }
 }

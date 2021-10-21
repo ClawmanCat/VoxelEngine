@@ -26,6 +26,16 @@ namespace ve::voxel {
 
             // This material will be used to fill the world above the topmost layer.
             tile_data sky;
+
+
+            // Convenience functions to handle tile => data conversion.
+            void add_layer(height_t limit, const tile* tile, tile_metadata_t meta = 0) {
+                layers.push_back(layer { limit, voxel_settings::get_tile_registry().get_state(tile, meta) });
+            }
+
+            void set_sky(const tile* tile, tile_metadata_t meta = 0) {
+                sky = voxel_settings::get_tile_registry().get_state(tile, meta);
+            }
         };
 
 
@@ -44,8 +54,8 @@ namespace ve::voxel {
             result->foreach([&] (const auto& pos, tile_data& data) {
                 auto height = chunkpos.y * voxel_settings::chunk_size + pos.y;
 
-                if (layer_cache[height]) {
-                    data = *layer_cache[height];
+                if (layer_cache[pos.y]) {
+                    data = *layer_cache[pos.y];
                 } else {
                     auto it = ranges::lower_bound(
                         layers.layers,
@@ -54,8 +64,8 @@ namespace ve::voxel {
                         ve_get_field(limit)
                     );
 
-                    layer_cache[height] = (it == layers.layers.end()) ? &layers.sky : &it->data;
-                    data = *layer_cache[height];
+                    layer_cache[pos.y] = (it == layers.layers.end()) ? &layers.sky : &it->data;
+                    data = *layer_cache[pos.y];
                 }
             });
 

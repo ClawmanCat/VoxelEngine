@@ -9,6 +9,7 @@ namespace ve::gfx {
     struct uniform_convertible {
         using uniform_convertible_tag = void;
         using uniform_t               = Uniform;
+        using producer_t              = Producer;
 
 
         // Note: value must be constant on a per-instance basis.

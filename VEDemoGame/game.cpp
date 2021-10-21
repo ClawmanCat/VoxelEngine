@@ -1,11 +1,14 @@
 #include <VEDemoGame/game.hpp>
 #include <VEDemoGame/entity/howlee.hpp>
 #include <VEDemoGame/entity/player.hpp>
+#include <VEDemoGame/entity/world.hpp>
+#include <VEDemoGame/component/render_tag.hpp>
 #include <VEDemoGame/input/controls.hpp>
 
 #include <VoxelEngine/clientserver/connect.hpp>
 #include <VoxelEngine/input/input.hpp>
 #include <VoxelEngine/engine.hpp>
+#include <VoxelEngine/utility/color.hpp>
 
 
 namespace demo_game {
@@ -17,34 +20,53 @@ namespace demo_game {
 
     
     void game::post_init(void) {
-        using vertex_t = ve::gfx::vertex_types::texture_vertex_3d;
+        using simple_vertex_t = ve::gfx::vertex_types::texture_vertex_3d;
+        using pbr_vertex_t    = ve::gfx::vertex_types::material_vertex_3d;
 
 
-        // Set up render pipeline.
+        // Set up render pipelines.
         game::window = ve::gfx::window::create(ve::gfx::window::arguments {
             .title = game::get_info()->display_name
         });
 
         game::texture_manager = ve::make_shared<ve::gfx::texture_manager<>>();
 
-        auto pipeline = make_shared<ve::gfxapi::single_pass_pipeline>(
+
+        // Simple pipeline for rendering objects without lighting.
+        auto simple_pipeline = make_shared<ve::gfxapi::single_pass_pipeline>(
             game::window->get_canvas(),
-            ve::gfx::shader_cache::instance().get_or_load_shader<vertex_t>("simple")
+            ve::gfx::shader_cache::instance().get_or_load_shader<simple_vertex_t>("simple")
         );
 
-        pipeline->set_uniform_producer(&game::camera);
-        pipeline->set_uniform_producer(game::texture_manager->get_atlas());
+        simple_pipeline->set_uniform_producer(&game::camera);
+        simple_pipeline->set_uniform_producer(game::texture_manager->get_atlas());
+
+
+        // Pipeline for rendering objects with PBR materials.
+        auto pbr_pipeline = make_shared<ve::gfxapi::single_pass_pipeline>(
+            game::window->get_canvas(),
+            ve::gfx::shader_cache::instance().get_or_load_shader<pbr_vertex_t>("pbr_single_pass")
+        );
+
+        pbr_pipeline->set_uniform_producer(&game::camera);
+        pbr_pipeline->set_uniform_producer(game::texture_manager->get_atlas());
 
 
         // Set up ECS.
-        game::client.add_system(ve::system_renderer<> { std::move(pipeline) });
+        using component_uniforms = ve::meta::pack<ve::transform_component>;
+        using simple_renderer    = ve::meta::pack<render_tag_simple>;
+        using pbr_renderer       = ve::meta::pack<render_tag_pbr>;
+
+        game::client.add_system(ve::system_renderer<component_uniforms, simple_renderer> { simple_pipeline });
+        game::client.add_system(ve::system_renderer<component_uniforms, pbr_renderer> { pbr_pipeline });
         game::client.add_system(ve::system_updater<> { });
         game::client.add_system(ve::system_physics<> { });
         game::client.add_system(ve::system_bind_camera<decltype(game::camera)> { });
 
 
         // Create entities.
-        game::client.store_static_entity(player { game::client, &game::camera });
+        auto& entity_player = game::client.store_static_entity(player { game::client, &game::camera });
+        auto& entity_world  = game::client.store_static_entity(world { game::client });
 
         for (ve::i32 x = -32; x < 32; ++x) {
             for (ve::i32 z = -32; z < 32; ++z) {
@@ -56,15 +78,22 @@ namespace demo_game {
         }
 
 
-        auto floor_texture = game::get_texture_manager()->get_or_load(ve::io::paths::PATH_TILE_TEXTURES / "hd_grass_color.png");
-        auto floor_buffer  = ve::gfx::textured_quad(ve::vec2f { 100.0f }, floor_texture);
+        // Add a light at the player's position.
+        // TODO: Replace this with multipass PBR pipeline. Make lights into components.
+        pbr_pipeline->set_uniform_producer<ve::gfx::lighting_data_uniform<>>("U_Lighting", [&] {
+            ve::gfx::lighting_data_uniform result;
 
-        game::client.create_entity(
-            ve::mesh_component { std::move(floor_buffer) },
-            ve::transform_component {
-                .position = ve::vec3f { 0, -0.1f, 0 },
-                .rotation = glm::angleAxis(glm::radians(90.0f), ve::direction::RIGHT) }
-        );
+            result.lights[0] = ve::gfx::light_uniform {
+                .position    = entity_player.transform.position,
+                .radiance    = ve::normalize_color(ve::colors::GOLDENROD) * 50.0f,
+                .attenuation = 1.25f
+            };
+
+            result.num_populated_lights = 1;
+            result.ambient_light = ve::vec3f { 0.03f };
+
+            return result;
+        });
 
 
         // Set up non-player-control hotkeys.

@@ -43,12 +43,6 @@ namespace ve::gfx::opengl {
         virtual void draw(render_context& ctx) const = 0;
 
 
-        template <typename Vertex, typename Index = meta::null_type>
-        bool is_layout_compatible(void) const {
-            return vertex_type == ctti::type_id<Vertex>() && index_type == ctti::type_id<Index>();
-        }
-
-
         VE_GET_CREF(vertex_type);
         VE_GET_CREF(index_type);
     protected:
@@ -75,7 +69,7 @@ namespace ve::gfx::opengl {
 
         buffer_handle insert(shared<vertex_buffer> buffer) {
             VE_DEBUG_ASSERT(
-                (buffer->is_layout_compatible<Vertex, Index>()),
+                (buffer->get_vertex_type() == ctti::type_id<Vertex>() && buffer->get_index_type() == ctti::type_id<Index>()),
                 "Sub-buffers of compound vertex buffer must have matching vertex and index types."
             );
 
@@ -115,6 +109,12 @@ namespace ve::gfx::opengl {
 
 
         void draw(render_context& ctx) const override {
+            VE_DEBUG_ASSERT(
+                ctx.renderpass->get_shader()->get_vertex_type() == get_vertex_type(),
+                "Attempt to render buffer using shader made to render a different type of vertex."
+            );
+
+
             if (vbo.get_size() == 0) return;
 
             auto uniform_raii = detail::raii_bind_uniforms(*this, ctx);
@@ -170,6 +170,12 @@ namespace ve::gfx::opengl {
 
 
         void draw(render_context& ctx) const override {
+            VE_DEBUG_ASSERT(
+                ctx.renderpass->get_shader()->get_vertex_type() == get_vertex_type(),
+                "Attempt to render buffer using shader made to render a different type of vertex."
+            );
+
+
             if (ebo.get_size() == 0) return;
 
             auto uniform_raii = detail::raii_bind_uniforms(*this, ctx);

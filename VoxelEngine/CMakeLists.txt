@@ -28,6 +28,10 @@ create_target(
 target_compile_definitions(VoxelEngine PRIVATE VE_BUILD_GAME)
 target_compile_definitions(VoxelEngine PUBLIC VE_GRAPHICS_API=${VE_GRAPHICS_API})
 
+# Include a header from the game so it can overload engine settings.
+# This is used for settings that cannot be overloaded through a normal interface, e.g. types.
+target_compile_definitions(VoxelEngine PUBLIC VE_GAME_PRE_INCLUDE=VEDemoGame/preinclude.hpp)
+
 generate_include_header(VoxelEngine core core.hpp)
 generate_include_header(VoxelEngine clientserver clientserver.hpp)
 generate_include_header(VoxelEngine ecs ecs.hpp)

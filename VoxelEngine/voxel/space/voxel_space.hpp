@@ -4,6 +4,7 @@
 #include <VoxelEngine/voxel/settings.hpp>
 #include <VoxelEngine/voxel/chunk/chunk.hpp>
 #include <VoxelEngine/voxel/tile_provider.hpp>
+#include <VoxelEngine/utility/bit.hpp>
 #include <VoxelEngine/utility/traits/evaluate_if_valid.hpp>
 #include <VoxelEngine/utility/traits/null_type.hpp>
 
@@ -34,12 +35,31 @@ namespace ve::voxel {
     public:
         explicit voxel_space(unique<chunk_generator>&& generator);
         virtual ~voxel_space(void) = default;
+        ve_rt_move_only(voxel_space);
 
         virtual void update(nanoseconds dt);
 
         const tile_data& get_data(const tilepos& where) const;
         void set_data(const tilepos& where, const tile_data& td);
         bool is_loaded(const tilepos& chunkpos) const;
+
+        void add_chunk_loader(shared<chunk_loader> loader);
+        void remove_chunk_loader(const shared<chunk_loader>& loader);
+
+        VE_GET_CREF(vertex_buffer);
+
+
+        constexpr static tilepos to_chunkpos(const tilepos& worldpos) {
+            return worldpos >> tilepos::value_type(lsb(voxel_settings::chunk_size));
+        }
+
+        constexpr static tilepos to_worldpos(const tilepos& chunkpos, const tilepos& offset = tilepos { 0 }) {
+            return (chunkpos << tilepos::value_type(lsb(voxel_settings::chunk_size))) + offset;
+        }
+
+        constexpr static tilepos to_localpos(const tilepos& worldpos) {
+            return worldpos - to_worldpos(to_chunkpos(worldpos));
+        }
     private:
         struct per_chunk_data {
             unique<chunk> chunk;
@@ -53,7 +73,7 @@ namespace ve::voxel {
 
         hash_map<tilepos, per_chunk_data> chunks;
         shared<chunk_generator> generator;
-        std::vector<shared<chunk_loader>> chunk_loaders;
+        hash_set<shared<chunk_loader>> chunk_loaders;
 
         shared<detail::buffer_t> vertex_buffer;
 

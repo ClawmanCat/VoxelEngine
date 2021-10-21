@@ -1,9 +1,12 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/raii.hpp>
 #include <VoxelEngine/utility/functional.hpp>
 #include <VoxelEngine/utility/io/file_io.hpp>
 #include <VoxelEngine/utility/io/image.hpp>
+#include <VoxelEngine/graphics/texture/missing_texture.hpp>
+#include <VoxelEngine/graphics/texture/texture_source.hpp>
 #include <VoxelEngine/graphics/texture/generative_texture_atlas.hpp>
 
 
@@ -17,54 +20,49 @@ namespace ve::gfx {
         template <typename... Args> explicit texture_manager(Args&&... args) : atlas(make_shared<Atlas>(fwd(args)...)) {}
 
 
-        subtexture get_or_load(const fs::path& path) {
-            std::string name = to_name(path);
+        // Loads the texture from the given source, if it is not cached already, otherwise returns the cached value.
+        subtexture get_or_load(texture_source& src) {
+            const std::string name = src.name();
             if (auto tex = get_if_exists(name); tex) return *tex;
 
-            const auto img = io::load_image(path);
-            return load_to_common_texture(views::single(std::pair { name, &img }))[0];
+            const image_rgba8* img = src.require();
+            raii_function release_img { no_op, [&] { src.relinquish(img); } };
+
+            return load_to_common_texture(views::single(std::pair { name, img }))[0];
         }
 
 
-        subtexture get_or_load(std::string_view name, const image_rgba8& img) {
-            if (auto tex = get_if_exists(name); tex) return *tex;
-            return load_to_common_texture(views::single(std::pair { name, &img }))[0];
+        // Same as above, but guarantees that all subtextures will be part of the same texture.
+        // If the combination of images is too large to fit on a single texture, this method throws.
+        std::vector<subtexture> get_or_load_to_common_texture(const std::vector<texture_source*>& sources) {
+            auto names = sources | views::indirect | views::transform(&texture_source::name);
+            if (auto textures = get_if_exists_common_texture(names); !textures.empty()) return textures;
+
+            std::vector<const image_rgba8*> acquired;
+            raii_function release_images { no_op, [&] {
+                for (const auto& [i, ptr] : acquired | views::enumerate) sources[i]->relinquish(ptr);
+            } };
+
+            acquired = sources | views::indirect | views::transform(&texture_source::require) | ranges::to<std::vector>;
+            return load_to_common_texture(views::zip(names, acquired));
         }
 
+
+        subtexture get_or_load(const fs::path& path, const image_rgba8& fallback = missing_texture::color_texture) {
+            file_image_source src { &path, &fallback };
+            return get_or_load(src);
+        }
+
+        subtexture get_or_load(std::string name, const image_rgba8& img) {
+            direct_image_source src { std::move(name), &img };
+            return get_or_load(src);
+        }
 
         // Invokes the given function to load the texture only if it is not loaded already.
         template <typename Pred> requires std::is_invocable_r_v<image_rgba8, Pred>
-        subtexture get_or_load(std::string_view name, Pred pred) {
-            if (auto tex = get_if_exists(name); tex) return *tex;
-
-            const auto img = pred();
-            return load_to_common_texture(views::single(std::pair { name, &img }))[0];
-        }
-
-
-        // Note: these methods guarantee that all loaded textures will be part of the same atlas texture.
-        // Do not use these methods unless that is actually something you need.
-        std::vector<subtexture> get_or_load_to_common_texture(const std::vector<const fs::path*>& paths) {
-            auto names = paths | views::indirect | views::transform(to_name);
-            if (auto textures = get_if_exists_common_texture(names); !textures.empty()) return textures;
-
-
-            std::vector<image_rgba8> images = paths
-                | views::indirect
-                | views::transform(io::load_image)
-                | ranges::to<std::vector>;
-
-
-            return load_to_common_texture(
-                views::zip(names, images | views::const_ | views::addressof)
-                    | views::transform(ve_wrap_callable(to_pair))
-            );
-        }
-
-
-        std::vector<subtexture> get_or_load_to_common_texture(const named_image_list& pairs) {
-            if (auto textures = get_if_exists_common_texture(pairs | views::keys); !textures.empty()) return textures;
-            return load_to_common_texture(pairs);
+        subtexture get_or_load(std::string name, Pred pred) {
+            generative_image_source<Pred> src { std::move(name), std::move(pred) };
+            return get_or_load(src);
         }
 
 
@@ -77,15 +75,15 @@ namespace ve::gfx {
         }
 
 
+        bool is_loaded(std::string_view name) const {
+            return subtextures.contains(name);
+        }
+
+
         VE_GET_CREF(atlas);
     private:
         shared<Atlas> atlas;
         hash_map<std::string, subtexture> subtextures;
-
-
-        static std::string to_name(const fs::path& path) {
-            return fs::canonical(path).string();
-        }
 
 
         subtexture* get_if_exists(std::string_view name) {

@@ -4,6 +4,8 @@
 #include <VoxelEngine/graphics/vertex/mesh.hpp>
 #include <VoxelEngine/graphics/texture/texture_manager.hpp>
 
+#include <bit>
+
 
 namespace ve::voxel {
     class tile;
@@ -29,10 +31,11 @@ namespace ve::voxel {
     }
 
 
-    template <typename> struct voxel_settings_t {
+    template <typename Base = meta::null_type> struct voxel_settings_t {
         // General Voxel Settings
         using tile_position_t = vec3i;
 
+        // Note: this value MUST be a power of two.
         constexpr static std::size_t chunk_size = 32;
 
 
@@ -71,12 +74,23 @@ namespace ve::voxel {
     };
 
 
-    // See VoxelEngine/core/game_preinclude.hpp for how to overload these settings from game code.
-    using voxel_settings = voxel_settings_t<overloadable_settings_tag>;
+    // Allow game to provide its own version of this struct.
+    #ifdef VE_OVERLOADED_VOXEL_SETTINGS
+        using voxel_settings = VE_OVERLOADED_VOXEL_SETTINGS<voxel_settings_t<>>;
+    #else
+        using voxel_settings = voxel_settings_t<void>;
+    #endif
 
 
     using tilepos         = typename voxel_settings::tile_position_t;
     using tile_mesh       = typename voxel_settings::tile_mesh_t;
     using tile_id_t       = typename voxel_settings::tile_id_t;
     using tile_metadata_t = typename voxel_settings::tile_metadata_t;
+
+
+    static_assert(std::popcount(voxel_settings::chunk_size) == 1, "Chunk size must be a power of two.");
+    static_assert(meta::glm_traits<tilepos>::is_vector, "Tile position type must be a vector.");
+    static_assert(std::is_signed_v<tilepos::value_type> && std::is_integral_v<tilepos::value_type>, "Tile position element type must be a signed integer.");
+    static_assert(std::is_unsigned_v<tile_id_t>, "Tile ID type must be an unsigned integer.");
+    static_assert(std::is_unsigned_v<tile_metadata_t>, "Tile metadata type must be an unsigned integer.");
 }

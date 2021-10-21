@@ -10,13 +10,16 @@ namespace ve {
         quatf rotation = glm::identity<quatf>();
 
 
-        // But decompose as a matrix when converting to a uniform.
         std::string get_uniform_name(void) const {
             return "transform";
         }
 
         mat4f get_uniform_value(void) const {
             return glm::translate(glm::identity<mat4f>(), position) * glm::mat4_cast(rotation);
+        }
+
+        producer_t get_uniform_combine_function(void) const {
+            return gfx::combine_functions::multiply;
         }
     };
 }

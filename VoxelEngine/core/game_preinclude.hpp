@@ -14,7 +14,7 @@
 // This header can be used to define a file in game code to include in the engine as part of the core header.
 // This can be used to overload different settings structs within engine code.
 // Note that the game pre-include file may not include any engine headers itself, as this would produce a circular dependency.
-// An exception to this rule is the header VoxelEngine/core/game_preinclude_helpers.hpp, which provides facilities to overload aforementioned settings.
+// See DemoGame/preinclude.hpp for an example on how to overload engine settings this way.
 #ifdef VE_GAME_PRE_INCLUDE
     #define VE_GAME_PRE_INCLUDE_HEADER <VE_GAME_PRE_INCLUDE>
 

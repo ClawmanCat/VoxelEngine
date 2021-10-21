@@ -12,12 +12,18 @@
 #include <SDL.h>
 
 
+// In debug mode we often want the exception to not be intercepted, so we can see the point where it was thrown.
+#ifndef VE_DEBUG
+    #define VE_LOG_UNCAUGHT_ERRORS
+#endif
+
+
 namespace ve {
     [[noreturn]] void engine::main(i32 argc, char** argv) {
         engine::arguments.feed((std::size_t) argc, (const char**) argv);
 
 
-        #ifndef VE_DEBUG
+        #ifdef VE_LOG_UNCAUGHT_ERRORS
         try {
         #endif
             while (true) {
@@ -35,7 +41,7 @@ namespace ve {
                         throw std::runtime_error("Illegal engine state.");
                 }
             }
-        #ifndef VE_DEBUG
+        #ifdef VE_LOG_UNCAUGHT_ERRORS
         } catch (const std::exception& e) {
             VE_ASSERT(false, "Unhandled exception:", e.what());
         } catch (...) {

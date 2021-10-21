@@ -98,7 +98,10 @@ namespace ve::io {
     inline image_rgba8 load_image(const fs::path& path) {
         i32 w, h;
 
-        RGBA8* begin = reinterpret_cast<RGBA8*>(stbi_load(path.string().c_str(), &w, &h, nullptr, 4));
+        auto ptr = stbi_load(path.string().c_str(), &w, &h, nullptr, 4);
+        if (!ptr) throw io_error { detail::get_error_string("read image", path, false) };
+
+        RGBA8* begin = reinterpret_cast<RGBA8*>(ptr);
         RGBA8* end   = begin + (w * h);
 
         image_rgba8 result {
@@ -106,7 +109,7 @@ namespace ve::io {
             .size = vec2ui { (u32) w, (u32) h }
         };
 
-        stbi_image_free(reinterpret_cast<u8*>(begin));
+        stbi_image_free(ptr);
         return result;
     }
 

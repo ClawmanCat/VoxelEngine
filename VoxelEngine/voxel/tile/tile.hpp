@@ -3,12 +3,8 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/voxel/settings.hpp>
 #include <VoxelEngine/voxel/tile/tile_data.hpp>
-#include <VoxelEngine/graphics/texture/texture_utils.hpp>
 #include <VoxelEngine/graphics/texture/texture_type.hpp>
 #include <VoxelEngine/utility/direction.hpp>
-#include <VoxelEngine/utility/algorithm.hpp>
-#include <VoxelEngine/utility/cube.hpp>
-#include <VoxelEngine/utility/io/paths.hpp>
 
 #include <magic_enum.hpp>
 

@@ -18,6 +18,14 @@ namespace ve {
     }
 
 
+    // Sets the first N bits to one.
+    template <typename T> T set_n_bits(u8 count) {
+        T result = 0;
+        for (u8 i = 0; i < count; ++i) result |= (1 << i);
+        return result;
+    }
+
+
     // Gets the next address that is divisible by alignment.
     // If the current address is divisible by alignment, it is returned.
     // Note: alignment must be a power of two!

@@ -7,6 +7,7 @@
 #include <VoxelEngine/graphics/camera/camera.hpp>
 #include <VoxelEngine/graphics/camera/camera_uniform.hpp>
 #include <VoxelEngine/graphics/camera/perspective_camera.hpp>
+#include <VoxelEngine/graphics/lighting/light_uniform.hpp>
 #include <VoxelEngine/graphics/presentation/present_mode.hpp>
 #include <VoxelEngine/graphics/presentation/window.hpp>
 #include <VoxelEngine/graphics/presentation/window_registry.hpp>
@@ -19,8 +20,10 @@
 #include <VoxelEngine/graphics/shader/reflect.hpp>
 #include <VoxelEngine/graphics/texture/aligned_texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/generative_texture_atlas.hpp>
+#include <VoxelEngine/graphics/texture/missing_texture.hpp>
 #include <VoxelEngine/graphics/texture/texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/texture_manager.hpp>
+#include <VoxelEngine/graphics/texture/texture_source.hpp>
 #include <VoxelEngine/graphics/texture/texture_type.hpp>
 #include <VoxelEngine/graphics/texture/texture_utils.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_combine_function.hpp>

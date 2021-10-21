@@ -20,6 +20,7 @@ namespace ve::gfx::opengl::shader_helpers {
             result.AddMacroDefinition("VE_MAX_VS_SAMPLERS", to_string(gl_get<i32>(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS)));
             result.AddMacroDefinition("VE_MAX_FS_SAMPLERS", to_string(gl_get<i32>(GL_MAX_TEXTURE_IMAGE_UNITS)));
             result.AddMacroDefinition("VE_MAX_SAMPLERS",    to_string(gl_get<i32>(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS)));
+            result.AddMacroDefinition("VE_MAX_UBO_SIZE",    to_string(gl_get<i32>(GL_MAX_UNIFORM_BLOCK_SIZE)));
 
             result.SetIncluder(make_unique<gfx::detail::include_handler>(io::paths::PATH_SHADERS));
 

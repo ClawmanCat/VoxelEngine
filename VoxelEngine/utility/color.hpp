@@ -7,6 +7,12 @@
 namespace ve {
     using color = RGBA8;
 
+
+    constexpr vec3f normalize_color(const color& clr) {
+        return vec3f { clr } / 255.0f;
+    }
+
+
     // Color names match those defined by CSS.
     // Since CSS defines GREEN as [0, 128, 0] rather than [0, 255, 0], three additional colors are provided:
     // PURE_RED, PURE_GREEN and PURE_BLUE, which have 255 in their appropriate channel and 0 everywhere else.

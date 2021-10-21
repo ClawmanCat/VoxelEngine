@@ -7,7 +7,7 @@
 namespace ve::gfx {
     class aligned_texture_atlas : public texture_atlas<aligned_texture_atlas> {
     public:
-        explicit aligned_texture_atlas(std::string name = "textures", const vec2ui& size = vec2ui { 4096 }, u32 alignment = 32) :
+        explicit aligned_texture_atlas(std::string name = "textures", const vec2ui& size = vec2ui { 8192 }, u32 alignment = 32) :
             name(std::move(name)),
             atlas_size(size),
             atlas_alignment(alignment),
@@ -43,12 +43,14 @@ namespace ve::gfx {
             mark_storage<true>(location, block_size);
             texture->write(img, location * atlas_alignment);
 
-            return subtexture {
+            auto st = subtexture {
                 .parent  = texture,
                 .uv      = vec2f { location * atlas_alignment } / vec2f { atlas_size },
                 .wh      = vec2f { img.size } / vec2f { atlas_size },
                 .binding = 0
             };
+
+            return st;
         }
 
 

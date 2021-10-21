@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VEDemoGame/game.hpp>
+#include <VEDemoGame/component/render_tag.hpp>
 
 #include <VoxelEngine/ecs/ecs.hpp>
 #include <VoxelEngine/graphics/graphics.hpp>
@@ -32,5 +33,6 @@ namespace demo_game {
 
         ve::transform_component VE_COMPONENT(transform) = ve::transform_component { };
         ve::mesh_component VE_COMPONENT(mesh) = ve::mesh_component { };
+        render_tag_simple VE_COMPONENT(render_tag) = render_tag_simple { };
     };
 }
