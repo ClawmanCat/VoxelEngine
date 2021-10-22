@@ -52,19 +52,24 @@ namespace ve::voxel {
             layer_cache.resize(voxel_settings::chunk_size, nullptr);
 
             result->foreach([&] (const auto& pos, tile_data& data) {
-                auto height = chunkpos.y * voxel_settings::chunk_size + pos.y;
+                auto height = chunkpos.y * tilepos::value_type { voxel_settings::chunk_size } + pos.y;
 
                 if (layer_cache[pos.y]) {
                     data = *layer_cache[pos.y];
                 } else {
-                    auto it = ranges::lower_bound(
-                        layers.layers,
-                        height,
-                        std::less { },
-                        ve_get_field(limit)
-                    );
+                    world_layers::layer* layer_for_y = layers.layers.empty() ? nullptr : &layers.layers.front();
 
-                    layer_cache[pos.y] = (it == layers.layers.end()) ? &layers.sky : &it->data;
+                    for (const auto& [i, layer] : layers.layers | views::enumerate) {
+                        if (layer.limit > height) break;
+                        else layer_for_y = &layer;
+                    }
+
+                    tile_data* new_data = (layer_for_y && layer_for_y->limit >= height)
+                        ? &layer_for_y->data
+                        : &layers.sky;
+
+
+                    layer_cache[pos.y] = new_data;
                     data = *layer_cache[pos.y];
                 }
             });

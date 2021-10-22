@@ -83,6 +83,14 @@ if (${ENABLE_TESTING})
 endif()
 
 
+# Define header with overloaded settings from game to be included in the engine.
+# TODO: This whole setup is kinda sketchy. Find a better way to manage engine settings externally.
+# Maybe use a separate project?
+# Note: values set here are used in VoxelEngine/CMakeLists.txt
+set(GAME_PRE_INCLUDE_HEADER VEDemoGame/preinclude.hpp)
+set(GAME_TARGET_NAME VEDemoGame)
+
+
 # Add subprojects.
 add_subdirectory(VoxelEngine)
 add_subdirectory(VEDemoGame)

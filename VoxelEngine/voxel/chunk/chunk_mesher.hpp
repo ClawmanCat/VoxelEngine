@@ -51,7 +51,7 @@ namespace ve::voxel {
 
     inline tile_mesh mesh_chunk(const voxel_space* space, const chunk* chunk, const tilepos& chunkpos) {
         static thread_local hash_map<detail::mesh_cache_key, tile_mesh> mesh_cache { };
-        static detail::skip_tile_list skip_list { };
+        static const detail::skip_tile_list skip_list { };
 
 
         // Converts normalized tile coordinates to coordinates within the mesh.
@@ -127,7 +127,7 @@ namespace ve::voxel {
 
 
             u8 visible_sides = 0;
-            for (direction_t dir = 0; dir < directions.size(); ++dir) {
+            for (direction_t dir = 0; dir < (direction_t) directions.size(); ++dir) {
                 visible_sides |= (u8(is_visible(where, dir)) << dir);
             }
 
@@ -150,7 +150,9 @@ namespace ve::voxel {
                 tile->append_mesh(temporary_storage, visible_sides, meta);
                 push_and_denormalize(temporary_storage, where);
 
-                mesh_cache.emplace(key, std::move(temporary_storage));
+                // Note: don't move: we allocate once here, so we don't have to potentially allocate multiple times
+                // next time we mesh a tile.
+                mesh_cache.emplace(key, temporary_storage);
             }
         });
 

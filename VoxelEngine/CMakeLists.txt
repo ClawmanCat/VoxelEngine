@@ -1,6 +1,10 @@
 include(create_target)
 include(generate_include_header)
 
+# If we use a settings header from the game, we need to link the game as well.
+if (DEFINED GAME_PRE_INCLUDE_HEADER)
+    set(VoxelEngine_AdditionalTestDependencies ${GAME_TARGET_NAME})
+endif()
 
 create_target(
     VoxelEngine
@@ -28,10 +32,6 @@ create_target(
 target_compile_definitions(VoxelEngine PRIVATE VE_BUILD_GAME)
 target_compile_definitions(VoxelEngine PUBLIC VE_GRAPHICS_API=${VE_GRAPHICS_API})
 
-# Include a header from the game so it can overload engine settings.
-# This is used for settings that cannot be overloaded through a normal interface, e.g. types.
-target_compile_definitions(VoxelEngine PUBLIC VE_GAME_PRE_INCLUDE=VEDemoGame/preinclude.hpp)
-
 generate_include_header(VoxelEngine core core.hpp)
 generate_include_header(VoxelEngine clientserver clientserver.hpp)
 generate_include_header(VoxelEngine ecs ecs.hpp)
@@ -47,3 +47,8 @@ generate_include_header(VoxelEngine graphics graphics_includes.hpp graphics.hpp)
 
 generate_include_header(VoxelEngine platform/graphics/opengl graphics.hpp)
 generate_include_header(VoxelEngine platform/graphics/vulkan graphics.hpp)
+
+# Define header with overloaded settings from game to be included in the engine.
+if (DEFINED GAME_PRE_INCLUDE_HEADER)
+    target_compile_definitions(VoxelEngine PUBLIC VE_GAME_PRE_INCLUDE=${GAME_PRE_INCLUDE_HEADER})
+endif()

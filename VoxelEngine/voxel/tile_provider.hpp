@@ -49,11 +49,11 @@ namespace ve::voxel {
 
 
         tile_state get_state(const tilepos& where) const {
-            const auto& state = get_state(where);
+            const auto& data = get_data(where);
 
             return tile_state {
-                voxel_settings::get_tile_registry().get_tile_for_state(state),
-                voxel_settings::get_tile_registry().get_effective_metastate(state)
+                voxel_settings::get_tile_registry().get_tile_for_state(data),
+                voxel_settings::get_tile_registry().get_effective_metastate(data)
             };
         }
 

@@ -22,7 +22,8 @@ namespace ve::voxel {
         })),
         num_states(args.num_states),
         rendered(args.rendered),
-        transparent(args.transparent)
+        transparent(args.transparent),
+        solid(args.solid)
     {}
 
 
@@ -31,7 +32,8 @@ namespace ve::voxel {
     void tile::append_mesh(tile_mesh& dest, u8 visible_sides, tile_metadata_t meta) const {
         if (!rendered) return;
 
-        for (u8 direction = 0; direction < (u8) directions.size(); ++direction) {
+        direction_t rendered_directions = 0;
+        for (direction_t direction = 0; direction < (direction_t) directions.size(); ++direction) {
             if (visible_sides & (1 << direction)) {
                 static auto& texmgr = voxel_settings::get_texture_manager();
 
@@ -53,13 +55,8 @@ namespace ve::voxel {
                     gfx::texture_type::AMBIENT_OCCLUSION_TEXTURE
                 };
 
-
-                auto to_path = [&](const auto& tex) {
-                    return fs::weakly_canonical(get_texture_for_side(direction, tex, meta));
-                };
-
                 auto paths = material_textures
-                    | views::transform(to_path)
+                    | views::transform([&](const auto& tex) { return fs::weakly_canonical(get_texture_for_side(direction, tex, meta)); })
                     | ranges::to<std::vector>;
 
 
@@ -68,9 +65,9 @@ namespace ve::voxel {
                     cat_range_with(paths, "|"),
                     [&] {
                         // Foreach component map, generate a texture source.
-                        auto sources = paths
-                            | views::transform([](const auto& p) { return gfx::file_image_source { &p, &gfx::missing_texture::material_texture }; })
-                            | ranges::to<std::vector>;
+                        auto sources = create_filled_array<material_textures.size()>([&] (std::size_t i) {
+                            return gfx::file_image_source { &paths[i], &gfx::missing_texture::material_texture };
+                        });
 
 
                         // And acquire the image pointers.
@@ -114,14 +111,18 @@ namespace ve::voxel {
 
                 if constexpr (tile_mesh::indexed) {
                     dest.vertices.insert(dest.vertices.end(), vertices.begin(), vertices.end());
-                    dest.indices.insert(dest.indices.end(), cube_index_pattern.begin(), cube_index_pattern.end());
+
+                    auto indices = cube_index_pattern;
+                    for (auto& index : indices) index += (4 * rendered_directions);
+
+                    dest.indices.insert(dest.indices.end(), indices.begin(), indices.end());
                 } else {
                     dest.vertices.reserve(dest.vertices.size() + cube_index_pattern.size());
-
-                    for (u32 i : cube_index_pattern) {
-                        dest.vertices.push_back(vertices[i]);
-                    }
+                    for (u32 i : cube_index_pattern) dest.vertices.push_back(vertices[i]);
                 }
+
+
+                ++rendered_directions;
             }
         }
     }

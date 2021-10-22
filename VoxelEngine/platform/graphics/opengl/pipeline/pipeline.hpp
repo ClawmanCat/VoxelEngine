@@ -40,14 +40,12 @@ namespace ve::gfx::opengl {
 
         void draw(const std::vector<const vertex_buffer*>& buffers, render_context& ctx) override;
 
+        VE_GET_MREF(settings);
+        VE_GET_CREF(shader);
     private:
         pipeline_settings settings;
         shared<class shader> shader;
 
         void bind_settings(void);
-
-    public:
-        VE_GET_SET_CREF(settings);
-        VE_GET_SET_CREF(shader);
     };
 }

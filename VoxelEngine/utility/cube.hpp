@@ -16,8 +16,6 @@ namespace ve {
         std::array<vec2f, 4> uvs = create_filled_array<4>(produce(vec2f { 0 }));
         vec3f normal = vec3f { 0 };
         vec3f tangent = vec3f { 0 };
-
-        std::array<u32, 6> indices = create_filled_array<6>(produce(0u));
         u32 face_index = 0;
     };
 
@@ -37,7 +35,7 @@ namespace ve {
             vec2f { 0, 0 }, vec2f { 0, 1 }, vec2f { 1, 0 }, vec2f { 1, 1 }
         };
 
-        constexpr std::array offsets = { +0.5f, -0.5f };
+        constexpr std::array offsets = { 0.5f, -0.5f };
 
 
         std::size_t cube_vertex_index = 0;
@@ -48,9 +46,6 @@ namespace ve {
 
                 face_data.normal = vec3f { 0 };
                 face_data.normal.*first = 2.0f * first_offset;
-
-                face_data.indices = cube_index_pattern;
-                for (auto& index : face_data.indices) index += (6 * cube_face_index);
 
                 face_data.face_index = (u32) cube_face_index;
 

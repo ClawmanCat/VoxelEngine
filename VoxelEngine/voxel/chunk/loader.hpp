@@ -75,4 +75,20 @@ namespace ve::voxel {
     private:
         tilepos where, range;
     };
+
+
+    class single_chunk_loader : public chunk_loader {
+    public:
+        explicit single_chunk_loader(const tilepos& where) : where(where) {}
+
+        void start_loading(voxel_space* space) override {
+            load(space, where);
+        }
+
+        void stop_loading(voxel_space* space) override {
+            unload(space, where);
+        }
+    private:
+        tilepos where;
+    };
 }

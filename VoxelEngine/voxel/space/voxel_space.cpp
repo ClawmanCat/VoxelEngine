@@ -41,9 +41,24 @@ namespace ve::voxel {
 
 
     void voxel_space::set_data(const tilepos& where, const tile_data& td) {
-        if (auto it = chunks.find(to_chunkpos(where)); it != chunks.end()) {
+        auto chunkpos = to_chunkpos(where);
+
+
+        if (auto it = chunks.find(chunkpos); it != chunks.end()) {
             it->second.chunk->set_data(to_localpos(where), td);
+
+
+            // Re-mesh the current chunk and also its neighbours if the position is on the edge of the chunk.
             it->second.needs_meshing = true;
+            for (const auto& dir : directions) {
+                auto neighbour_chunkpos = to_chunkpos(where + tilepos { dir });
+
+                if (neighbour_chunkpos != chunkpos) {
+                    if (auto neighbour = chunks.find(neighbour_chunkpos); neighbour != chunks.end()) {
+                        neighbour->second.needs_meshing = true;
+                    }
+                }
+            }
         } else {
             VE_LOG_WARN("Attempt to set tile in unloaded chunk. Operation will be ignored.");
         }
@@ -71,6 +86,8 @@ namespace ve::voxel {
         if (auto it = chunks.find(where); it != chunks.end()) {
             it->second.load_count++;
         } else {
+            // Note: actual meshing is performed during the next tick, so if we load multiple chunks at once,
+            // we don't need to mesh them twice.
             auto buffer = detail::subbuffer_t::create();
             auto handle = vertex_buffer->insert(buffer);
 
@@ -90,6 +107,14 @@ namespace ve::voxel {
                 glm::translate(glm::identity<mat4f>(), vec3f { where * tilepos { voxel_settings::chunk_size } }),
                 gfx::combine_functions::multiply
             );
+
+
+            // Also re-mesh neighbours since we probably don't have to render most of the shared face with this chunk anymore.
+            for (const auto& dir : directions) {
+                if (auto neighbour = chunks.find(where + tilepos { dir }); neighbour != chunks.end()) {
+                    neighbour->second.needs_meshing = true;
+                }
+            }
         }
     }
 
@@ -101,6 +126,13 @@ namespace ve::voxel {
             if (it->second.load_count == 0) {
                 vertex_buffer->erase(it->second.handle);
                 chunks.erase(it);
+
+                // Re-mesh neighbours since we need to start rendering the shared face with this chunk again.
+                for (const auto& dir : directions) {
+                    if (auto neighbour = chunks.find(where + tilepos { dir }); neighbour != chunks.end()) {
+                        neighbour->second.needs_meshing = true;
+                    }
+                }
             }
         } else {
             VE_LOG_ERROR("Attempt to unload a chunk that was already unloaded. This may indicate an issue with the chunk loader.");

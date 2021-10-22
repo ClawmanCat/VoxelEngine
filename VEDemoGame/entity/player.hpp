@@ -10,13 +10,12 @@
 
 
 namespace demo_game {
-    constexpr inline float epsilon                 = 1e-6f;
-    constexpr inline float player_speed            = 10.0f;
-    constexpr inline float player_look_sensitivity = 1.0f;
-
-
     class player : public ve::static_entity {
     public:
+        constexpr static inline float player_speed            = 10.0f;
+        constexpr static inline float player_look_sensitivity = 1.0f;
+        constexpr static inline float epsilon                 = 1e-6f;
+
         using camera_t = ve::gfx::perspective_camera;
 
 
@@ -31,6 +30,8 @@ namespace demo_game {
 
 
         explicit player(ve::registry& registry, camera_t* camera) : ve::static_entity(registry), camera(camera) {
+            transform.position.y += 2; // Start above ground.
+
             camera_controller.camera = camera;
             control_handles.reserve(player_motions.size() + 1);
 
@@ -65,8 +66,9 @@ namespace demo_game {
 
 
                     // Clamp pitch between -pi / 2 and pi / 2 to prevent "somersaulting" of the camera.
+                    // Note: epsilon offset is used because if we look straight up / down we cannot define a forward direction for motion.
                     constexpr float half_pi = ve::constants::f32_pi / 2.0f;
-                    self.input_orientation.y = std::clamp(self.input_orientation.y, -half_pi, half_pi);
+                    self.input_orientation.y = std::clamp(self.input_orientation.y, -half_pi + epsilon, half_pi - epsilon);
                 }
             );
 
@@ -96,21 +98,23 @@ namespace demo_game {
 
 
         void VE_COMPONENT_FN(update)(ve::nanoseconds dt) {
-            if (glm::length(input_motion) > epsilon) {
+            motion.linear_velocity = ve::vec3f { 0 };
+
+            if (std::abs(input_motion.x) > epsilon || std::abs(input_motion.z) > epsilon) {
                 // Assure diagonal movement isn't faster than movement along the world axes.
-                input_motion = glm::normalize(input_motion);
-
-                motion.linear_velocity   = (input_motion * camera->get_rotation()) * player_speed;
-                motion.linear_velocity.y = input_motion.y * player_speed; // Use world up axis for up / down motion.
-
-                input_motion = ve::vec3f { 0 };
-            } else {
-                motion.linear_velocity = ve::vec3f { 0 };
+                motion.linear_velocity.xz += glm::normalize(ve::vec2f { (input_motion * camera->get_rotation()).xz }) * player_speed;
             }
 
+            if (std::abs(input_motion.y) > epsilon) {
+                // Use world up axis for up / down motion.
+                motion.linear_velocity.y += input_motion.y * player_speed;
+            }
 
-            ve::quatf pitch = glm::angleAxis(input_orientation.y, ve::direction::RIGHT);
-            ve::quatf yaw   = glm::angleAxis(input_orientation.x, ve::direction::UP);
+            input_motion = ve::vec3f { 0 };
+
+
+            ve::quatf pitch = glm::angleAxis(input_orientation.y, (ve::vec3f) ve::direction::RIGHT);
+            ve::quatf yaw   = glm::angleAxis(input_orientation.x, (ve::vec3f) ve::direction::UP);
 
             transform.rotation = glm::normalize(pitch * yaw);
         }

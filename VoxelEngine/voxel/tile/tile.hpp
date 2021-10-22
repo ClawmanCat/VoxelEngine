@@ -22,6 +22,7 @@ namespace ve::voxel {
             tile_metadata_t num_states = 1;
             bool rendered = true;
             bool transparent = false;
+            bool solid = rendered;
         };
 
 
@@ -56,6 +57,7 @@ namespace ve::voxel {
         VE_GET_CREF(textures);
         VE_GET_BOOL_IS(rendered);
         VE_GET_BOOL_IS(transparent);
+        VE_GET_BOOL_IS(solid);
         VE_GET_VAL(num_states);
     private:
         std::string name;
@@ -64,6 +66,7 @@ namespace ve::voxel {
         tile_metadata_t num_states;
         bool rendered;
         bool transparent;
+        bool solid;
 
 
         // Store some of the tile registry data intrusively in the tile for cheap lookup.

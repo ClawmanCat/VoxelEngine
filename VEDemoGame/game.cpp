@@ -2,13 +2,13 @@
 #include <VEDemoGame/entity/howlee.hpp>
 #include <VEDemoGame/entity/player.hpp>
 #include <VEDemoGame/entity/world.hpp>
+#include <VEDemoGame/entity/skybox.hpp>
 #include <VEDemoGame/component/render_tag.hpp>
 #include <VEDemoGame/input/controls.hpp>
 
 #include <VoxelEngine/clientserver/connect.hpp>
 #include <VoxelEngine/input/input.hpp>
 #include <VoxelEngine/engine.hpp>
-#include <VoxelEngine/utility/color.hpp>
 
 
 namespace demo_game {
@@ -27,6 +27,13 @@ namespace demo_game {
         // Set up render pipelines.
         game::window = ve::gfx::window::create(ve::gfx::window::arguments {
             .title = game::get_info()->display_name
+        });
+
+        ve::input_manager::instance().add_handler([] (const ve::window_resized_event& e) {
+            if (e.window == game::window.get()) {
+                auto size = ve::vec2f { e.new_size };
+                game::camera.set_aspect_ratio(size.x / size.y);
+            }
         });
 
         game::texture_manager = ve::make_shared<ve::gfx::texture_manager<>>();
@@ -67,13 +74,15 @@ namespace demo_game {
         // Create entities.
         auto& entity_player = game::client.store_static_entity(player { game::client, &game::camera });
         auto& entity_world  = game::client.store_static_entity(world { game::client });
+        auto& entity_skybox = game::client.store_static_entity(skybox { game::client, &entity_player });
 
         for (ve::i32 x = -32; x < 32; ++x) {
             for (ve::i32 z = -32; z < 32; ++z) {
-                if (x != 3 || z != 3) continue;
-
-                howlee& h = game::client.store_static_entity(howlee { game::client });
-                h.transform.position = ve::vec3f { x, 0.2f, z };
+                // Don't spawn the Howlees in debug mode to increase performance.
+                VE_RELEASE_ONLY(
+                    howlee& h = game::client.store_static_entity(howlee { game::client, &entity_world });
+                    h.transform.position = ve::vec3f { x, 1.5f, z };
+                );
             }
         }
 

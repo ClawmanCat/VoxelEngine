@@ -74,12 +74,12 @@ namespace ve::gfx {
         mat4f get_view_projection_matrix(void) const { return view_projection; }
 
 
-        vec3f forward(void)  const { return direction::FORWARD * rotation;  }
-        vec3f backward(void) const { return direction::BACKWARD * rotation; }
-        vec3f up(void)       const { return direction::UP * rotation;       }
-        vec3f down(void)     const { return direction::DOWN * rotation;     }
-        vec3f left(void)     const { return direction::LEFT * rotation;     }
-        vec3f right(void)    const { return direction::RIGHT * rotation;    }
+        vec3f forward(void)  const { return vec3f { direction::FORWARD } * rotation;  }
+        vec3f backward(void) const { return vec3f { direction::BACKWARD } * rotation; }
+        vec3f up(void)       const { return vec3f { direction::UP } * rotation;       }
+        vec3f down(void)     const { return vec3f { direction::DOWN } * rotation;     }
+        vec3f left(void)     const { return vec3f { direction::LEFT } * rotation;     }
+        vec3f right(void)    const { return vec3f { direction::RIGHT } * rotation;    }
 
 
         std::string get_uniform_name(void) const {

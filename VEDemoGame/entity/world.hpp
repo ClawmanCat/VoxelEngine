@@ -32,7 +32,7 @@ namespace demo_game {
             mesh.buffer = space.get_vertex_buffer();
 
             auto load_where  = ve::voxel::tilepos { 0 };
-            auto load_radius = ve::voxel::tilepos { 5 };
+            auto load_radius = ve::voxel::tilepos { 2 };
             space.add_chunk_loader(ve::make_shared<ve::voxel::point_loader<ve::voxel::distance_metrics::L1>>(load_where, load_radius));
         }
 
@@ -45,7 +45,7 @@ namespace demo_game {
         ve::transform_component VE_COMPONENT(transform) = ve::transform_component { };
         ve::mesh_component VE_COMPONENT(mesh) = ve::mesh_component { };
         render_tag_pbr VE_COMPONENT(render_tag) = render_tag_pbr { };
-    private:
+
         ve::voxel::voxel_space space;
     };
 }

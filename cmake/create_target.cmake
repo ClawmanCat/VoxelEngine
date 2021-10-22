@@ -71,7 +71,13 @@ function(create_target_filtered name type major minor patch filter)
                 target_link_libraries(test_${test_name} PUBLIC ${name})
 
                 # Prevent linker language errors on header only libraries.
-                set_target_properties(${name} PROPERTIES LINKER_LANGUAGE CXX)
+                set_target_properties(test_${test_name} PROPERTIES LINKER_LANGUAGE CXX)
+
+                if (${name}_AdditionalTestDependencies)
+                    foreach(test_dependency IN ITEMS ${${name}_AdditionalTestDependencies})
+                        target_link_libraries(test_${test_name} PUBLIC ${test_dependency})
+                    endforeach()
+                endif()
             endforeach()
         endif()
     endif()
