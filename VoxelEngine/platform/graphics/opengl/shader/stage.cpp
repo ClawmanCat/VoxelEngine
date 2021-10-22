@@ -15,8 +15,8 @@ namespace ve::gfx::opengl {
 
         // Alternative identity for vertex shader when used to pass through GBuffer to fragment shader.
         shader_stage {
-            .name           = "multipass vertex shader",
-            .file_extension = ".gvert.glsl",
+            .name           = "G buffer input shader",
+            .file_extension = ".g_input.glsl",
             .shaderc_type   = shaderc_vertex_shader,
             .opengl_type    = GL_VERTEX_SHADER,
             .pipeline       = &pipeline_category::RASTERIZATION,

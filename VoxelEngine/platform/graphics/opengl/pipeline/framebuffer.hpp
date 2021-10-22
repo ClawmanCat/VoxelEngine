@@ -22,9 +22,10 @@ namespace ve::gfx::opengl {
 
 
         framebuffer(
-            const std::vector<framebuffer_attachment>& attachments,
+            std::vector<framebuffer_attachment> attachments,
             std::function<vec2ui(void)> texture_validator
         ) :
+            attachment_templates(std::move(attachments)),
             texture_validator(std::move(texture_validator)),
             prev_size(this->texture_validator())
         {
@@ -35,7 +36,7 @@ namespace ve::gfx::opengl {
             std::size_t num_color_attachments = 0;
             bool has_depth_attachment = false;
 
-            for (const auto& attachment : attachments) {
+            for (const auto& attachment : attachment_templates) {
                 GLenum attachment_type    = (GLenum) attachment;
                 const texture_format* fmt = nullptr;
 
@@ -92,10 +93,13 @@ namespace ve::gfx::opengl {
 
 
         VE_GET_VAL(id);
+        VE_GET_CREF(attachment_templates);
         VE_GET_CREF(attachments);
         VE_GET_CREF(texture_validator);
     private:
         GLuint id = 0;
+
+        std::vector<framebuffer_attachment> attachment_templates;
         vec_map<GLenum, shared<texture>> attachments;
 
         // The texture validator returns the size each texture should have before the next draw call.

@@ -2,13 +2,16 @@
 #include "common.util.glsl"
 
 
-// TODO: libshaderc has an autogenerate bindings option, but it generates different indices between shaders.
-// We should reflect over the different stages and assure re-used uniform names obtain the same binding.
-layout (std140, binding = 0) uniform U_Camera {
+// Coeficient for the logarithmic depth buffer.
+// (Normally based on the far plane, but since we have infinite perspective, just use a sufficiently large number.)
+const float f_coef = 2.0f / log2(1e9f + 1.0f);
+
+
+layout (std140) uniform U_Camera {
     Camera camera;
 };
 
-layout (std140, binding = 1) uniform U_Transform {
+layout (std140) uniform U_Transform {
     mat4 transform;
 };
 

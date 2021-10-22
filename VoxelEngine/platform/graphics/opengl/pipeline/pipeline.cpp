@@ -47,4 +47,30 @@ namespace ve::gfx::opengl {
         gl_toggles[settings.depth_testing](GL_DEPTH_TEST);
         gl_toggles[settings.depth_clamp](GL_DEPTH_CLAMP);
     }
+
+
+    void multi_pass_pipeline::draw(const std::vector<const vertex_buffer*>& buffers, render_context& ctx) {
+        // Note: all targets are cloned, so they have the same validator. Only the final one needs to be checked.
+        if (!get_target()->requires_rendering_this_frame()) return;
+
+
+        for (const auto& [pipeline, target] : stages) {
+            VE_NOT_YET_IMPLEMENTED;
+        }
+    }
+
+
+    void multi_pass_pipeline::add_stage(shared<pipeline> stage, std::size_t index) {
+        VE_NOT_YET_IMPLEMENTED;
+    }
+
+
+    void multi_pass_pipeline::remove_stage(shared<pipeline> stage) {
+        VE_NOT_YET_IMPLEMENTED;
+    }
+
+
+    void multi_pass_pipeline::remove_stage(std::size_t index) {
+        VE_NOT_YET_IMPLEMENTED;
+    }
 }

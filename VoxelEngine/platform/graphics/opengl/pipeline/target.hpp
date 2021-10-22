@@ -28,6 +28,17 @@ namespace ve::gfx::opengl {
         {}
 
 
+        // Keep this as an explicit method rather than using the copy constructor to prevent accidental copies and to allow overriding.
+        virtual shared<render_target> clone(void) const {
+            return make_shared<render_target>(
+                get_attachment_templates(),
+                get_texture_validator(),
+                render_validator,
+                settings
+            );
+        }
+
+
         bool requires_rendering_this_frame(void) const {
             return render_validator();
         }
@@ -48,6 +59,7 @@ namespace ve::gfx::opengl {
         render_target_settings settings;
 
     public:
+        VE_GET_CREF(render_validator);
         VE_GET_SET_CREF(settings);
     };
 }
