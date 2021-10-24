@@ -8,6 +8,7 @@
 #include <VoxelEngine/platform/graphics/opengl/context/render_context.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/category.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/framebuffer.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/multipass_pbr_pipeline.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/settings.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/target.hpp>

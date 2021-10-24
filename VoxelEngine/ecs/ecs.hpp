@@ -6,6 +6,7 @@
 
 #include <VoxelEngine/ecs/component/camera_controller_component.hpp>
 #include <VoxelEngine/ecs/component/function_component.hpp>
+#include <VoxelEngine/ecs/component/light_component.hpp>
 #include <VoxelEngine/ecs/component/mesh_component.hpp>
 #include <VoxelEngine/ecs/component/motion_component.hpp>
 #include <VoxelEngine/ecs/component/named_component.hpp>

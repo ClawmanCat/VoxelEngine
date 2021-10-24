@@ -7,7 +7,7 @@
 #include <VoxelEngine/graphics/camera/camera.hpp>
 #include <VoxelEngine/graphics/camera/camera_uniform.hpp>
 #include <VoxelEngine/graphics/camera/perspective_camera.hpp>
-#include <VoxelEngine/graphics/lighting/light_uniform.hpp>
+#include <VoxelEngine/graphics/lighting/light_source.hpp>
 #include <VoxelEngine/graphics/presentation/present_mode.hpp>
 #include <VoxelEngine/graphics/presentation/window.hpp>
 #include <VoxelEngine/graphics/presentation/window_registry.hpp>

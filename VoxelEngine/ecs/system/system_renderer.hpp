@@ -34,8 +34,19 @@ namespace ve {
         ExcludedTags
     > {
     public:
-        explicit system_renderer(shared<gfxapi::pipeline> pipeline, u16 priority = priority::LOW) :
-            priority(priority), pipeline(std::move(pipeline))
+        // While lighting can be simply handled as a uniform in single-pass shaders,
+        // we need to keep the lighting data separate if we want to do multi-pass shading.
+        // This struct keeps track of the global lighting data, per-light data is set through light components.
+        struct lighting_settings {
+            // Name of the uniform lights will be bound to for single-pass shading.
+            std::string uniform_name = "U_Lighting";
+            // Ambient light present when no other lights hit a pixel.
+            vec3f ambient_light = vec3f { 0.03f };
+        };
+
+
+        explicit system_renderer(shared<gfxapi::pipeline> pipeline, lighting_settings lighting = lighting_settings { }, u16 priority = priority::LOW) :
+            priority(priority), pipeline(std::move(pipeline)), lighting(std::move(lighting))
         {}
 
 
@@ -46,8 +57,12 @@ namespace ve {
 
         void update(registry& owner, view_type view, nanoseconds dt) {
             // TODO: Prevent having to do this copy each update, allow the pipeline to accept the view or something similar?
-            static thread_local std::vector<const gfxapi::vertex_buffer*> buffers;
-            auto clear_on_exit = raii_function { no_op, [&] { buffers.clear(); } };
+            static thread_local gfxapi::pipeline::draw_data data { };
+            auto clear_on_exit = raii_function { no_op, [&] {
+                data.buffers.clear();
+                data.lights.clear();
+            } };
+
 
             for (auto entity : view) {
                 const auto& mesh = view.template get<mesh_component>(entity);
@@ -60,16 +75,35 @@ namespace ve {
                     }(view.template get<Components>(entity)), ...);
                 }(ComponentUniforms{});
 
-                buffers.push_back(mesh.buffer.get());
+                data.buffers.push_back(mesh.buffer.get());
             }
 
-            pipeline->draw(buffers, ctx);
+
+            // TODO: Figure out a better way to do this. Maybe templatize renderer further?
+            auto light_entities = owner.template view<light_component, transform_component>();
+            for (auto entity : light_entities) {
+                const auto& [light, transform] = light_entities.template get<light_component, transform_component>(entity);
+
+                data.lights.push_back(gfx::light_source {
+                    .position    = transform.position,
+                    .radiance    = light.radiance,
+                    .attenuation = light.attenuation
+                });
+            }
+
+
+            data.ambient_light = lighting.ambient_light;
+            data.lighting_target = lighting.uniform_name;
+            data.ctx = &ctx;
+
+            pipeline->draw(data);
         }
 
     private:
         u16 priority;
         shared<gfxapi::pipeline> pipeline;
         gfxapi::render_context ctx;
+        lighting_settings lighting;
 
     public:
         VE_GET_SET_CREF(pipeline);

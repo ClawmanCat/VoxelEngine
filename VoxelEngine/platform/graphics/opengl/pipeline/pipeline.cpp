@@ -1,32 +1,47 @@
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
 #include <VoxelEngine/platform/graphics/opengl/vertex/vertex_buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/context/render_context.hpp>
+#include <VoxelEngine/utility/algorithm.hpp>
 
 
 namespace ve::gfx::opengl {
-    void single_pass_pipeline::draw(const std::vector<const vertex_buffer*>& buffers, render_context& ctx) {
+    void single_pass_pipeline::draw(const draw_data& data) {
         if (!get_target()->requires_rendering_this_frame()) return;
 
 
-        ctx.pipelines.push(this);
-        ctx.renderpass = this;
+        data.ctx->pipelines.push(this);
+        data.ctx->renderpass = this;
 
         get_target()->bind();
-        shader->bind(ctx);
+        shader->bind(*data.ctx);
         bind_settings();
 
-        uniform_storage::push(ctx.uniform_state);
 
+        if (data.ctx->uniform_state.requires_value(data.lighting_target)) {
+            // For single-pass shading, treat lights as uniforms.
+            // TODO: Handle variable number of lights better.
+            lighting_data<> lights {
+                .num_populated_lights = (u32) data.lights.size(),
+                .ambient_light = data.ambient_light
+            };
 
-        for (const auto& buffer : buffers) {
-            buffer->draw(ctx);
+            VE_ASSERT(decltype(lights)::light_count_limit >= data.lights.size(), "Maximum number of lights exceeded.");
+            std::copy(data.lights.begin(), data.lights.end(), lights.lights.begin());
+
+            uniform_storage::set_uniform_value<lighting_data<>>(data.lighting_target, lights);
         }
 
 
-        uniform_storage::pop(ctx.uniform_state);
+        uniform_storage::push(data.ctx->uniform_state);
 
-        ctx.renderpass = nullptr;
-        ctx.pipelines.pop();
+        for (const auto& buffer : data.buffers) {
+            buffer->draw(*data.ctx);
+        }
+
+        uniform_storage::pop(data.ctx->uniform_state);
+
+        data.ctx->renderpass = nullptr;
+        data.ctx->pipelines.pop();
     }
 
 
@@ -46,31 +61,5 @@ namespace ve::gfx::opengl {
 
         gl_toggles[settings.depth_testing](GL_DEPTH_TEST);
         gl_toggles[settings.depth_clamp](GL_DEPTH_CLAMP);
-    }
-
-
-    void multi_pass_pipeline::draw(const std::vector<const vertex_buffer*>& buffers, render_context& ctx) {
-        // Note: all targets are cloned, so they have the same validator. Only the final one needs to be checked.
-        if (!get_target()->requires_rendering_this_frame()) return;
-
-
-        for (const auto& [pipeline, target] : stages) {
-            VE_NOT_YET_IMPLEMENTED;
-        }
-    }
-
-
-    void multi_pass_pipeline::add_stage(shared<pipeline> stage, std::size_t index) {
-        VE_NOT_YET_IMPLEMENTED;
-    }
-
-
-    void multi_pass_pipeline::remove_stage(shared<pipeline> stage) {
-        VE_NOT_YET_IMPLEMENTED;
-    }
-
-
-    void multi_pass_pipeline::remove_stage(std::size_t index) {
-        VE_NOT_YET_IMPLEMENTED;
     }
 }

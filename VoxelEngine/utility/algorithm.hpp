@@ -155,8 +155,8 @@ namespace ve {
         result.unmatched_b = b | views::addressof | ranges::to<std::vector>;
         auto real_end = result.unmatched_b.end();
 
-        for (auto& ae : a) {
-            for (auto& be : b) {
+        for (AV& ae : a) {
+            for (BV& be : b) {
                 if (pred(ae, be)) {
                     real_end = std::remove(result.unmatched_b.begin(), real_end, &be);
                     result.matched.emplace_back(&ae, &be);

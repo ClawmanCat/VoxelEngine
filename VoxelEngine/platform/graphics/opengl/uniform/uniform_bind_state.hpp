@@ -86,5 +86,10 @@ namespace ve::gfx::opengl {
                 }
             }
         }
+
+
+        bool requires_value(std::string_view name) const {
+            return bound_uniforms.contains(name);
+        }
     };
 }

@@ -13,7 +13,6 @@ layout (std140, binding = 1) uniform U_Transform {
 
 // Should be large enough for the number of lights used.
 // TODO: Use shader preprocessor to dynamically recompile with actual value.
-// TODO: Eventually switch to deferred rendering so shader runtime doesn't balloon as the number of lights increases.
 const int num_lights = 32;
 
 layout (std140) uniform U_Lighting {

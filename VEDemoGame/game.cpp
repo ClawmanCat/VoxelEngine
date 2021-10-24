@@ -87,24 +87,6 @@ namespace demo_game {
         }
 
 
-        // Add a light at the player's position.
-        // TODO: Replace this with multipass PBR pipeline. Make lights into components.
-        pbr_pipeline->set_uniform_producer<ve::gfx::lighting_data_uniform<>>("U_Lighting", [&] {
-            ve::gfx::lighting_data_uniform result;
-
-            result.lights[0] = ve::gfx::light_uniform {
-                .position    = entity_player.transform.position,
-                .radiance    = ve::normalize_color(ve::colors::GOLDENROD) * 50.0f,
-                .attenuation = 1.25f
-            };
-
-            result.num_populated_lights = 1;
-            result.ambient_light = ve::vec3f { 0.03f };
-
-            return result;
-        });
-
-
         // Set up non-player-control hotkeys.
         controls.bind("capture_mouse", [](const ve::binary_input::handler_args& args) { ve::input_manager::instance().set_mouse_capture(true);  });
         controls.bind("release_mouse", [](const ve::binary_input::handler_args& args) { ve::input_manager::instance().set_mouse_capture(false); });

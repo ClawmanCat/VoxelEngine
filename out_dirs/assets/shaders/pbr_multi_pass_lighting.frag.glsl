@@ -31,13 +31,13 @@ uniform sampler2D g_color;
 uniform sampler2D g_material;
 
 
-out vec4 position;
-out vec4 color;
+out vec4 l_position;
+out vec4 l_color;
 
 
 void main() {
-    position = texture(g_position, gl_FragCoord.xy);
-    color    = texture(g_color, gl_FragCoord.xy);
+    l_position = texture(g_position, gl_FragCoord.xy);
+    l_color    = texture(g_color, gl_FragCoord.xy);
 
 
     vec4 diffuse = texture(g_color, gl_FragCoord.xy);
@@ -89,5 +89,5 @@ void main() {
     vec3 energy_diffuse  = (vec3(1.0) - F) * (1.0 - metalness);
 
 
-    color.rgb += (energy_diffuse * diffuse.rgb / pi + specular) * radiance * light_alignment;
+    l_color.rgb += (energy_diffuse * diffuse.rgb / pi + specular) * radiance * light_alignment;
 }

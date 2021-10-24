@@ -6,6 +6,7 @@
 #include <VoxelEngine/platform/graphics/opengl/pipeline/settings.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/target.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/category.hpp>
+#include <VoxelEngine/graphics/lighting/light_source.hpp>
 #include <VoxelEngine/utility/assert.hpp>
 
 
@@ -16,12 +17,23 @@ namespace ve::gfx::opengl {
 
     class pipeline : public uniform_storage {
     public:
+        struct draw_data {
+            std::vector<const vertex_buffer*> buffers;
+
+            std::string lighting_target;
+            std::vector<light_source> lights;
+            vec3f ambient_light;
+
+            render_context* ctx;
+        };
+
+
         explicit pipeline(const pipeline_category_t* type, shared<render_target> target) :
             type(type), target(std::move(target))
         {}
 
         virtual ~pipeline(void) = default;
-        virtual void draw(const std::vector<const vertex_buffer*>& buffers, render_context& ctx) = 0;
+        virtual void draw(const draw_data& data) = 0;
 
     private:
         const pipeline_category_t* type;
@@ -39,7 +51,7 @@ namespace ve::gfx::opengl {
             : pipeline(shader->get_category(), std::move(target)), settings(std::move(settings)), shader(std::move(shader))
         {}
 
-        void draw(const std::vector<const vertex_buffer*>& buffers, render_context& ctx) override;
+        void draw(const draw_data& data) override;
 
         VE_GET_MREF(settings);
         VE_GET_CREF(shader);
@@ -48,39 +60,5 @@ namespace ve::gfx::opengl {
         shared<class shader> shader;
 
         void bind_settings(void);
-    };
-
-
-    class multi_pass_pipeline : public pipeline {
-    public:
-        struct renderpass {
-            shared<pipeline> pipeline;
-            shared<render_target> target;
-        };
-
-
-        explicit multi_pass_pipeline(std::vector<renderpass> stages, const pipeline_category_t* category = &pipeline_category::RASTERIZATION)
-            : pipeline(category, stages.back().target), stages(std::move(stages))
-        {
-            VE_ASSERT(
-                ranges::all_of(stages, [&](const auto& s) { return s.pipeline->get_type() == category; }),
-                "All stages within a multipass rendering pipeline must be of the same category."
-            );
-        }
-
-
-        explicit multi_pass_pipeline(shared<render_target> target, const pipeline_category_t* category = &pipeline_category::RASTERIZATION)
-            : pipeline(category, std::move(target))
-        {}
-
-        void draw(const std::vector<const vertex_buffer*>& buffers, render_context& ctx) override;
-
-        void add_stage(shared<pipeline> stage, std::size_t index);
-        void remove_stage(shared<pipeline> stage);
-        void remove_stage(std::size_t index);
-
-        VE_GET_CREF(stages);
-    private:
-        std::vector<renderpass> stages;
     };
 }

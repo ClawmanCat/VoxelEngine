@@ -123,6 +123,11 @@ namespace demo_game {
         ve::transform_component VE_COMPONENT(transform) = ve::transform_component { };
         ve::motion_component VE_COMPONENT(motion) = ve::motion_component { };
         ve::camera_controller_component<camera_t> VE_COMPONENT(camera_controller) = ve::camera_controller_component<camera_t> { };
+
+        ve::light_component VE_COMPONENT(light_source) = ve::light_component {
+            .radiance = ve::normalize_color(ve::colors::GOLDENROD) * 50.0f,
+            .attenuation = 1.25f
+        };
     private:
         std::vector<ve::input_binder::input_handle> control_handles;
         camera_t* camera;

@@ -120,6 +120,16 @@ namespace ve {
         }
 
 
+        template <typename... Components> auto view(void) {
+            return storage.template view<Components...>();
+        }
+
+
+        template <typename... Components> auto view(void) const {
+            return storage.template view<Components...>();
+        }
+
+
         VE_GET_MREF(storage);
     private:
         entt::registry storage;
