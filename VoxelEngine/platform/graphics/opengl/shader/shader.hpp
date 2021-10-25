@@ -38,77 +38,27 @@ namespace ve::gfx::opengl {
 
 
         void bind(render_context& ctx) {
-            // If the shader used by the pipeline changed, the uniform storage may now contain dead pointers,
-            // so clear it before the next render pass.
-            // (Also the UBOs themselves may have changed.)
-            if (ctx.uniform_state.storage_owner != this) {
-                ctx.uniform_state.bound_uniforms.clear();
-                ctx.uniform_state.storage_owner = this;
-            }
-
-
-            // Reset number of used samplers and store sampler reflections so uniform_storage can fill them.
-            // TODO: Just reset storage objects, don't reallocate.
-            ctx.uniform_state.samplers.clear();
-
-            for (const auto& stage : reflection.stages) {
-                for (const auto& sampler : stage.second.samplers) {
-                    ctx.uniform_state.samplers.emplace(
-                        sampler.name,
-                        uniform_bind_state::sampler_info {
-                            .location = sampler.location,
-                            .count    = sampler.type.array_extents.empty()
-                                ? (std::size_t) 1
-                                : ranges::accumulate(sampler.type.array_extents, 1, std::multiplies<>()),
-                            .textures = { }
-                        }
-                    );
-                }
-            }
-
-
-            auto& bound_state = ctx.uniform_state.bound_uniforms;
-
-            for (const auto& stage : reflection.stages) {
-                for (const auto& ubo : stage.second.uniform_buffers) {
-                    auto& ubos = ctx.uniform_state.bound_uniforms;
-
-                    // Reuse existing UBOs where possible.
-                    // Caching happens inside UBO itself, so no GPU writes are done if the value is the same next time the state is bound.
-                    if (auto it = ubos.find(ubo.name); it != ubos.end()) {
-                        it->second.value = nullptr;
-                        it->second.value_std140.clear();
-                        it->second.type = &ubo.type;
-
-                        continue;
-                    }
-
-
-                    // Note on lifetime: uniforms are bound on this structure while a pipeline is bound with this shader.
-                    // The only possible invalidation occurs when the pipeline switches shaders,
-                    // which is handled by keeping track of which shader owns the storage of the current uniform state.
-                    // (See usage of ctx.uniform_state.storage_owner)
-                    ubos.emplace(
-                        ubo.name,
-                        uniform_bind_state::combined_value {
-                            .value        = nullptr,
-                            .value_std140 = std::vector<u8> { },
-                            .type         = &ubo.type,
-                            .ubo          = uniform_buffer(&ubo)
-                        }
-                    );
-
-                    // For UBO structs with one member, allow setting that member directly.
-                    // (See uniform_bind_state.hpp)
-                    if (ubo.members.size() == 1) {
-                        ctx.uniform_state.aliases.emplace(ubo.members[0].name, ubo.name);
-                    }
-                }
-            }
-
-
             glUseProgram(id);
-            vertex_layout.bind();
+        }
+
+
+        bool has_uniform(std::string_view name) const {
+            for (const auto& [stage_info, stage] : reflection.stages) {
+                for (const auto& uniform : stage.uniform_buffers) {
+                    if (uniform.name == name) return true;
+                }
+            }
+
+            return false;
+        }
+
+
+        bool has_vertex_attribute(std::string_view name) const {
+            for (const auto& uniform : reflection.get_input_stage().second.inputs) {
+                if (uniform.name == name) return true;
+            }
+
+            return false;
         }
 
 

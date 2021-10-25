@@ -14,7 +14,5 @@ void main() {
     color.rgb /= (color.rgb + vec3(1.0));
     color.rgb  = pow(color.rgb, vec3(1.0 / 2.2));
 
-
-    gl_FragColor = color;
     gl_FragDepth = texture(l_position, gl_FragCoord.xy).w;
 }

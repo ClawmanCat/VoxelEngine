@@ -18,8 +18,8 @@ namespace ve::gfx::opengl {
         decltype(&opengl_logging_callback) logging_callback = opengl_logging_callback;
 
         // For default formats, just find the first format that has the required components.
-        texture_format color_buffer_format = *ranges::find_if(texture_formats, equal_on(&texture_format::components, (GLenum) GL_RGBA));
-        texture_format depth_buffer_format = *ranges::find_if(texture_formats, equal_on(&texture_format::components, (GLenum) GL_DEPTH_COMPONENT));
+        texture_format color_buffer_format = texture_format_RGBA8;
+        texture_format depth_buffer_format = texture_format_DEPTH32F;
 
         std::size_t num_mipmap_levels = 4;
     };

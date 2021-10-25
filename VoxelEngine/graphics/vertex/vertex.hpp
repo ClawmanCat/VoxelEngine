@@ -51,6 +51,15 @@ namespace ve::gfx {
 
 
     namespace vertex_types {
+        // Used for multi-pass rendering on stages that have no vertex inputs.
+        struct no_vertex {
+            static const auto& get_vertex_layout(void) {
+                const static std::array<vertex_attribute, 0> result { };
+                return result;
+            }
+        };
+
+
         template <std::size_t N> struct color_vertex {
             vec<N, float> position;
             vec4ub color;

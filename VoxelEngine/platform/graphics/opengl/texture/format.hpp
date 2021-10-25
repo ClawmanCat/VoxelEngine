@@ -23,8 +23,11 @@ namespace ve::gfx::opengl {
         texture_format { GL_RG,              GL_RG8,                 2,  16, { 8,  8,  0,  0  } },
         texture_format { GL_RGB,             GL_RGB8,                3,  24, { 8,  8,  8,  0  } },
         texture_format { GL_RGBA,            GL_RGBA8,               4,  32, { 8,  8,  8,  8  } },
-        texture_format { GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT32F,  1,  32, { 32, 0,  0,  0  } }
+        texture_format { GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT32F,  1,  32, { 32, 0,  0,  0  } },
+        texture_format { GL_RGBA,            GL_RGBA32F,             4,  32, { 32, 32, 32, 32 } }
     );
 
-    inline const auto& texture_format_RGBA8 = *ranges::find_if(texture_formats, equal_on(&texture_format::pixel_format, GL_RGBA8));
+    inline const auto& texture_format_RGBA8    = texture_formats[3];
+    inline const auto& texture_format_DEPTH32F = texture_formats[4];
+    inline const auto& texture_format_RGBA32F  = texture_formats[5];
 }

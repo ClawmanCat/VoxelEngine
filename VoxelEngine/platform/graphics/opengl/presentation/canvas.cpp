@@ -5,7 +5,10 @@
 namespace ve::gfx::opengl {
     canvas::canvas(window* owner, present_mode_t mode) :
         render_target(
-            std::vector { framebuffer_attachment::COLOR_BUFFER, framebuffer_attachment::DEPTH_BUFFER },
+            std::vector {
+                framebuffer_attachment { "color", framebuffer_attachment::COLOR_BUFFER },
+                framebuffer_attachment { "depth", framebuffer_attachment::DEPTH_BUFFER }
+            },
             [owner] { return window_helpers::get_canvas_size(owner->get_handle()); },
             // The fact that targets are shared resources provides a lifetime issue:
             // there is no way to force users to give up their references once a window has closed.

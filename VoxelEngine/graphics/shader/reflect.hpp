@@ -36,6 +36,8 @@ namespace ve::gfx::reflect {
         std::size_t location;
         std::size_t binding;
 
+        attribute(void) = default;
+
         attribute(shader_object&& obj, std::size_t location, std::size_t binding) :
             shader_object(std::move(obj)), location(location), binding(binding)
         {}

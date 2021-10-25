@@ -20,8 +20,8 @@
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform.hpp>
-#include <VoxelEngine/platform/graphics/opengl/uniform/uniform_bind_state.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_buffer.hpp>
+#include <VoxelEngine/platform/graphics/opengl/uniform/uniform_manager.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_storage.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/debug.hpp>

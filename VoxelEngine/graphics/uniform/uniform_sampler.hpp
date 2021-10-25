@@ -17,4 +17,27 @@ namespace ve::gfx {
         virtual texture_list get_uniform_textures(void) const = 0;
         virtual std::string get_uniform_name(void) const = 0;
     };
+
+
+    // Simple wrapper around a texture to make it a uniform sampler.
+    struct named_texture : public uniform_sampler {
+        shared<gfxapi::texture> texture;
+        std::string name;
+
+
+        named_texture(shared<gfxapi::texture> texture, std::string name) :
+            texture(std::move(texture)),
+            name(std::move(name))
+        {}
+
+
+        texture_list get_uniform_textures(void) const override {
+            return { texture };
+        }
+
+
+        std::string get_uniform_name(void) const override {
+            return name;
+        }
+    };
 }

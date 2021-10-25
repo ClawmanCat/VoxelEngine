@@ -2,11 +2,6 @@
 #include "common.util.glsl"
 
 
-// Coeficient for the logarithmic depth buffer.
-// (Normally based on the far plane, but since we have infinite perspective, just use a sufficiently large number.)
-const float f_coef = 2.0f / log2(1e9f + 1.0f);
-
-
 layout (std140) uniform U_Camera {
     Camera camera;
 };

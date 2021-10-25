@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/platform/graphics/opengl/uniform/uniform_bind_state.hpp>
+#include <VoxelEngine/platform/graphics/opengl/uniform/uniform_manager.hpp>
 
 
 namespace ve::gfx::opengl {
@@ -10,7 +10,7 @@ namespace ve::gfx::opengl {
 
 
     struct render_context {
-        uniform_bind_state uniform_state;
+        uniform_manager uniform_state;
 
         // In the case of multipass rendering, each renderpass will be pushed on top of the overarching pipeline.
         std::stack<const pipeline*> pipelines;

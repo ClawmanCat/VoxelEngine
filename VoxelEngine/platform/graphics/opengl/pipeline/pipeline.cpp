@@ -8,16 +8,15 @@ namespace ve::gfx::opengl {
     void single_pass_pipeline::draw(const draw_data& data) {
         if (!get_target()->requires_rendering_this_frame()) return;
 
-
         data.ctx->pipelines.push(this);
         data.ctx->renderpass = this;
 
-        get_target()->bind();
         shader->bind(*data.ctx);
+        get_target()->bind();
         bind_settings();
 
 
-        if (data.ctx->uniform_state.requires_value(data.lighting_target)) {
+        if (shader->has_uniform(data.lighting_target)) {
             // For single-pass shading, treat lights as uniforms.
             // TODO: Handle variable number of lights better.
             lighting_data<> lights {
@@ -32,13 +31,10 @@ namespace ve::gfx::opengl {
         }
 
 
-        uniform_storage::push(data.ctx->uniform_state);
+        data.ctx->uniform_state.push_uniforms(this);
+        for (const auto& buffer : data.buffers) buffer->draw(*data.ctx);
+        data.ctx->uniform_state.pop_uniforms();
 
-        for (const auto& buffer : data.buffers) {
-            buffer->draw(*data.ctx);
-        }
-
-        uniform_storage::pop(data.ctx->uniform_state);
 
         data.ctx->renderpass = nullptr;
         data.ctx->pipelines.pop();
@@ -49,7 +45,7 @@ namespace ve::gfx::opengl {
         std::array gl_toggles { glDisable, glEnable };
 
 
-        // Note: OpenGL handles the primitive topology on a per-buffer basis,
+        // Note: OpenGL handles the primitive topology on a per-drawcall basis,
         // so that setting does not need to be set here.
         glPolygonMode(GL_FRONT_AND_BACK, (GLenum) settings.polygon_mode);
         glFrontFace((GLenum) settings.cull_direction);

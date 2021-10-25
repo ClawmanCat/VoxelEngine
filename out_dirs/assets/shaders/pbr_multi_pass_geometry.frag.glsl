@@ -4,12 +4,13 @@
 #include "common.util.glsl"
 
 
-// Coeficient for the logarithmic depth buffer.
-// (Normally based on the far plane, but since we have infinite perspective, just use a sufficiently large number.)
-const float f_coef = 2.0 / log2(1e9 + 1.0);
-
+// Should be large enough for the number of lights used.
+// TODO: Use shader preprocessor to dynamically recompile with actual value.
+const int num_lights = 32;
 
 layout (std140) uniform U_Lighting {
+    Light lights[num_lights];
+    uint num_populated_lights;
     vec3 ambient_light;
 };
 
@@ -49,7 +50,7 @@ void main() {
 
 
     g_material = texture(textures[frag_tex_index], frag_uv_material);
-    float occlusion = material.b;
+    float occlusion = g_material.b;
 
 
     g_color = texture(textures[frag_tex_index], frag_uv_color);

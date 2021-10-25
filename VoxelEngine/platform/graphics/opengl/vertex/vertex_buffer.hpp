@@ -21,10 +21,10 @@ namespace ve::gfx::opengl {
         inline auto raii_bind_uniforms(const uniform_storage& self, render_context& ctx) {
             return raii_function {
                 [&] {
-                    self.push(ctx.uniform_state);
-                    ctx.uniform_state.bind_state(ctx.renderpass->get_shader()->get_id());
+                    ctx.uniform_state.push_uniforms(&self);
+                    ctx.uniform_state.bind_uniforms_for_shader(ctx.renderpass->get_shader().get());
                 },
-                [&] { self.pop(ctx.uniform_state); }
+                [&] { ctx.uniform_state.pop_uniforms(); }
             };
         }
     }
@@ -62,8 +62,9 @@ namespace ve::gfx::opengl {
 
 
         void draw(render_context& ctx) const override {
-            auto uniform_raii = detail::raii_bind_uniforms(*this, ctx);
+            ctx.uniform_state.push_uniforms(this);
             for (const auto& [id, buffer] : buffers) buffer->draw(ctx);
+            ctx.uniform_state.pop_uniforms();
         }
 
 

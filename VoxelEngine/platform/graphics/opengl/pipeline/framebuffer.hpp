@@ -10,9 +10,35 @@
 
 
 namespace ve::gfx::opengl {
-    enum class framebuffer_attachment : GLenum {
-        COLOR_BUFFER = GL_COLOR_ATTACHMENT0,
-        DEPTH_BUFFER = GL_DEPTH_ATTACHMENT
+    class framebuffer;
+
+
+    struct framebuffer_attachment {
+        enum type_t { COLOR_BUFFER = GL_COLOR_ATTACHMENT0, DEPTH_BUFFER = GL_DEPTH_ATTACHMENT };
+
+
+        // Note: attachment names are only used to fetch the attachment from the framebuffer
+        // and need not correspond to the output value names of the shader rendering to them.
+        std::string name;
+        type_t type;
+        const texture_format* format;
+
+
+        explicit framebuffer_attachment(std::string name, type_t type = COLOR_BUFFER, const texture_format* fmt = nullptr) :
+            name(std::move(name)), type(type)
+        {
+            if (!fmt) {
+                fmt = (type == COLOR_BUFFER)
+                    ? &get_context()->settings.color_buffer_format
+                    : &get_context()->settings.depth_buffer_format;
+            }
+
+            format = fmt;
+        }
+
+    private:
+        friend class framebuffer;
+        u8 attachment_index = 0;
     };
 
 
@@ -36,11 +62,8 @@ namespace ve::gfx::opengl {
             std::size_t num_color_attachments = 0;
             bool has_depth_attachment = false;
 
-            for (const auto& attachment : attachment_templates) {
-                GLenum attachment_type    = (GLenum) attachment;
-                const texture_format* fmt = nullptr;
-
-                if (attachment == framebuffer_attachment::COLOR_BUFFER) {
+            for (auto& attachment : attachment_templates) {
+                if (attachment.type == framebuffer_attachment::COLOR_BUFFER) {
                     const static u32 color_attachment_limit = (u32) gl_get<i32>(GL_MAX_COLOR_ATTACHMENTS);
 
                     VE_ASSERT(
@@ -48,27 +71,29 @@ namespace ve::gfx::opengl {
                         "Framebuffer may have at most", color_attachment_limit, "color attachments."
                     );
 
-                    attachment_type += num_color_attachments;
-                    fmt = &(get_context()->settings.color_buffer_format);
-
+                    attachment.attachment_index = num_color_attachments;
                     ++num_color_attachments;
                 } else {
                     VE_ASSERT(
                         !std::exchange(has_depth_attachment, true),
                         "Framebuffer may have at most one depth attachment."
                     );
-
-                    fmt = &(get_context()->settings.depth_buffer_format);
                 }
 
 
                 auto [it, success] = this->attachments.emplace(
-                    attachment_type,
-                    texture::create(*fmt, prev_size, 1)
+                    attachment.name,
+                    texture::create(*attachment.format, prev_size, 1)
                 );
 
 
-                glFramebufferTexture2D(GL_FRAMEBUFFER, attachment_type, GL_TEXTURE_2D, it->second->get_id(), 0);
+                glFramebufferTexture2D(
+                    GL_FRAMEBUFFER,
+                    (GLenum) attachment.type + attachment.attachment_index,
+                    GL_TEXTURE_2D,
+                    it->second->get_id(),
+                    0
+                );
             }
         }
 
@@ -89,6 +114,15 @@ namespace ve::gfx::opengl {
             }
 
             glBindFramebuffer(GL_FRAMEBUFFER, id);
+
+            std::vector<GLenum> draw_buffers;
+            for (const auto& attachment : attachment_templates) {
+                if (attachment.type == framebuffer_attachment::COLOR_BUFFER) {
+                    draw_buffers.push_back((GLenum) attachment.type + attachment.attachment_index);
+                }
+            }
+
+            glDrawBuffers(draw_buffers.size(), draw_buffers.data());
         }
 
 
@@ -100,7 +134,7 @@ namespace ve::gfx::opengl {
         GLuint id = 0;
 
         std::vector<framebuffer_attachment> attachment_templates;
-        vec_map<GLenum, shared<texture>> attachments;
+        vec_map<std::string, shared<texture>> attachments;
 
         // The texture validator returns the size each texture should have before the next draw call.
         std::function<vec2ui(void)> texture_validator;
@@ -110,15 +144,22 @@ namespace ve::gfx::opengl {
         void rebuild_attachments(void) {
             glBindFramebuffer(GL_FRAMEBUFFER, id);
 
-            for (auto& [type, old_attachment] : attachments) {
+            for (auto [old_attachment, attachment_template] : views::zip(attachments, attachment_templates)) {
                 auto new_attachment = texture::create(
-                    old_attachment->get_format(),
+                    old_attachment.second->get_format(),
                     prev_size,
-                    old_attachment->get_mipmap_levels()
+                    old_attachment.second->get_mipmap_levels()
                 );
 
-                glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, new_attachment->get_id(), 0);
-                std::swap(old_attachment, new_attachment);
+                glFramebufferTexture2D(
+                    GL_FRAMEBUFFER,
+                    (GLenum) attachment_template.type + attachment_template.attachment_index,
+                    GL_TEXTURE_2D,
+                    new_attachment->get_id(),
+                    0
+                );
+
+                std::swap(old_attachment.second, new_attachment);
             }
         }
     };
