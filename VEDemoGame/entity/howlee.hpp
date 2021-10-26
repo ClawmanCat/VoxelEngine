@@ -42,6 +42,15 @@ namespace demo_game {
             // we could just re-use the buffer for every entity.
             this->mesh = make_howlee_mesh();
             this->type = ve::cheaprand::random_int(0, 1) ? howlee_type::NORMAL : howlee_type::BUILDER;
+
+
+            // Some Howlees will emit light.
+            if (ve::cheaprand::random_real() < 0.05f) {
+                ve::vec3f color = { ve::cheaprand::random_real(), ve::cheaprand::random_real(), ve::cheaprand::random_real() };
+                color *= ve::cheaprand::random_real(10.0f, 25.0f);
+
+                set(ve::light_component { .radiance = color, .attenuation = 2.0f });
+            }
         }
 
 

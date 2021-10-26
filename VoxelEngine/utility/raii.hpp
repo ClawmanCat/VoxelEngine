@@ -29,4 +29,18 @@ namespace ve {
         T value;
         Destruct destruct;
     };
+
+
+    class raii_tasks {
+    public:
+        ~raii_tasks(void) {
+            for (const auto& task : tasks | views::reverse) task();
+        }
+
+        void add_task(std::function<void(void)> task) {
+            tasks.push_back(std::move(task));
+        }
+    private:
+        std::vector<std::function<void(void)>> tasks;
+    };
 }

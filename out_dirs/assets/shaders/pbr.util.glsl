@@ -38,3 +38,17 @@ float geometry_smith(vec3 normal, float eye_alignment, float light_alignment, fl
 vec3 fresnel_schlick(float light_alignment, vec3 reflection_at_zero) {
     return reflection_at_zero + (1.0 - reflection_at_zero) * pow(clamp(1.0 - light_alignment, 0.0, 1.0), 5.0);
 }
+
+
+vec4 SRGB_to_linear(vec4 color) {
+    return vec4(pow(color.rgb, vec3(2.2)), color.a);
+}
+
+
+
+vec4 linear_to_SRGB(vec4 color) {
+    color.rgb /= (color.rgb + vec3(1.0));
+    color.rgb = pow(color.rgb, vec3(1.0 / 2.2));
+
+    return color;
+}

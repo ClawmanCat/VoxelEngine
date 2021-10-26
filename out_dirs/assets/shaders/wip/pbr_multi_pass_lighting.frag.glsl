@@ -3,11 +3,11 @@
 #include "pbr.util.glsl"
 
 
-layout (std140, binding = 0) uniform U_Camera {
+layout (std140) uniform U_Camera {
     Camera camera;
 };
 
-layout (std140, binding = 3) uniform U_PerLightData {
+layout (std140) uniform U_PerLightData {
     Light light;
 };
 
@@ -15,10 +15,8 @@ layout (std140, binding = 3) uniform U_PerLightData {
 uniform sampler2D g_position;
 uniform sampler2D g_normal;
 uniform sampler2D g_color;
-uniform sampler2D g_color_initial;
 uniform sampler2D g_material;
 
-in vec2 uv;
 
 out vec4 l_position;
 out vec4 l_normal;
@@ -27,17 +25,22 @@ out vec4 l_material;
 
 
 void main() {
-    l_position = texture(g_position, uv);
-    l_color    = texture(g_color, uv);
-    l_normal   = texture(g_normal, uv);
-    l_material = texture(g_material, uv);
+    l_position = texture(g_position, gl_FragCoord.xy);
+    l_normal   = texture(g_normal, gl_FragCoord.xy);
+    l_color    = texture(g_color, gl_FragCoord.xy);
+    l_material = texture(g_material, gl_FragCoord.xy);
 
-    float roughness = l_material.r;
-    float metalness = l_material.g;
-    float occlusion = l_material.b;
 
-    vec3 src_color = texture(g_color_initial, uv).rgb;
-    vec3 normal = l_normal.xyz;
+    vec4 diffuse = texture(g_color, gl_FragCoord.xy);
+    if (diffuse.a == 0.0) discard; // Don't waste time shading transparent pixels.
+
+
+    vec3 normal  = texture(g_normal, gl_FragCoord.xy).xyz;
+
+    vec4 material = texture(g_material, gl_FragCoord.xy);
+    float roughness = material.r;
+    float metalness = material.g;
+    float occlusion = material.b;
 
 
     // Reflection at an incidence angle of zero.
@@ -56,7 +59,6 @@ void main() {
     vec3 halfway = normalize(eye_on_fragment + light_on_fragment);
     // Distance between the light and the fragment.
     float distance_to_light = length(light.position - l_position.xyz);
-
 
     // Attenuation is the loss of light intensity over distance.
     float attenuation = 1.0 / pow(distance_to_light, light.attenuation);
@@ -77,5 +79,6 @@ void main() {
     vec3 energy_specular = F;
     vec3 energy_diffuse  = (vec3(1.0) - F) * (1.0 - metalness);
 
-    l_color.rgb += (energy_diffuse * src_color / pi + specular) * radiance * light_alignment;
+
+    l_color.rgb += (energy_diffuse * diffuse.rgb / pi + specular) * radiance * light_alignment;
 }

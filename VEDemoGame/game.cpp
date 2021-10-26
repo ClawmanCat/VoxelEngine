@@ -60,7 +60,7 @@ namespace demo_game {
         using simple_renderer    = ve::meta::pack<render_tag_simple>;
         using pbr_renderer       = ve::meta::pack<render_tag_pbr>;
 
-        //game::client.add_system(ve::system_renderer<component_uniforms, simple_renderer> { simple_pipeline });
+        game::client.add_system(ve::system_renderer<component_uniforms, simple_renderer> { simple_pipeline });
         game::client.add_system(ve::system_renderer<component_uniforms, pbr_renderer> { pbr_pipeline });
         game::client.add_system(ve::system_updater<> { });
         game::client.add_system(ve::system_physics<> { });

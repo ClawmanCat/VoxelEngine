@@ -91,6 +91,8 @@ namespace ve {
                 });
             }
 
+            VE_LOG_WARN(cat(data.lights.size()));
+
 
             data.ambient_light = lighting.ambient_light;
             data.lighting_target = lighting.uniform_name;
