@@ -6,7 +6,7 @@ A game engine for voxel games, written in C++.
 On Windows, MSVC is required to compile the dependencies, since many libraries incorrectly assume 
 either `Windows = MSVC` or `Clang = Linux / OSX`. This is handled automatically by the Conan profile, 
 but you must have MSVC installed.  
-For the engine itself, any compiler (With C++20 support) should work in theory, but only Clang has been tested currently,
+For the engine itself, any compiler (With C++20 support) should work in theory, but only Clang (14.0.0) has been tested currently,
 and other compilers may lack the required C++20 features.  
 To install the dependencies, you will need Conan (`pip install conan`). 
 It is recommended to use Ninja as the generator, as other generators have not been tested.
