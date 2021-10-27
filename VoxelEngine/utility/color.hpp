@@ -1,12 +1,26 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/io/image.hpp>
 
 
 namespace ve {
-    using color = vec4ub;
-    
+    using color = RGBA8;
+
+
+    constexpr vec3f normalize_color(const color& clr) {
+        return vec3f { clr } / 255.0f;
+    }
+
+
+    // Color names match those defined by CSS.
+    // Since CSS defines GREEN as [0, 128, 0] rather than [0, 255, 0], three additional colors are provided:
+    // PURE_RED, PURE_GREEN and PURE_BLUE, which have 255 in their appropriate channel and 0 everywhere else.
     struct colors {
+        constexpr static color PURE_RED                 = { 255, 0,   0,   255 };
+        constexpr static color PURE_GREEN               = { 0,   255, 0,   255 };
+        constexpr static color PURE_BLUE                = { 0,   0,   255, 255 };
+
         constexpr static color LIGHT_SALMON             = { 255, 160, 122, 255 };
         constexpr static color SALMON                   = { 250, 128, 114, 255 };
         constexpr static color DARK_SALMON              = { 233, 150, 122, 255 };
@@ -37,7 +51,7 @@ namespace ve {
         constexpr static color LIME_GREEN               = { 50,  205, 50,  255 };
         constexpr static color LIME                     = { 0,   255, 0,   255 };
         constexpr static color FOREST_GREEN             = { 34,  139, 34,  255 };
-        constexpr static color GREEN                    = { 0,   128, 0,   255 };
+        constexpr static color GREEN                    = { 0,   255, 0,   255 };
         constexpr static color DARK_GREEN               = { 0,   100, 0,   255 };
         constexpr static color GREEN_YELLOW             = { 173, 255, 47,  255 };
         constexpr static color YELLOW_GREEN             = { 154, 205, 50,  255 };

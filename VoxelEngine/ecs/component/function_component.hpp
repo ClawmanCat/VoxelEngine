@@ -1,133 +1,42 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/traits/string_arg.hpp>
-#include <VoxelEngine/utility/traits/pack.hpp>
-#include <VoxelEngine/utility/logger.hpp>
-#include <VoxelEngine/ecs/component/component.hpp>
+#include <VoxelEngine/utility/assert.hpp>
+#include <VoxelEngine/utility/traits/dont_deduce.hpp>
+#include <VoxelEngine/utility/traits/pack/pack.hpp>
 #include <VoxelEngine/ecs/component/named_component.hpp>
-#include <VoxelEngine/side/side.hpp>
-
-#include <ctti/type_id.hpp>
-
-#include <type_traits>
 
 
 namespace ve {
-    namespace detail {
-        template <typename Ret, typename... Args>
-        inline std::string signature_string(void) {
-            std::string result;
-            
-            for (const auto& arg : { ctti::nameof<Args>()... }) result += arg.cppstring() + " ";
-            result += "=> " + ctti::nameof<Ret>().cppstring();
-            
-            return result;
-        }
-    }
-    
-    
-    struct signature {
-        ctti::type_id_t return_type;
-        small_vector<ctti::type_id_t> argument_types;
-        VE_DEBUG_ONLY(std::string signature_string);
-        
-        
-        template <typename Ret, typename... Args>
-        explicit signature(Fn<Ret, Args...>) :
-            return_type(ctti::type_id<Ret>()),
-            argument_types({ ctti::type_id<Args>()... })
-        {
-            VE_DEBUG_ONLY(signature_string = detail::signature_string<Ret, Args...>());
-        }
-        
-        
-        template <typename Ret, typename... Args>
-        explicit signature(meta::pack<Ret, Args...>) :
-            return_type(ctti::type_id<Ret>()),
-            argument_types({ ctti::type_id<Args>()... })
-        {
-            VE_DEBUG_ONLY(signature_string = detail::signature_string<Ret, Args...>());
-        }
-        
-        
-        [[nodiscard]] bool operator==(const signature& o) const {
-            if (return_type != o.return_type) return false;
-            
-            for (const auto& [my_arg, other_arg] : views::zip(argument_types, o.argument_types)) {
-                if (my_arg != other_arg) return false;
-            }
-            
-            return true;
+    class registry;
+
+
+    template <typename Ret, typename... Args> struct function_component {
+        fn<Ret, Args...> value = nullptr;
+
+
+        function_component(void) = default;
+        explicit function_component(fn<Ret, Args...> value) : value(value) {}
+
+
+        // Note: cannot use perfect forwarding here, Args is always deduced as the exact signature of the function.
+        Ret operator()(Args... args) const {
+            return value(std::move(args)...);
         }
     };
-    
-    
-    template <side Side = side::SERVER>
-    class function_component : public component<function_component<Side>, Side, component_serialization_mode::BINARY> {
-    public:
-        template <typename Ret, typename... Args>
-        explicit function_component(Fn<Ret, Args...> fn) :
-            fn_signature(fn),
-            fn_pointer((void*) fn)
-        {}
-    
-        
-        // Automatic deduction of Args is prevented here since it is very easy to pass T& instead of T, or vice versa.
-        template <typename Ret, typename... Args>
-        Ret invoke_unchecked(dont_deduce<Args> auto... args) const {
-            return ((Fn<Ret, Args...>) fn_pointer)(std::forward<Args>(args)...);
-        }
-    
-    
-        // Automatic deduction of Args is prevented here since it is very easy to pass T& instead of T, or vice versa.
-        template <typename Ret, typename... Args>
-        Ret invoke_checked(dont_deduce<Args> auto... args) const {
-            VE_DEBUG_ONLY(
-                auto sigstring = detail::signature_string<Ret, Args...>();
-                
-                VE_ASSERT(
-                    (fn_signature == signature { meta::pack<Ret, Args...>{ } }),
-                    "Attempt to call function component with invalid return type or arguments:\n"s +
-                    "expected " + fn_signature.signature_string + ", got " + sigstring + "."
-                );
-            );
-    
-            VE_RELEASE_ONLY(
-                VE_ASSERT(
-                    (fn_signature == signature { meta::pack<Ret, Args...>{ } }),
-                    "Attempt to call function component with invalid return type or arguments."
-                );
-            );
-            
-            
-            return invoke_unchecked<Ret, Args...>(std::forward<Args>(args)...);
-        }
-    
-    
-        // Automatic deduction of Args is prevented here since it is very easy to pass T& instead of T, or vice versa.
-        template <typename Ret, typename... Args>
-        Ret operator()(dont_deduce<Args> auto... args) const {
-            VE_DEBUG_ONLY(invoke_checked<Ret, Args...>(std::forward<Args>(args)...));
-            VE_RELEASE_ONLY(invoke_unchecked<Ret, Args...>(std::forward<Args>(args)...));
-        }
-        
-    
-        [[nodiscard]] std::vector<u8> to_bytes(void) const {
-            // TODO: ID Lookup
-        }
-        
-    
-        static function_component<Side> from_bytes(std::span<u8> bytes) {
-            // TODO: ID Lookup
-        }
-        
-    private:
-        signature fn_signature;
-        void* fn_pointer;
+
+
+    // Systems should consider having their associated function component include the invocation context as the first parameter,
+    // so static function components can be invoked through said systems as well.
+    struct invocation_context {
+        registry* registry;
+        entt::entity entity;
     };
-    
-    
-    template <meta::string_arg Name, side Side>
-    using named_function_component = named_component<Name, function_component<Side>>;
+
+
+    template <meta::string_arg Name, typename Ret, typename... Args>
+    using named_function_component = named_component<Name, function_component<Ret, Args...>>;
+
+
+    using update_component = named_function_component<"update", void, const invocation_context&, nanoseconds>;
 }

@@ -1,64 +1,64 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/utility.hpp>
+#include <VoxelEngine/platform/graphics/opengl/shader/shader.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_storage.hpp>
-#include <VoxelEngine/platform/graphics/opengl/buffer/buffer.hpp>
-#include <VoxelEngine/platform/graphics/opengl/shader/shader_program.hpp>
-#include <VoxelEngine/ecs/system/system.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/settings.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/target.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/category.hpp>
+#include <VoxelEngine/graphics/lighting/light_source.hpp>
+#include <VoxelEngine/utility/assert.hpp>
 
 
-namespace ve::graphics {
+namespace ve::gfx::opengl {
+    class vertex_buffer;
+    struct render_context;
+
+
     class pipeline : public uniform_storage {
     public:
-        pipeline(void) = default;
+        struct draw_data {
+            std::vector<const vertex_buffer*> buffers;
+
+            std::string lighting_target;
+            std::vector<light_source> lights;
+            vec3f ambient_light;
+
+            render_context* ctx;
+        };
+
+
+        explicit pipeline(const pipeline_category_t* type, shared<render_target> target) :
+            type(type), target(std::move(target))
+        {}
+
         virtual ~pipeline(void) = default;
-        
-        ve_move_only(pipeline);
-        
-        
-        virtual void draw(void) = 0;
-        
-        virtual void add_buffer(shared<shader_program>&& shader, shared<buffer>&& buffer) = 0;
-        virtual void clear(void) = 0;
-    };
-    
-    
-    class simple_pipeline : public pipeline {
+        virtual void draw(const draw_data& data) = 0;
+
+    private:
+        const pipeline_category_t* type;
+        shared<render_target> target;
+
     public:
-        void draw(void) override {
-            for (auto& [shader, buffers_for_shader] : buffers) {
-                shader->bind();
-                
-                context ctx {
-                    .current_program   = shader->get_id(),
-                    .next_texture_unit = 0
-                };
-                
-                bind_uniforms(ctx);
-                
-                for (auto& buffer : buffers_for_shader) {
-                    context last_ctx = ctx;
-                    buffer->draw(ctx);
-                    ctx = last_ctx;
-                }
-            }
-        }
-        
-        
-        void add_buffer(shared<shader_program>&& shader, shared<buffer>&& buffer) override {
-            buffers[std::move(shader)].push_back(std::move(buffer));
-        }
-        
-        
-        void clear(void) override {
-            // Keep existing allocations to reduce new allocations on next iteration.
-            for (auto& [shader, shader_buffers] : buffers) shader_buffers.clear();
-        }
-    protected:
-        hash_map<
-            shared<shader_program>,
-            std::vector<shared<buffer>>
-        > buffers;
+        VE_GET_VAL(type);
+        VE_GET_SET_CREF(target);
+    };
+
+
+    class single_pass_pipeline : public pipeline {
+    public:
+        single_pass_pipeline(shared<render_target> target, shared<class shader> shader, pipeline_settings settings = {})
+            : pipeline(shader->get_category(), std::move(target)), settings(std::move(settings)), shader(std::move(shader))
+        {}
+
+        void draw(const draw_data& data) override;
+
+        VE_GET_MREF(settings);
+        VE_GET_CREF(shader);
+    private:
+        pipeline_settings settings;
+        shared<class shader> shader;
+
+        void bind_settings(void);
     };
 }

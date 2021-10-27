@@ -1,182 +1,128 @@
 #pragma once
 
-#include <VEDemoGame/core/core.hpp>
 #include <VEDemoGame/game.hpp>
-#include <VEDemoGame/tile/tiles.hpp>
+#include <VEDemoGame/component/render_tag.hpp>
+#include <VEDemoGame/entity/world.hpp>
 
+#include <VoxelEngine/ecs/ecs.hpp>
+#include <VoxelEngine/graphics/graphics.hpp>
 #include <VoxelEngine/voxel/voxel.hpp>
-#include <VoxelEngine/voxel/tile/tile.hpp>
-#include <VoxelEngine/utility/distance.hpp>
+#include <VoxelEngine/utility/io/paths.hpp>
 #include <VoxelEngine/utility/random.hpp>
+
+#include <magic_enum.hpp>
 
 
 namespace demo_game {
-    class howlee : public ve::entity<howlee, ve::side::CLIENT> {
+    inline ve::mesh_component make_howlee_mesh(void) {
+        auto texture = game::get_texture_manager()->get_or_load(ve::io::paths::PATH_ENTITY_TEXTURES / "howlee.png");
+        auto buffer  = ve::gfx::textured_quad(ve::vec2f { 1.0f }, texture);
+
+        return ve::mesh_component { std::move(buffer) };
+    }
+
+
+
+    class howlee : public ve::static_entity {
     public:
-        enum type { NORMAL, ASIMOV, BAD };
-        
-        
-        using base = ve::entity<howlee, ve::side::CLIENT>;
-        using base::base;
-        
-        
-        void init(void) {
-            using vertex = gfx::flat_texture_vertex_3d;
-            
-            ve::u32 id = ve::u32(get_id());
-            if ((id + 0) % 50  == 0) howlee_type = ASIMOV;
-            if ((id + 1) % 100 == 0) howlee_type = BAD;
-            
-            
-            gfx::subtexture texture = *ve::voxel_settings::tile_texture_manager.get_texture(
-                ve::io::paths::PATH_ENTITY_TEXTURES /
-                (howlee_type == NORMAL ? "howlee.png"s :
-                    howlee_type == ASIMOV ? "asimov.png"s : "bad_howlee.png"s)
-            );
-            
-            
-            auto uv = texture.uv;
-            auto sz = texture.size;
-            
-            std::vector<vertex> vertices {
-                vertex { .position = { -0.5, 0, 0 }, .uv = uv + ve::vec2f { 0, 1 } * sz, .tex_index = texture.index  },
-                vertex { .position = { -0.5, 1, 0 }, .uv = uv + ve::vec2f { 0, 0 } * sz, .tex_index = texture.index  },
-                vertex { .position = { +0.5, 0, 0 }, .uv = uv + ve::vec2f { 1, 1 } * sz, .tex_index = texture.index  },
-                vertex { .position = { +0.5, 1, 0 }, .uv = uv + ve::vec2f { 1, 0 } * sz, .tex_index = texture.index  }
-            };
-            
-            std::vector<ve::u32> indices { 0, 2, 3, 0, 3, 1 };
-            
-            auto buffer = std::make_shared<gfx::indexed_vertex_buffer<vertex, ve::u32>>(
-                vertices, indices
-            );
-            
-            mesh.buffers.push_back(gfx::shader_buffer_pair {
-                gfx::shader_library::instance().get_shader("atlas_texture_3d"s),
-                std::move(buffer)
-            });
+        constexpr static inline float howlee_speed      = 3.5f;
+        constexpr static inline float howlee_fall_speed = 10.0f;
+        constexpr static inline float howlee_fall_accel = 5.0f;
+        constexpr static inline float height_off_ground = 0.65f;
+        constexpr static inline float redirect_chance   = 0.2f;
+        constexpr static inline float build_chance      = 0.025f;
+        constexpr static inline float epsilon           = 1e-6f;
+
+        enum class howlee_type { NORMAL, BUILDER };
+
+
+        explicit howlee(ve::registry& registry, class world* world) : ve::static_entity(registry), world(world) {
+            // TODO: Replace this with instanced rendering once it is supported.
+            // Alternatively, if the renderer were to push uniforms into its own storage layer rather than that of the mesh,
+            // we could just re-use the buffer for every entity.
+            this->mesh = make_howlee_mesh();
+            this->type = ve::cheaprand::random_int(0, 1) ? howlee_type::NORMAL : howlee_type::BUILDER;
+
+
+            // Some Howlees will emit light.
+            static std::size_t emissive_howlees = 0;
+
+            if (emissive_howlees < 128 && ve::cheaprand::random_real() < (1.0f / 32.0f)) {
+                ve::vec3f color = { ve::cheaprand::random_real(), ve::cheaprand::random_real(), ve::cheaprand::random_real() };
+                color *= ve::cheaprand::random_real(25.0f, 50.0f);
+
+                set(ve::light_component { .radiance = color, .attenuation = 2.0f });
+                ++emissive_howlees;
+            }
         }
-        
-        
-        void VE_FUNCTION_COMPONENT(update, SERVER, ve::microseconds dt) {
-            using namespace ve;
 
-            const float dt_seconds    = (float(dt.count()) / 1e6f);
-            const float velocity      = 3.5f;
-            const float random        = cheaprand::random_real();
-            const float change_chance = 0.25f * dt_seconds;
-            const bool  change_dir    = random < change_chance;
-            
-            
-            // Randomly change direction.
-            if (!falling && change_dir) {
-                const float random_dir = random * (1.0f / change_chance);
-                
-                direction dir;
-                if      (random_dir < 0.25f) dir = direction::NORTH;
-                else if (random_dir < 0.50f) dir = direction::SOUTH;
-                else if (random_dir < 0.75f) dir = direction::EAST;
-                else                         dir = direction::WEST;
-                
-                transform.linear_velocity = velocity * (vec3f) direction_vector(dir);
-            }
-            
-            
-            // Randomly jump.
-            if (!falling) {
-                const float random_jump = cheaprand::random_real();
-                const float jump_chance = 0.002f * dt_seconds;
-                const bool  jump        = random_jump < jump_chance;
-                
-                if (jump) {
-                    transform.linear_velocity.y += cheaprand::random_real(5.0f, 20.0f);
-                    
-                    transform.linear_velocity.x += cheaprand::random_real(-10.0f, 10.0f);
-                    transform.linear_velocity.z += cheaprand::random_real(-10.0f, 10.0f);
-                    return;
-                }
-            }
-            
-            
-            // Stop if moving would cause collision.
-            for (const auto& axis : std::array { &vec3f::x, &vec3f::z }) {
-                vec3f velocity_axis { 0 };
-                velocity_axis.*axis = transform.linear_velocity.*axis;
-                
-                auto target = game::world->voxels.get_tile(
-                    ve::tilepos { transform.position + velocity_axis }
-                );
-    
-                bool axis_free = target == ve::tiles::TILE_VOID || target == ve::tiles::TILE_UNKNOWN;
-                transform.linear_velocity.*axis *= axis_free;
+
+        void VE_COMPONENT_FN(update)(ve::nanoseconds dt) {
+            const float dt_seconds = float(dt.count()) / 1e9f;
+
+
+            auto tile_at = [&] (const auto& pos) { return world->space.get_state(ve::voxel::tilepos { pos }).tile; };
+
+            auto current_tile = tile_at(transform.position);
+            auto standing_on  = tile_at(transform.position - ve::vec3f { 0, 1, 0 });
+
+
+            // Distance to ground assuming the tile below us is solid.
+            const float distance_to_ground = transform.position.y - std::floor(transform.position.y);
+
+
+            // If we're inside a tile, move up.
+            if (current_tile->is_solid()) {
+                motion.linear_velocity.y += howlee_fall_speed * dt_seconds;
             }
 
-            
-            // Fall if there is no tile below us.
-            falling = true;
-            
-            for (float dx : std::array { -0.5f, +0.5f }) {
-                falling &= one_of(
-                    game::world->voxels.get_tile(
-                        ve::tilepos { transform.position + vec3f { dx, -1, 0 } }
-                    ),
-                    ve::tiles::TILE_VOID,
-                    ve::tiles::TILE_UNKNOWN
-                );
+            // If we're not on solid ground, fall down.
+            else if (distance_to_ground > height_off_ground || !standing_on->is_solid()) {
+                motion.linear_velocity.y -= howlee_fall_accel * dt_seconds;
+                if (motion.linear_velocity.y < -howlee_fall_speed) motion.linear_velocity.y = -howlee_fall_speed;
             }
-            
-            if (falling) {
-                if (transform.linear_velocity.y > -9.81f) {
-                    transform.linear_velocity.y -= 9.81f * dt_seconds;
-                    transform.linear_velocity.x *= std::pow(0.5f, dt_seconds);
-                    transform.linear_velocity.z *= std::pow(0.5f, dt_seconds);
+
+            else {
+                // Otherwise, randomly move around.
+                if (ve::cheaprand::random_real() < redirect_chance * dt_seconds) {
+                    constexpr std::array walk_directions {
+                        ve::direction::BACKWARD,
+                        ve::direction::FORWARD,
+                        ve::direction::LEFT,
+                        ve::direction::RIGHT
+                    };
+
+                    auto direction = ve::cheaprand::random_element(walk_directions);
+                    motion.linear_velocity = ve::vec3f { direction } * howlee_speed;
                 }
-            } else {
-                transform.linear_velocity.y = 0;
-            }
-            
-            
-            // Special Howlees can destroy tiles.
-            if (howlee_type == ASIMOV && !falling) {
-                const float destroy_random = cheaprand::random_real();
-                const float destroy_chance = 0.01f * dt_seconds;
-                const bool  destroy        = destroy_random < destroy_chance;
-                
-                if (destroy) {
-                    distance_functions::euclidean<tilepos> fn;
-                    auto center = tilepos { transform.position - vec3f { 0.f, 0.5f, 0.f } };
-                    
-                    spatial_iterate(
-                        center,
-                        tilepos { 5 },
-                        [&](const auto& pos) {
-                            if (fn.within(pos, center, 5)) {
-                                game::world->voxels.set_tile(pos, tiles::TILE_VOID);
-                            }
-                        }
+
+
+                // Don't walk into tiles.
+                auto heading_to = tile_at(transform.position + (motion.linear_velocity * dt_seconds));
+                if (heading_to->is_solid()) motion.linear_velocity = ve::vec3f { 0 };
+
+
+                // And randomly build if this is a builder Howlee.
+                if (type == howlee_type::BUILDER && ve::cheaprand::random_real() < build_chance * dt_seconds) {
+                    world->space.set_state(
+                        ve::voxel::tilepos { transform.position },
+                        ve::voxel::tile_state { .tile = tiles::TILE_BRICK, .meta = 0 }
                     );
-                }
-            }
-            
-            
-            // Bad howlees can build
-            if (howlee_type == BAD && !falling) {
-                const float build_random = cheaprand::random_real();
-                const float build_chance = 0.5f * dt_seconds;
-                const bool  build        = build_random < build_chance;
-                
-                if (build) {
-                    game::world->voxels.set_tile((tilepos) transform.position, tile_stone);
-                    transform.position.y += 1;
-                    transform.linear_velocity = vec3f { 0 };
+
+                    motion.linear_velocity = ve::vec3f { 0 };
+                    transform.position.y += 1.0f;
                 }
             }
         }
 
 
-        ve::renderable_component VE_COMPONENT(mesh);
-        ve::transform_component VE_COMPONENT(transform);
-        bool VE_COMPONENT(falling, SERVER, NONE) = false;
-        type VE_COMPONENT(howlee_type, SERVER, NONE) = NORMAL;
+        ve::transform_component VE_COMPONENT(transform) = ve::transform_component { };
+        ve::motion_component VE_COMPONENT(motion) = ve::motion_component { };
+        ve::mesh_component VE_COMPONENT(mesh) = ve::mesh_component { };
+        render_tag_simple VE_COMPONENT(render_tag) = render_tag_simple { };
+
+    private:
+        class world* world;
+        howlee_type type;
     };
 }

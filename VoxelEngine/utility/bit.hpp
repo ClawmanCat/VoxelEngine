@@ -6,53 +6,40 @@
 
 
 namespace ve {
-    constexpr inline std::size_t next_aligned_address(std::size_t address, std::size_t alignment) {
-        return ((address / alignment) + 1) * alignment;
+    template <typename T> requires std::is_unsigned_v<T>
+    constexpr u8 msb(T value) {
+        return (8 * sizeof(T)) - std::countl_zero(value);
     }
     
     
-    template <typename T>
-    constexpr inline u8 least_significant_bit(T value) {
-        #if defined(VE_COMPILER_CLANG) || defined(VE_COMPILER_GCC)
-            return __builtin_ctz(value);
-        #else
-            // Adapted from:
-            // Leiserson, C. E., Prokop, H., & Randall, K. H. (1998).
-            // Using de Bruijn sequences to index a 1 in a computer word.
-            
-            if constexpr (sizeof(T) > sizeof(u32)) {
-                static_assert(sizeof(T) == sizeof(u64));
-                
-                u8 high = least_significant_bit((u32) ((value & 0xFFFFFFFF00000000) >> 32));
-                u8 low  = least_significant_bit((u32)  (value & 0x00000000FFFFFFFF));
-                
-                constexpr u8 mask[2] = { 0xFF, 0X00 };
-                return low + ((high + 32) & mask[low > 0]);
-            } else {
-                constexpr u8 positions[32] = {
-                    0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
-                    31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
-                };
-            
-                #pragma warning(suppress : 4146) // Unary minus on unsigned type.
-                return positions[((u32)((value & -value) * 0x077CB531U)) >> 27];
-            }
-        #endif
+    template <typename T> requires std::is_unsigned_v<T>
+    constexpr u8 lsb(T value) {
+        return std::countr_zero(value);
     }
-    
-    
-    template <typename T> requires std::is_integral_v<T>
-    constexpr static u8 popcount(T val) {
-        #if defined(VE_WINDOWS) && defined(VE_COMPILER_CLANG)
-            return __builtin_popcount(val);
-        #else
-            return std::popcount(val);
-        #endif
+
+
+    // Sets the first N bits to one.
+    template <typename T> T set_n_bits(u8 count) {
+        T result = 0;
+        for (u8 i = 0; i < count; ++i) result |= (1 << i);
+        return result;
     }
-    
-    
-    template <typename T> requires std::is_integral_v<T>
-    constexpr static bool power_of_2(T val) {
-        return popcount(val) == 1;
+
+
+    // Gets the next address that is divisible by alignment.
+    // If the current address is divisible by alignment, it is returned.
+    // Note: alignment must be a power of two!
+    constexpr std::size_t next_aligned_address(std::size_t address, std::size_t alignment) {
+        std::size_t offset = address & (alignment - 1);
+        return (address - offset) + (alignment * std::size_t(offset != 0));
+    }
+
+
+    template <typename Ctr> requires (std::is_trivial_v<typename Ctr::value_type> && std::contiguous_iterator<typename Ctr::iterator>)
+    constexpr std::span<const u8> to_byte_span(const Ctr& ctr) {
+        return std::span<const u8> {
+            reinterpret_cast<const u8*>(&*ctr.begin()),
+            ctr.size() * sizeof(typename Ctr::value_type)
+        };
     }
 }

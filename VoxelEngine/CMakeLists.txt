@@ -1,5 +1,10 @@
 include(create_target)
-include(single_include_generator)
+include(generate_include_header)
+
+# If we use a settings header from the game, we need to link the game as well.
+if (DEFINED GAME_PRE_INCLUDE_HEADER)
+    set(VoxelEngine_AdditionalTestDependencies ${GAME_TARGET_NAME})
+endif()
 
 create_target(
     VoxelEngine
@@ -8,43 +13,42 @@ create_target(
     # Dependencies:
     PUBLIC CONAN_PKG::boost
     PUBLIC CONAN_PKG::abseil
-    PUBLIC CONAN_PKG::magic_enum
-    PUBLIC CONAN_PKG::sdl2
-    PUBLIC CONAN_PKG::glm
-    PUBLIC CONAN_PKG::glew
-    PUBLIC CONAN_PKG::ctti
-    PUBLIC CONAN_PKG::lodepng
-    PUBLIC CONAN_PKG::ctre
     PUBLIC CONAN_PKG::entt
-    PUBLIC CONAN_PKG::tl-optional
-    PUBLIC CONAN_PKG::tl-expected
+    PUBLIC CONAN_PKG::magic_enum
+    PUBLIC CONAN_PKG::ctti
+    PUBLIC CONAN_PKG::ctre
     PUBLIC CONAN_PKG::range-v3
-    # Note: shaderc intentionally positioned here to take priority over shaderc from vulkan-sdk.
+    PUBLIC CONAN_PKG::glm
+    PUBLIC CONAN_PKG::sdl2
+    PUBLIC CONAN_PKG::stb
+    # spirv-cross and shaderc from the Vulkan SDK have _ITERATOR_DEBUG_LEVEL=0 and cannot be used in debug builds.
+    PUBLIC CONAN_PKG::spirv-cross
     PUBLIC CONAN_PKG::shaderc
     PUBLIC CONAN_PKG::vulkan-sdk
+    PUBLIC CONAN_PKG::glew
 )
 
-# Copies the resource directories (assets, etc.) when VoxelEngine is built.
-add_dependencies(VoxelEngine COPY_OUT_DIRS)
-# Copies the required shared libraries when VoxelEngine is built.
-add_dependencies(VoxelEngine COPY_SHARED_LIBS)
+# Allow automatic selection of the actor when making actor-dependent function calls.
+target_compile_definitions(VoxelEngine PRIVATE VE_BUILD_GAME)
+target_compile_definitions(VoxelEngine PUBLIC VE_GRAPHICS_API=${VE_GRAPHICS_API})
 
-# Indicates that the engine is being built, and not some dependency like a plugin.
-target_compile_definitions(VoxelEngine PRIVATE VE_BUILD_ENGINE)
+generate_include_header(VoxelEngine core core.hpp)
+generate_include_header(VoxelEngine clientserver clientserver.hpp)
+generate_include_header(VoxelEngine ecs ecs.hpp)
+generate_include_header(VoxelEngine event event_system.hpp)
+generate_include_header(VoxelEngine input input.hpp)
+generate_include_header(VoxelEngine voxel voxel.hpp)
+generate_include_header(VoxelEngine utility utility.hpp)
+generate_include_header(VoxelEngine utility/traits traits.hpp)
 
+# For the actual graphics include header, we also want to include the platform graphics header,
+# so just autogenerate a different header and include that from the actual graphics header.
+generate_include_header(VoxelEngine graphics graphics_includes.hpp graphics.hpp)
 
-# The graphics API to be used by the engine. Possible values are 'opengl' and 'vulkan'.
-target_compile_definitions(VoxelEngine PUBLIC VE_GRAPHICS_API=opengl)
+generate_include_header(VoxelEngine platform/graphics/opengl graphics.hpp)
+generate_include_header(VoxelEngine platform/graphics/vulkan graphics.hpp)
 
-# Generate headers for including subsets of the engine.
-generate_si_header(VoxelEngine platform/graphics/opengl graphics.hpp)
-generate_si_header(VoxelEngine platform/graphics/vulkan graphics.hpp)
-generate_si_header(VoxelEngine graphics graphics_sih.hpp graphics/graphics.hpp)
-
-generate_si_header(VoxelEngine core core.hpp)
-generate_si_header(VoxelEngine ecs ecs.hpp)
-generate_si_header(VoxelEngine voxel voxel.hpp)
-generate_si_header(VoxelEngine utility/serialize serialize.hpp)
-generate_si_header(VoxelEngine utility/traits traits.hpp)
-generate_si_header(VoxelEngine tests/framework framework.hpp)
-
+# Define header with overloaded settings from game to be included in the engine.
+if (DEFINED GAME_PRE_INCLUDE_HEADER)
+    target_compile_definitions(VoxelEngine PUBLIC VE_GAME_PRE_INCLUDE=${GAME_PRE_INCLUDE_HEADER})
+endif()

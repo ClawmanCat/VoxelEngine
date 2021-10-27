@@ -1,57 +1,64 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/voxel/settings.hpp>
+#include <VoxelEngine/voxel/tile_provider.hpp>
 #include <VoxelEngine/voxel/tile/tile_data.hpp>
-#include <VoxelEngine/voxel/tile/tile_provider.hpp>
-#include <VoxelEngine/voxel/voxel_settings.hpp>
 #include <VoxelEngine/utility/math.hpp>
-#include <VoxelEngine/utility/traits/maybe_const.hpp>
+#include <VoxelEngine/utility/friend.hpp>
 
 
-namespace ve {
+namespace ve::voxel {
     class chunk : public tile_provider<chunk> {
     public:
-        [[nodiscard]] const tile_data& get(const vec3i& where) const {
-            return data[flatten(where, (i32) voxel_settings::chunk_size)];
+        constexpr static bool is_bounded(void) {
+            return true;
         }
-    
-        void set(const vec3i& where, const tile_data& td) {
-            data[flatten(where, (i32) voxel_settings::chunk_size)] = td;
+
+        constexpr static tilepos get_extents(void) {
+            return tilepos { voxel_settings::chunk_size };
         }
-        
-        template <typename Pred> void foreach(const Pred& pred) {
-            foreach_impl<Pred, false>(*this, pred);
+
+
+        const tile_data& get_data(const tilepos& where) const {
+            return data[flatten(where, (tilepos::value_type) voxel_settings::chunk_size)];
         }
-    
-        template <typename Pred> void foreach(const Pred& pred) const {
-            foreach_impl<Pred, true>(*this, pred);
+
+
+        void set_data(const tilepos& where, const tile_data& td) {
+            data[flatten(where, (tilepos::value_type) voxel_settings::chunk_size)] = td;
         }
-        
+
+
+        template <typename Pred> requires std::is_invocable_v<Pred, tilepos, tile_data&>
+        void foreach(Pred pred) {
+            foreach_common(pred, *this);
+        }
+
+        template <typename Pred> requires std::is_invocable_v<Pred, tilepos, const tile_data&>
+        void foreach(Pred pred) const {
+            foreach_common(pred, *this);
+        }
     private:
-        // TODO: Optimize for caching. Use NxNxN cubes and prefetch on loop?
+        friend struct chunk_access;
+
+        // TODO: Use a more cache-optimal data layout.
         std::array<tile_data, cube(voxel_settings::chunk_size)> data;
-    
-    
-        // Template for both const and non-const versions.
-        template <typename Pred, bool as_const> requires std::is_invocable_v<Pred, const vec3i&, u32, meta::maybe_const<as_const, tile_data&>>
-        static void foreach_impl(meta::maybe_const<as_const, chunk&> self, const Pred& pred)  {
-            // If pred returns bool, break the iteration if it returns false.
-            constexpr bool returns_break = std::is_invocable_r_v<bool, Pred, const vec3i&, u32, meta::maybe_const<as_const, tile_data&>>;
-        
-        
-            u32 index = 0;
-            vec3i pos;
-        
-            for (pos.x = 0; pos.x < (i32) voxel_settings::chunk_size; ++pos.x) {
-                for (pos.y = 0; pos.y < (i32) voxel_settings::chunk_size; ++pos.y) {
-                    for (pos.z = 0; pos.z < (i32) voxel_settings::chunk_size; ++pos.z) {
-                        if constexpr (returns_break) { if (!pred(pos, index, self.data[index])) return; }
-                        else pred(pos, index, self.data[index]);
-                    
-                        ++index;
+
+
+        static void foreach_common(auto pred, auto& self) {
+            std::size_t i = 0;
+
+            for (u32 x = 0; x < voxel_settings::chunk_size; ++x) {
+                for (u32 y = 0; y < voxel_settings::chunk_size; ++y) {
+                    for (u32 z = 0; z < voxel_settings::chunk_size; ++z) {
+                        std::invoke(pred, tilepos { x, y, z }, self.data[i++]);
                     }
                 }
             }
         }
     };
+
+
+    ve_friend_interface(chunk_access, chunk, data);
 }

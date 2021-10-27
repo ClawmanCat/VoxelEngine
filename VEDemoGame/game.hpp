@@ -1,43 +1,56 @@
 #pragma once
 
-#include <VEDemoGame/core/core.hpp>
-#include <VEDemoGame/entity/world.hpp>
-
-#include <VoxelEngine/dependent/game.hpp>
+#include <VoxelEngine/dependent/game_callbacks.hpp>
+#include <VoxelEngine/clientserver/client.hpp>
+#include <VoxelEngine/clientserver/server.hpp>
+#include <VoxelEngine/graphics/graphics.hpp>
+#include <VoxelEngine/ecs/ecs.hpp>
 
 
 namespace demo_game {
     class game {
     public:
-        static void on_pre_init(void);
-        static void on_post_init(void);
-        static void on_pre_loop (ve::u64 tick, microseconds dt);
-        static void on_post_loop(ve::u64 tick, microseconds dt);
-        static void on_pre_exit(void);
-        static void on_post_exit(void);
+        game(void) = delete;
         
-        [[nodiscard]] static const ve::game_info* get_info(void);
-        [[nodiscard]] static gfx::window& get_window(void) { return *window; }
+        static void pre_init(void);
+        static void post_init(void);
         
-    //private:
-        static ve::shared<gfx::window> window;
-        static ve::scene<ve::side::CLIENT> scene;
-        static gfx::perspective_camera camera;
-        static inline world* world = nullptr;
+        static void pre_loop(void);
+        static void post_loop(void);
+        
+        static void pre_exit(void);
+        static void post_exit(void);
+        
+        static const ve::game_info* get_info(void);
+
+
+        VE_GET_STATIC_CREF(window);
+        VE_GET_STATIC_CREF(texture_manager);
+        VE_GET_STATIC_MREF(client);
+        VE_GET_STATIC_MREF(server);
+        VE_GET_STATIC_MREF(camera);
+    private:
+        static inline ve::client client { };
+        static inline ve::server server { };
+        static inline ve::gfx::perspective_camera camera { };
+        static inline ve::shared<ve::gfx::window> window = nullptr;
+        static inline ve::shared<ve::gfx::texture_manager<>> texture_manager = nullptr;
     };
 }
 
 
-// Callbacks for the game engine.
 namespace ve::game_callbacks {
-    void on_game_pre_init(void)  { demo_game::game::on_pre_init();  }
-    void on_game_post_init(void) { demo_game::game::on_post_init(); }
-    void on_game_pre_loop (ve::u64 tick, microseconds dt) { demo_game::game::on_pre_loop (tick, dt); }
-    void on_game_post_loop(ve::u64 tick, microseconds dt) { demo_game::game::on_post_loop(tick, dt); }
-    void on_game_pre_exit(void)  { demo_game::game::on_pre_exit();  }
-    void on_game_post_exit(void) { demo_game::game::on_post_exit(); }
+    using game = demo_game::game;
     
-    const ve::game_info* get_game_info(void) {
-        return demo_game::game::get_info();
-    }
+    
+    inline void pre_init(void)  { game::pre_init();  }
+    inline void post_init(void) { game::post_init(); }
+    
+    inline void pre_loop(void)  { game::pre_loop();  }
+    inline void post_loop(void) { game::post_loop(); }
+    
+    inline void pre_exit(void)  { game::pre_exit();  }
+    inline void post_exit(void) { game::post_exit(); }
+    
+    inline const game_info* get_info(void) { return game::get_info(); }
 }

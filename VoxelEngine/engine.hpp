@@ -1,48 +1,47 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/version.hpp>
-#include <VoxelEngine/event/event_dispatcher.hpp>
-#include <VoxelEngine/engine_state.hpp>
-
-#include <vector>
-#include <string>
-#include <string_view>
+#include <VoxelEngine/utility/arg_parser.hpp>
+#include <VoxelEngine/event/simple_event_dispatcher.hpp>
+#include <VoxelEngine/dependent/dependent_info.hpp>
 
 
 namespace ve {
     class engine {
     public:
+        const static inline game_info info {
+            .display_name = "VoxelEngine",
+            .description  = { "Game engine for voxel-based games." },
+            .authors      = { "ClawmanCat" },
+            .version      = { VOXELENGINE_VERSION_MAJOR, VOXELENGINE_VERSION_MINOR, VOXELENGINE_VERSION_PATCH }
+        };
+
+
+        using dispatcher_t = simple_event_dispatcher<false, u16, true>;
+
+
+        engine(void) = delete;
+        
+        enum class state { UNINITIALIZED, INITIALIZING, RUNNING, EXITING, EXITED };
+        
         [[noreturn]] static void main(i32 argc, char** argv);
-        static void request_exit(i32 exit_code = 0, bool immediate = false);
-    
-        VE_GET_STATIC_CREF(engine_version)
-        VE_GET_STATIC_CREF(args)
-        VE_GET_STATIC_MREF(dispatcher)
-        VE_GET_STATIC_VAL(state)
-        VE_GET_STATIC_VAL(tick_count)
-        VE_GET_STATIC_VAL(last_tick_time)
+        static void exit(i32 code = 0, bool immediate = false);
+
         
-        VE_GET_SET_STATIC_VAL(client_target_dt)
-        VE_GET_SET_STATIC_VAL(server_target_dt)
+        VE_GET_STATIC_CREF(arguments);
+        VE_GET_STATIC_VAL(engine_state);
+        VE_GET_SET_STATIC_VAL(tick_count);
+        VE_GET_STATIC_MREF(event_dispatcher);
     private:
-        static inline version engine_version = { "PreAlpha", 0, 0, 1 };
-        static inline std::vector<std::string> args = {};
-        
-        static inline noncancellable_event_dispatcher dispatcher;
-        static inline engine_state state = engine_state::UNINITIALIZED;
-        static inline optional<i32> exit_code = nullopt;
-        
-        static inline u64 tick_count = 0;
-        static inline time_point last_tick_time = steady_clock::now();
-        static inline microseconds client_target_dt = (1s / 60);
-        static inline microseconds server_target_dt = (1s / 60);
-        
+        static inline arg_parser arguments = arg_parser { };
+        static inline state engine_state   = state::UNINITIALIZED;
+        static inline u64 tick_count       = 0;
+        static inline i32 exit_code        = -1;
+
+        static inline dispatcher_t event_dispatcher = {};
         
         static void init(void);
-        static void tick(void);
-        [[noreturn]] static void exit(void);
-        
-        static void set_state(engine_state state);
+        static void loop(void);
+        [[noreturn]] static void immediate_exit(void);
     };
 }

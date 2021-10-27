@@ -1,50 +1,51 @@
 #pragma once
 
-#include <VEDemoGame/core/core.hpp>
+#include <VEDemoGame/game.hpp>
 #include <VEDemoGame/tile/tiles.hpp>
+#include <VEDemoGame/component/render_tag.hpp>
+
+#include <VoxelEngine/ecs/ecs.hpp>
+#include <VoxelEngine/graphics/graphics.hpp>
+#include <VoxelEngine/voxel/voxel.hpp>
 
 
 namespace demo_game {
-    class world : public ve::entity<world, ve::side::CLIENT> {
+    inline const auto& get_world_layout(void) {
+        using fg = ve::voxel::flatland_generator;
+
+        static fg::world_layers result;
+        result.set_sky(ve::voxel::tiles::TILE_AIR);
+
+        result.add_layer(-1, tiles::TILE_STONE);
+        result.add_layer(0,  tiles::TILE_GRASS);
+
+        return result;
+    };
+
+
+    class world : public ve::static_entity {
     public:
-        using base = ve::entity<world, ve::side::CLIENT>;
-        using base::base;
-        
-        
-        // Note: components arent valid until the entity is added to a scene,
-        // so constructors cannot be used for this.
-        void init(void) {
-            // Add the voxel space's mesh to be part of this entity's mesh.
-            mesh.buffers.push_back(gfx::shader_buffer_pair {
-                gfx::shader_library::instance().get_shader("atlas_texture_3d"s),
-                voxels.get_mesh()
-            });
-            
-            // Load some chunks in the voxel space.
-            voxels.add_loader(std::make_shared<ve::point_loader<ve::distance_functions::L1<ve::chunkpos>{ }>>(
-                &voxels, ve::vec3i { 0 }, 5
-            ));
+        explicit world(ve::registry& registry) :
+            ve::static_entity(registry),
+            space(ve::make_unique<ve::voxel::flatland_generator>(get_world_layout()))
+        {
+            mesh.buffer = space.get_vertex_buffer();
+
+            auto load_where  = ve::voxel::tilepos { 0 };
+            auto load_radius = ve::voxel::tilepos { 3 };
+            space.add_chunk_loader(ve::make_shared<ve::voxel::point_loader<ve::voxel::distance_metrics::L1>>(load_where, load_radius));
         }
-        
-        
-        void VE_FUNCTION_COMPONENT(update, SERVER, ve::microseconds dt) {
-            // TODO: Use events for this.
-            voxels.update_mesh();
+
+
+        void VE_COMPONENT_FN(update)(ve::nanoseconds dt) {
+            space.update(dt);
         }
-        
-        
-        ve::voxel_space VE_COMPONENT(voxels) = ve::voxel_space {
-            std::make_unique<ve::flatland_generator>(
-                ve::terrain_layers({
-                    { -1, tile_stone },
-                    {  0, tile_grass }
-                }),
-                *ve::tiles::TILE_VOID
-            )
-        };
-    
-    
-        ve::renderable_component VE_COMPONENT(mesh);
-        ve::transform_component VE_COMPONENT(transform);
+
+
+        ve::transform_component VE_COMPONENT(transform) = ve::transform_component { };
+        ve::mesh_component VE_COMPONENT(mesh) = ve::mesh_component { };
+        render_tag_pbr VE_COMPONENT(render_tag) = render_tag_pbr { };
+
+        ve::voxel::voxel_space space;
     };
 }
