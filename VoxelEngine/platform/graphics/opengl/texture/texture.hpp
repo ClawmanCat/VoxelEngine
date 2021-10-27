@@ -10,6 +10,7 @@
 
 namespace ve::gfx::opengl {
     enum class texture_filter : GLint { LINEAR, NEAREST };
+    enum class texture_type : GLenum { TEXTURE_2D = GL_TEXTURE_2D, TEXTURE_CUBE_MAP = GL_TEXTURE_CUBE_MAP };
 
 
     class texture {
@@ -19,8 +20,10 @@ namespace ve::gfx::opengl {
             const texture_format& fmt,
             const vec2ui& size,
             std::size_t mipmap_levels = get_context()->settings.num_mipmap_levels,
-            texture_filter filter = texture_filter::NEAREST
+            texture_filter filter = texture_filter::NEAREST,
+            texture_type type = texture_type::TEXTURE_2D
         ) :
+            type((GLenum) type),
             size(size),
             format(fmt),
             mipmap_levels(mipmap_levels),
@@ -29,15 +32,26 @@ namespace ve::gfx::opengl {
             glGenTextures(1, &id);
             VE_ASSERT(id, "Failed to create OpenGL texture.");
 
-            glBindTexture(GL_TEXTURE_2D, id);
-            glTexStorage2D(GL_TEXTURE_2D, (GLsizei) mipmap_levels, fmt.pixel_format, (GLsizei) size.x, (GLsizei) size.y);
+            glBindTexture(this->type, id);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (filter == texture_filter::NEAREST ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR));
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (filter == texture_filter::NEAREST ? GL_NEAREST : GL_LINEAR));
-            glGenerateMipmap(GL_TEXTURE_2D);
+            if (type == texture_type::TEXTURE_2D) {
+                glTexStorage2D(this->type, (GLsizei) mipmap_levels, fmt.pixel_format, (GLsizei) size.x, (GLsizei) size.y);
+            }
+
+            else if (type == texture_type::TEXTURE_CUBE_MAP) {
+                for (u32 side = 0; side < 6; ++side) {
+                    glTexStorage2D(this->type + side, (GLsizei) mipmap_levels, fmt.pixel_format, (GLsizei) size.x, (GLsizei) size.y);
+                }
+            }
+
+
+            glTexParameteri(this->type, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(this->type, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+            glTexParameteri(this->type, GL_TEXTURE_MIN_FILTER, (filter == texture_filter::NEAREST ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR));
+            glTexParameteri(this->type, GL_TEXTURE_MAG_FILTER, (filter == texture_filter::NEAREST ? GL_NEAREST : GL_LINEAR));
+            glGenerateMipmap(this->type);
         }
 
 
@@ -49,13 +63,20 @@ namespace ve::gfx::opengl {
         ve_immovable(texture);
 
 
+        void set_parameter(GLenum name, GLint value) {
+            glBindTexture(type, id);
+            glTexParameteri(type, name, value);
+        }
+
+
         void write(const image_rgba8& img, const vec2ui& where = vec2ui { 0 }) {
+            VE_ASSERT(type == GL_TEXTURE_2D, "Currently, texture::write only supports 2D images.");
             VE_ASSERT(format == texture_format_RGBA8, "Currently, texture::write only supports RGBA8 images.");
 
-            glBindTexture(GL_TEXTURE_2D, id);
+            glBindTexture(type, id);
 
             glTexSubImage2D(
-                GL_TEXTURE_2D,
+                type,
                 0,
                 (GLint) where.x, (GLint) where.y,
                 (GLint) img.size.x, (GLint) img.size.y,
@@ -64,36 +85,39 @@ namespace ve::gfx::opengl {
                 img.data.data()
             );
 
-            glGenerateMipmap(GL_TEXTURE_2D);
+            glGenerateMipmap(type);
         }
 
 
         image_rgba8 read(void) const {
+            VE_ASSERT(type == GL_TEXTURE_2D, "Currently, texture::read only supports 2D images.");
             VE_ASSERT(format == texture_format_RGBA8, "Currently, texture::read only supports RGBA8 images.");
 
             image_rgba8 result;
             result.data.resize(size.x * size.y, RGBA8 { 0, 0, 0, 255 });
             result.size = size;
 
-            glBindTexture(GL_TEXTURE_2D, id);
-            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, result.data.data());
+            glBindTexture(type, id);
+            glGetTexImage(type, 0, GL_RGBA, GL_UNSIGNED_BYTE, result.data.data());
 
             return result;
         }
 
 
         void bind(void) const {
-            glBindTexture(GL_TEXTURE_2D, id);
+            glBindTexture(type, id);
         }
 
 
         VE_GET_CREF(size);
         VE_GET_CREF(format);
         VE_GET_VAL(id);
+        VE_GET_VAL(type);
         VE_GET_VAL(mipmap_levels);
         VE_GET_VAL(filter);
     private:
         GLuint id = 0;
+        GLenum type;
         vec2ui size;
 
         texture_format format;

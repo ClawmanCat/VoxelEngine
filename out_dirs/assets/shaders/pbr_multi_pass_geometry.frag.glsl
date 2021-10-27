@@ -3,11 +3,6 @@
 #include "pbr.util.glsl"
 
 
-layout (std140, binding = 2) uniform U_GlobalLighting {
-    vec3 ambient_light;
-};
-
-
 const uint num_samplers = VE_MAX_FS_SAMPLERS;
 uniform sampler2D textures[num_samplers];
 
@@ -39,9 +34,8 @@ void main() {
     g_material = texture(textures[frag_texture_index], frag_uv_material);
     float occlusion = g_material.b;
 
-    // Color of the fragment, with ambient lighting applied, and in linear color space.
+    // Color of the fragment, converted to linear color space.
     g_color = SRGB_to_linear(texture(textures[frag_texture_index], frag_uv_color));
-    g_color.rgb *= ambient_light * occlusion;
     if (g_color.a == 0.0) discard;
 
     // Normal of the fragment, with the TBN matrix applied.

@@ -13,11 +13,11 @@ namespace ve::gfx {
 
 
     // This struct matches the members used by the struct U_Lighting in pbr_single_pass.frag.glsl.
-    template <std::size_t LightCount = 32>
+    template <std::size_t LightCount = 128>
     struct lighting_data {
         constexpr static inline std::size_t light_count_limit = LightCount;
 
-        std::array<light_source, 32> lights;
+        std::array<light_source, LightCount> lights;
         u32 num_populated_lights;
 
         vec3f ambient_light;

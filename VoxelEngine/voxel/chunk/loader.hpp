@@ -34,9 +34,9 @@ namespace ve::voxel {
 
 
         template <typename Pred> static void spatial_foreach(Pred pred, const tilepos& where, const tilepos& range) {
-            for (auto x = where.x - range.x; x < where.x + range.x; ++x) {
-                for (auto y = where.y - range.y; y < where.y + range.y; ++y) {
-                    for (auto z = where.z - range.z; z < where.z + range.z; ++z) {
+            for (auto x = where.x - range.x; x <= where.x + range.x; ++x) {
+                for (auto y = where.y - range.y; y <= where.y + range.y; ++y) {
+                    for (auto z = where.z - range.z; z <= where.z + range.z; ++z) {
                         std::invoke(pred, tilepos { x, y, z });
                     }
                 }

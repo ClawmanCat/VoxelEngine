@@ -44,13 +44,13 @@ namespace ve::gfx::opengl {
         }
 
 
-        void clear(void) {
+        void clear(GLuint mask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) {
             bind();
 
             glClearColor(settings.clear_color.r, settings.clear_color.g, settings.clear_color.b, settings.clear_color.a);
             glClearDepth(settings.clear_depth);
 
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glClear(mask);
         }
 
     private:

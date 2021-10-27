@@ -30,8 +30,7 @@ namespace ve::io::paths {
     const inline path PATH_PLUGINS                          = ROOT_DIR / "plugins/";
     const inline path PATH_ENGINE_DATA                      = ROOT_DIR / "data/";
     const inline path PATH_ASSETS                           = ROOT_DIR / "assets/";
-    // const inline path PATH_SHADERS                          = PATH_ASSETS / "shaders/";
-    const inline path PATH_SHADERS                          = ROOT_DIR / "../../../out_dirs/assets/shaders/";
+    const inline path PATH_SHADERS                          = PATH_ASSETS / "shaders/";
     const inline path PATH_TEXTURES                         = PATH_ASSETS / "textures/";
     const inline path PATH_SOUNDS                           = PATH_ASSETS / "sounds/";
     const inline path PATH_TILE_TEXTURES                    = PATH_TEXTURES / "tiles/";

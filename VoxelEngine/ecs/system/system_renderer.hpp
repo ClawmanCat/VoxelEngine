@@ -70,7 +70,6 @@ namespace ve {
 
                 [&] <typename... Components> (meta::pack<Components...>) {
                     ([&] (const auto& cmp) {
-                        // TODO: Cache these and use set_uniform_producer?
                         mesh.buffer->set_uniform_value(cmp);
                     }(view.template get<Components>(entity)), ...);
                 }(ComponentUniforms{});
@@ -90,8 +89,6 @@ namespace ve {
                     .attenuation = light.attenuation
                 });
             }
-
-            VE_LOG_WARN(cat(data.lights.size()));
 
 
             data.ambient_light = lighting.ambient_light;

@@ -13,9 +13,9 @@ layout (std140, binding = 1) uniform U_Transform {
 
 // Should be large enough for the number of lights used.
 // TODO: Use shader preprocessor to dynamically recompile with actual value.
-const int num_lights = 32;
+const int num_lights = 128;
 
-layout (std140) uniform U_Lighting {
+layout (std140, binding = 2) uniform U_Lighting {
     Light lights[num_lights];
     uint num_populated_lights;
 

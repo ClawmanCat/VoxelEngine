@@ -12,8 +12,8 @@ namespace ve::gfx::opengl {
 
 
     struct uniform_state {
-        const void* current_value;
-        const uniform* uniform_source;
+        const void* current_value = nullptr;
+        const uniform* uniform_source = nullptr;
     };
 
     using uniform_state_dict = hash_map<std::string, uniform_state>;

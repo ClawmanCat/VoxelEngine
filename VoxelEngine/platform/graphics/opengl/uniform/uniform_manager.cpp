@@ -17,11 +17,11 @@ namespace ve::gfx::opengl {
 
     void uniform_manager::bind_uniforms_for_shader(const shader* shader) const {
         const auto& reflection = shader->get_reflection();
-        hash_set<std::string_view> already_stored;
+        hash_set<std::string_view> already_stored { };
 
 
         // Load values for uniforms.
-        uniform_state_dict uniform_state;
+        uniform_state_dict uniform_state { };
         for (const auto& storage : uniform_sources | views::indirect) {
             storage.bind_uniforms_for_shader(shader, uniform_state);
         }

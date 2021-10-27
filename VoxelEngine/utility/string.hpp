@@ -7,6 +7,7 @@
 
 #include <boost/pfr.hpp>
 #include <ctti/type_id.hpp>
+#include <glm/gtc/matrix_access.hpp>
 
 #include <sstream>
 
@@ -39,6 +40,7 @@ namespace ve {
         else if constexpr (requires (T t) { (std::string) t;   }) return (std::string) value;
         else if constexpr (requires (T t) { std::string { t }; }) return std::string { value };
         else if constexpr (requires (T t) { t.to_string();     }) return value.to_string();
+        else if constexpr (requires (T t) { t.string();        }) return value.string();
 
         // If T is a GLM vector print its elements.
         else if constexpr (meta::glm_traits<T>::is_vector) {
@@ -47,6 +49,19 @@ namespace ve {
             for (std::size_t i = 1; i < meta::glm_traits<T>::num_rows; ++i) {
                 result += ", ";
                 result += std::to_string(value[i]);
+            }
+
+            result += "]";
+            return result;
+        }
+
+        // If T is a GLM vector print its rows.
+        else if constexpr (meta::glm_traits<T>::is_matrix) {
+            std::string result = "["s;
+
+            for (std::size_t i = 0; i < meta::glm_traits<T>::num_rows; ++i) {
+                if (i > 0) result += ", ";
+                result += to_string(glm::column(value, i));
             }
 
             result += "]";
@@ -62,27 +77,47 @@ namespace ve {
         else if constexpr (std::is_base_of_v<std::exception, T>) {
             return value.what();
         }
+
+        // If T is a container, concatenate each element.
+        else if constexpr (requires (T t) { std::cbegin(t), std::cend(t); }) {
+            std::string result = "[";
+
+            for (const auto& [i, elem] : value | views::enumerate) {
+                if (i > 0) result += ", ";
+                result += to_string(elem);
+            }
+
+            result += "]";
+            return result;
+        }
         
         // If T is streamable, stream it, then convert the stream to a string.
-        else if constexpr (requires (T t, std::stringstream s) { s << t; }) {
+        else if constexpr (!std::is_pointer_v<T> && requires (T t, std::stringstream s) { s << t; }) {
             std::stringstream s;
             s << value;
             return s.str();
         }
     
         // If T is trivial, print the values of its fields.
-        else if constexpr (requires { boost::pfr::tuple_size_v<T>; }) {
-            std::stringstream s;
-            s << boost::pfr::io(value);
-            return s.str();
+        // TODO: Replace with decomposer.
+        else if constexpr (std::is_aggregate_v<T>) {
+            std::string result = "[";
+
+            boost::pfr::for_each_field(value, [&, i = 0] (const auto& f) mutable {
+                if (i++ > 0) result += ", ";
+                result += to_string(f);
+            });
+
+            result += "]";
+            return result;
         }
         
         // If T is a pointer, print its type and address and the string representation of the contained value.
         else if constexpr (std::is_pointer_v<T>) {
-            using deref_t = std::remove_pointer_t<T>;
+            using deref_t = std::remove_cvref_t<std::remove_pointer_t<T>>;
             
-            auto object_string  = to_string<deref_t, true>(*value);
-            auto type_string    = ctti::nameof<deref_t>;
+            auto object_string  = value ? to_string<deref_t, true>(*value) : "NULL";
+            auto type_string    = ctti::nameof<deref_t>().cppstring();
             auto address_string = to_hex_string((std::size_t) value);
             
             std::string result = "[Pointer to "s + type_string + " @ " + address_string + "]";
@@ -98,7 +133,7 @@ namespace ve {
             if constexpr (CalledInternally) return "";
             
             else {
-                auto type_string    = ctti::nameof<T>;
+                auto type_string    = ctti::nameof<T>().cppstring();
                 auto address_string = to_hex_string((std::size_t) std::addressof(value));
             
                 return "["s + type_string + " @ " + address_string + "]";

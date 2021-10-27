@@ -15,3 +15,8 @@ struct Light {
     vec3 radiance;
     float attenuation;
 };
+
+
+float scale(float value, vec2 from, vec2 to) {
+    return (((value - from.x) * (to.y - to.x)) / (from.y - from.x)) + to.x;
+}

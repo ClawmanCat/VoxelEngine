@@ -5,7 +5,7 @@
 #include <VoxelEngine/graphics/shader/glsl_layout.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/buffer.hpp>
 
-#include <GL/glew.h>
+#include <gl/glew.h>
 
 
 namespace ve::gfx::opengl {

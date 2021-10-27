@@ -12,6 +12,7 @@
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/settings.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/target.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/target_sampler.hpp>
 #include <VoxelEngine/platform/graphics/opengl/presentation/canvas.hpp>
 #include <VoxelEngine/platform/graphics/opengl/presentation/window_helpers.hpp>
 #include <VoxelEngine/platform/graphics/opengl/shader/shader.hpp>
@@ -26,6 +27,7 @@
 #include <VoxelEngine/platform/graphics/opengl/utility/buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/debug.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
+#include <VoxelEngine/platform/graphics/opengl/utility/quad.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/resource.hpp>
 #include <VoxelEngine/platform/graphics/opengl/vertex/layout.hpp>
 #include <VoxelEngine/platform/graphics/opengl/vertex/vertex_buffer.hpp>

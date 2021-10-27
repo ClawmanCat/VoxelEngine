@@ -45,7 +45,6 @@ vec4 SRGB_to_linear(vec4 color) {
 }
 
 
-
 vec4 linear_to_SRGB(vec4 color) {
     color.rgb /= (color.rgb + vec3(1.0));
     color.rgb = pow(color.rgb, vec3(1.0 / 2.2));

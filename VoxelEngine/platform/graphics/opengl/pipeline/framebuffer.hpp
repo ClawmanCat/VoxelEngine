@@ -22,10 +22,11 @@ namespace ve::gfx::opengl {
         std::string name;
         type_t type;
         const texture_format* format;
+        texture_type tex_type;
 
 
-        explicit framebuffer_attachment(std::string name, type_t type = COLOR_BUFFER, const texture_format* fmt = nullptr) :
-            name(std::move(name)), type(type)
+        explicit framebuffer_attachment(std::string name, type_t type = COLOR_BUFFER, const texture_format* fmt = nullptr, texture_type tex_type = texture_type::TEXTURE_2D) :
+            name(std::move(name)), type(type), tex_type(tex_type)
         {
             if (!fmt) {
                 fmt = (type == COLOR_BUFFER)
@@ -83,8 +84,12 @@ namespace ve::gfx::opengl {
 
                 auto [it, success] = this->attachments.emplace(
                     attachment.name,
-                    texture::create(*attachment.format, prev_size, 1)
+                    texture::create(*attachment.format, prev_size, 1, texture_filter::NEAREST, attachment.tex_type)
                 );
+
+                if (attachment.type == framebuffer_attachment::DEPTH_BUFFER) {
+                    it->second->set_parameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+                }
 
 
                 glFramebufferTexture2D(
@@ -115,14 +120,24 @@ namespace ve::gfx::opengl {
 
             glBindFramebuffer(GL_FRAMEBUFFER, id);
 
-            std::vector<GLenum> draw_buffers;
-            for (const auto& attachment : attachment_templates) {
-                if (attachment.type == framebuffer_attachment::COLOR_BUFFER) {
-                    draw_buffers.push_back((GLenum) attachment.type + attachment.attachment_index);
-                }
-            }
 
-            glDrawBuffers(draw_buffers.size(), draw_buffers.data());
+            bool has_color_attachment = ranges::contains(
+                attachment_templates | views::transform(&framebuffer_attachment::type),
+                framebuffer_attachment::COLOR_BUFFER
+            );
+
+            if (has_color_attachment) {
+                std::vector<GLenum> draw_buffers;
+                for (const auto& attachment : attachment_templates) {
+                    if (attachment.type == framebuffer_attachment::COLOR_BUFFER) {
+                        draw_buffers.push_back((GLenum) attachment.type + attachment.attachment_index);
+                    }
+                }
+
+                glDrawBuffers((GLsizei) draw_buffers.size(), draw_buffers.data());
+            } else {
+                glDrawBuffer(GL_NONE);
+            }
         }
 
 
@@ -148,8 +163,14 @@ namespace ve::gfx::opengl {
                 auto new_attachment = texture::create(
                     old_attachment.second->get_format(),
                     prev_size,
-                    old_attachment.second->get_mipmap_levels()
+                    old_attachment.second->get_mipmap_levels(),
+                    texture_filter::NEAREST,
+                    attachment_template.tex_type
                 );
+
+                if (attachment_template.type == framebuffer_attachment::DEPTH_BUFFER) {
+                    new_attachment->set_parameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+                }
 
                 glFramebufferTexture2D(
                     GL_FRAMEBUFFER,

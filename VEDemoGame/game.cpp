@@ -21,6 +21,7 @@ namespace demo_game {
     
     void game::post_init(void) {
         using simple_vertex_t = ve::gfx::vertex_types::texture_vertex_3d;
+        using pbr_vertex_t    = ve::gfx::vertex_types::material_vertex_3d;
 
 
         // Set up render pipelines.
@@ -50,6 +51,10 @@ namespace demo_game {
 
         // Pipeline for rendering objects with PBR materials.
         auto pbr_pipeline = ve::gfxapi::multipass_pbr_pipeline::create(game::window->get_canvas());
+        // auto pbr_pipeline = make_shared<ve::gfxapi::single_pass_pipeline>(
+        //     game::window->get_canvas(),
+        //     ve::gfx::shader_cache::instance().get_or_load_shader<pbr_vertex_t>("pbr_single_pass")
+        // );
 
         pbr_pipeline->set_uniform_producer(&game::camera);
         pbr_pipeline->set_uniform_producer(game::texture_manager->get_atlas());

@@ -8,8 +8,16 @@ namespace ve::gfx::opengl {
     void single_pass_pipeline::draw(const draw_data& data) {
         if (!get_target()->requires_rendering_this_frame()) return;
 
+
+        raii_tasks on_destruct;
+
         data.ctx->pipelines.push(this);
+        on_destruct.add_task([&] { data.ctx->pipelines.pop(); });
         data.ctx->renderpass = this;
+        on_destruct.add_task([&] { data.ctx->renderpass = nullptr; });
+        data.ctx->uniform_state.push_uniforms(this);
+        on_destruct.add_task([&] { data.ctx->uniform_state.pop_uniforms(); });
+
 
         shader->bind(*data.ctx);
         get_target()->bind();
@@ -31,13 +39,7 @@ namespace ve::gfx::opengl {
         }
 
 
-        data.ctx->uniform_state.push_uniforms(this);
         for (const auto& buffer : data.buffers) buffer->draw(*data.ctx);
-        data.ctx->uniform_state.pop_uniforms();
-
-
-        data.ctx->renderpass = nullptr;
-        data.ctx->pipelines.pop();
     }
 
 
