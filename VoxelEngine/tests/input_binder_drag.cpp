@@ -28,16 +28,16 @@ test_result test_main(void) {
 
     binder.bind(
         ve::motion_input { .input = { motion_t::MOUSE_DRAG, ve::mouse_button::LEFT }, .trigger_when = when_t::MOTION_START | when_t::MOTION_TICK | when_t::MOTION_END },
-        [&] (const auto& begin, const auto& prev, const auto& current, ve::keymods mods, when_t when) {
-            if (when == when_t::MOTION_START) {
+        [&] (const auto& args) {
+            if (args.when == when_t::MOTION_START) {
                 if (std::exchange(started, true)) result |= VE_TEST_FAIL("Motion start event triggered twice.");
             }
 
-            else if (when == when_t::MOTION_END) {
+            else if (args.when == when_t::MOTION_END) {
                 if (!started) result |= VE_TEST_FAIL("Motion end event triggered before start event.");
                 if (std::exchange(ended, true)) result |= VE_TEST_FAIL("Motion end event triggered twice.");
 
-                mouse_delta = current.position - begin.position;
+                mouse_delta = args.current.position - args.begin.position;
             }
 
             else {

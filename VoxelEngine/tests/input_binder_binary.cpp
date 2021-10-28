@@ -21,8 +21,8 @@ test_result test_main(void) {
 
 
     for (auto [i, key] : keys | ve::views::enumerate) {
-        binder.bind(ve::binary_input { .input = key, .trigger_when = when_t::KEY_DOWN | when_t::KEY_UP }, [&, i = i](auto mods, auto when) {
-            if (when == when_t::KEY_DOWN) {
+        binder.bind(ve::binary_input { .input = key, .trigger_when = when_t::KEY_DOWN | when_t::KEY_UP }, [&, i = i](const auto& args) {
+            if (args.when == when_t::KEY_DOWN) {
                 if (down[i] || pressed[i]) result |= VE_TEST_FAIL("Key down handler was called twice.");
                 down[i] = true;
             } else {

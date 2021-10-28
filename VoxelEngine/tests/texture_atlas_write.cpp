@@ -21,6 +21,8 @@ test_result test_main(void) {
     ve::gfx::aligned_texture_atlas atlas { "Atlas", ve::vec2ui { 32 }, 8 };
 
     try {
+        std::vector<ve::gfx::subtexture> subtextures;
+
         for (std::size_t j = 0; j < 16; ++j) {
             subtextures.push_back(atlas.store(image));
         }

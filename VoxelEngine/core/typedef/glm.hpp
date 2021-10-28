@@ -92,15 +92,17 @@ namespace ve {
 
 
         // GLM defines lessThan / greaterThan but doesn't overload the actual operators.
-        template <typename V> constexpr inline auto operator< (const V& a, const V& b) { return glm::lessThan(a, b);         }
-        template <typename V> constexpr inline auto operator<=(const V& a, const V& b) { return glm::lessThanEqual(a, b);    }
-        template <typename V> constexpr inline auto operator> (const V& a, const V& b) { return glm::greaterThan(a, b);      }
-        template <typename V> constexpr inline auto operator>=(const V& a, const V& b) { return glm::greaterThanEqual(a, b); }
+        template <typename T> concept glm_vector = requires (T a, T b) { glm::lessThan(a, b); };
 
-        template <typename V> constexpr inline auto operator< (const V& a, const typename V::value_type& b) { return glm::lessThan(a, V { b });         }
-        template <typename V> constexpr inline auto operator<=(const V& a, const typename V::value_type& b) { return glm::lessThanEqual(a, V { b });    }
-        template <typename V> constexpr inline auto operator> (const V& a, const typename V::value_type& b) { return glm::greaterThan(a, V { b });      }
-        template <typename V> constexpr inline auto operator>=(const V& a, const typename V::value_type& b) { return glm::greaterThanEqual(a, V { b }); }
+        template <glm_vector V> constexpr inline auto operator< (const V& a, const V& b) { return glm::lessThan(a, b);         }
+        template <glm_vector V> constexpr inline auto operator<=(const V& a, const V& b) { return glm::lessThanEqual(a, b);    }
+        template <glm_vector V> constexpr inline auto operator> (const V& a, const V& b) { return glm::greaterThan(a, b);      }
+        template <glm_vector V> constexpr inline auto operator>=(const V& a, const V& b) { return glm::greaterThanEqual(a, b); }
+
+        template <glm_vector V> constexpr inline auto operator< (const V& a, const typename V::value_type& b) { return glm::lessThan(a, V { b });         }
+        template <glm_vector V> constexpr inline auto operator<=(const V& a, const typename V::value_type& b) { return glm::lessThanEqual(a, V { b });    }
+        template <glm_vector V> constexpr inline auto operator> (const V& a, const typename V::value_type& b) { return glm::greaterThan(a, V { b });      }
+        template <glm_vector V> constexpr inline auto operator>=(const V& a, const typename V::value_type& b) { return glm::greaterThanEqual(a, V { b }); }
     };
 
     using namespace defs;
