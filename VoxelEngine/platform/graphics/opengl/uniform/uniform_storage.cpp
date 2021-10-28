@@ -4,6 +4,9 @@
 
 namespace ve::gfx::opengl {
     void uniform_storage::bind_uniforms_for_shader(const shader* shader, uniform_state_dict& state) const {
+        // Already set check is required to prevent setting the uniform twice when using name aliasing.
+        hash_set<const uniform*> already_set;
+
         for (const auto& [stage_info, stage] : shader->get_reflection().stages) {
             for (const auto& uniform : stage.uniform_buffers) {
                 auto it = uniforms.find(uniform.name);
@@ -13,11 +16,13 @@ namespace ve::gfx::opengl {
                     it = uniforms.find(uniform.members.front().name);
                 }
 
-                if (it != uniforms.end()) {
+                if (it != uniforms.end() && !already_set.contains(it->second.get())) {
                     auto& target = state[uniform.name];
 
                     target.uniform_source = it->second.get();
                     target.current_value  = it->second->combine(target.current_value);
+
+                    already_set.insert(it->second.get());
                 }
             }
         }
