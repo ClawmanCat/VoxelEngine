@@ -9,8 +9,6 @@ class VulkanSDK(ConanFile):
     name        = 'vulkan-sdk'
     version     = '1.0.0'
     description = 'Conan package for using an already installed Vulkan SDK'
-    author      = 'ClawmanCat (clawmancat@gmail.com)'
-    license     = 'Unlicense'
     settings    = ('os', 'arch')
     exports     = '*'
     sdk_dir     = None

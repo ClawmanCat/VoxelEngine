@@ -106,5 +106,6 @@ namespace ve {
 
     public:
         VE_GET_SET_CREF(pipeline);
+        VE_GET_SET_MREF(lighting);
     };
 }

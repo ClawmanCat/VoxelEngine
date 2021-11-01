@@ -65,11 +65,14 @@ namespace demo_game {
         using simple_renderer    = ve::meta::pack<render_tag_simple>;
         using pbr_renderer       = ve::meta::pack<render_tag_pbr>;
 
-        game::client.add_system(ve::system_renderer<component_uniforms, simple_renderer> { simple_pipeline });
-        game::client.add_system(ve::system_renderer<component_uniforms, pbr_renderer> { pbr_pipeline });
+
+        auto [sr_id, sr_system]   = game::client.add_system(ve::system_renderer<component_uniforms, simple_renderer> { simple_pipeline });
+        auto [pbr_id, pbr_system] = game::client.add_system(ve::system_renderer<component_uniforms, pbr_renderer> { pbr_pipeline });
         game::client.add_system(ve::system_updater<> { });
         game::client.add_system(ve::system_physics<> { });
         game::client.add_system(ve::system_bind_camera<decltype(game::camera)> { });
+
+        pbr_system.get_lighting().ambient_light = ve::vec3f { 1.0f, 1.0f, 0.98f };
 
 
         // Create entities.

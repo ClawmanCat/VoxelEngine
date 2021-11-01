@@ -1,6 +1,6 @@
 #include <VoxelEngine/voxel/space/voxel_space.hpp>
 #include <VoxelEngine/voxel/chunk/loader.hpp>
-#include <VoxelEngine/voxel/chunk/generator.hpp>
+#include <VoxelEngine/voxel/chunk/generator/generator.hpp>
 #include <VoxelEngine/voxel/chunk/chunk_mesher.hpp>
 #include <VoxelEngine/voxel/tile/tiles.hpp>
 
