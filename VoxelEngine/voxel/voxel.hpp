@@ -9,7 +9,8 @@
 #include <VoxelEngine/voxel/chunk/generator/generator.hpp>
 #include <VoxelEngine/voxel/chunk/generator/noise_generator.hpp>
 #include <VoxelEngine/voxel/chunk/generator/world_layers.hpp>
-#include <VoxelEngine/voxel/chunk/loader.hpp>
+#include <VoxelEngine/voxel/chunk/loader/entity_loader.hpp>
+#include <VoxelEngine/voxel/chunk/loader/loader.hpp>
 #include <VoxelEngine/voxel/settings.hpp>
 #include <VoxelEngine/voxel/space/voxel_space.hpp>
 #include <VoxelEngine/voxel/tile/tile.hpp>

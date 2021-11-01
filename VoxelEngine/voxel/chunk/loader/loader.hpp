@@ -9,9 +9,9 @@
 namespace ve::voxel {
     namespace distance_metrics {
         // L1 Distance (Taxicab Distance)
-        constexpr inline auto L1 = [](const auto& a, const auto& b) { return glm::l1Norm(a, b); };
+        constexpr inline auto L1 = [](const auto& a, const auto& b) { return glm::l1Norm((vec3f) a, (vec3f) b); };
         // L2 Distance (Euclidean Distance)
-        constexpr inline auto L2 = [](const auto& a, const auto& b) { return glm::l2Norm(a, b); };
+        constexpr inline auto L2 = [](const auto& a, const auto& b) { return glm::l2Norm((vec3f) a, (vec3f) b); };
     }
 
 
