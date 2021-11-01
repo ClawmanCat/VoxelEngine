@@ -85,7 +85,7 @@ namespace demo_game {
                 // Don't spawn the Howlees in debug mode to increase performance.
                 VE_RELEASE_ONLY(
                     howlee& h = game::client.store_static_entity(howlee { game::client, &entity_world });
-                    h.transform.position = ve::vec3f { x, 1.5f, z };
+                    h.transform.position = ve::vec3f { x, 50.0f, z };
                 );
             }
         }

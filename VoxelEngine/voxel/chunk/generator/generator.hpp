@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/voxel/settings.hpp>
 #include <VoxelEngine/voxel/chunk/chunk.hpp>
+#include <VoxelEngine/voxel/chunk/generator/world_layers.hpp>
 #include <VoxelEngine/voxel/space/voxel_space.hpp>
 #include <VoxelEngine/voxel/tile/tile_data.hpp>
 
@@ -15,63 +16,27 @@ namespace ve::voxel {
     };
 
 
+    // Simple flatland generator which simply reads from the given world layers to place tiles at each height.
     class flatland_generator : public chunk_generator {
     public:
-        struct world_layers {
-            using height_t = tilepos::value_type;
-
-            // Each layer runs from the end of the one below it up to limit (inclusive).
-            struct layer { height_t limit; tile_data data; };
-            std::vector<layer> layers;
-
-            // This material will be used to fill the world above the topmost layer.
-            tile_data sky;
-
-
-            // Convenience functions to handle tile => data conversion.
-            void add_layer(height_t limit, const tile* tile, tile_metadata_t meta = 0) {
-                layers.push_back(layer { limit, voxel_settings::get_tile_registry().get_state(tile, meta) });
-            }
-
-            void set_sky(const tile* tile, tile_metadata_t meta = 0) {
-                sky = voxel_settings::get_tile_registry().get_state(tile, meta);
-            }
-        };
-
-
-        explicit flatland_generator(world_layers layers) : chunk_generator(), layers(std::move(layers)) {
-            ranges::sort(layers.layers, ranges::less { }, ve_get_field(limit));
-        }
+        explicit flatland_generator(world_layers layers) : chunk_generator(), layers(std::move(layers)) {}
 
 
         unique<chunk> generate(const voxel_space* space, const tilepos& chunkpos) override {
             auto result = make_unique<chunk>();
+            auto height = [&] (auto y) { return chunkpos.y * tilepos::value_type { voxel_settings::chunk_size } + y; };
 
 
-            std::vector<tile_data*> layer_cache;
-            layer_cache.resize(voxel_settings::chunk_size, nullptr);
+            std::vector<tile_data> layer_cache;
+            layer_cache.reserve(voxel_settings::chunk_size);
+
+            for (u32 y = 0; y < voxel_settings::chunk_size; ++y) {
+                layer_cache.push_back(layers.get_data_for_height(height(y)));
+            }
+
 
             result->foreach([&] (const auto& pos, tile_data& data) {
-                auto height = chunkpos.y * tilepos::value_type { voxel_settings::chunk_size } + pos.y;
-
-                if (layer_cache[pos.y]) {
-                    data = *layer_cache[pos.y];
-                } else {
-                    world_layers::layer* layer_for_y = layers.layers.empty() ? nullptr : &layers.layers.front();
-
-                    for (const auto& [i, layer] : layers.layers | views::enumerate) {
-                        if (layer.limit > height) break;
-                        else layer_for_y = &layer;
-                    }
-
-                    tile_data* new_data = (layer_for_y && layer_for_y->limit >= height)
-                        ? &layer_for_y->data
-                        : &layers.sky;
-
-
-                    layer_cache[pos.y] = new_data;
-                    data = *layer_cache[pos.y];
-                }
+                data = layer_cache[pos.y];
             });
 
 

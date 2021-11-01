@@ -34,6 +34,7 @@
 #include <VoxelEngine/utility/io/serialize/variable_length_encoder.hpp>
 #include <VoxelEngine/utility/logger.hpp>
 #include <VoxelEngine/utility/math.hpp>
+#include <VoxelEngine/utility/noise.hpp>
 #include <VoxelEngine/utility/performance_timer.hpp>
 #include <VoxelEngine/utility/priority.hpp>
 #include <VoxelEngine/utility/raii.hpp>

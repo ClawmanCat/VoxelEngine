@@ -7,6 +7,8 @@
 #include <VoxelEngine/voxel/chunk/chunk.hpp>
 #include <VoxelEngine/voxel/chunk/chunk_mesher.hpp>
 #include <VoxelEngine/voxel/chunk/generator/generator.hpp>
+#include <VoxelEngine/voxel/chunk/generator/noise_generator.hpp>
+#include <VoxelEngine/voxel/chunk/generator/world_layers.hpp>
 #include <VoxelEngine/voxel/chunk/loader.hpp>
 #include <VoxelEngine/voxel/settings.hpp>
 #include <VoxelEngine/voxel/space/voxel_space.hpp>

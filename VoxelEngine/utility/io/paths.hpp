@@ -33,6 +33,7 @@ namespace ve::io::paths {
     const inline path PATH_SHADERS                          = PATH_ASSETS / "shaders/";
     const inline path PATH_TEXTURES                         = PATH_ASSETS / "textures/";
     const inline path PATH_SOUNDS                           = PATH_ASSETS / "sounds/";
+    const inline path PATH_NOISE                            = PATH_ASSETS / "noise/";
     const inline path PATH_TILE_TEXTURES                    = PATH_TEXTURES / "tiles/";
     const inline path PATH_ENTITY_TEXTURES                  = PATH_TEXTURES / "entities/";
     

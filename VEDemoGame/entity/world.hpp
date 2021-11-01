@@ -7,13 +7,12 @@
 #include <VoxelEngine/ecs/ecs.hpp>
 #include <VoxelEngine/graphics/graphics.hpp>
 #include <VoxelEngine/voxel/voxel.hpp>
+#include <VoxelEngine/utility/noise.hpp>
 
 
 namespace demo_game {
     inline const auto& get_world_layout(void) {
-        using fg = ve::voxel::flatland_generator;
-
-        static fg::world_layers result;
+        static ve::voxel::world_layers result;
         result.set_sky(ve::voxel::tiles::TILE_AIR);
 
         result.add_layer(-1, tiles::TILE_STONE);
@@ -27,12 +26,19 @@ namespace demo_game {
     public:
         explicit world(ve::registry& registry) :
             ve::static_entity(registry),
-            space(ve::make_unique<ve::voxel::flatland_generator>(get_world_layout()))
+            space([] {
+                ve::voxel::simple_noise_generator::arguments args {
+                    .heightmap = ve::noise::from_file(ve::io::paths::PATH_NOISE / "mountains_valleys.noise"),
+                    .layers    = get_world_layout()
+                };
+
+                return ve::make_unique<ve::voxel::simple_noise_generator>(std::move(args));
+            }())
         {
             mesh.buffer = space.get_vertex_buffer();
 
             auto load_where  = ve::voxel::tilepos { 0 };
-            auto load_radius = ve::voxel::tilepos { 3 };
+            auto load_radius = ve::voxel::tilepos { 5, 10, 5 };
             space.add_chunk_loader(ve::make_shared<ve::voxel::point_loader<ve::voxel::distance_metrics::L1>>(load_where, load_radius));
         }
 

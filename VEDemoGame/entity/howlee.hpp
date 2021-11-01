@@ -47,7 +47,7 @@ namespace demo_game {
             // Some Howlees will emit light.
             static std::size_t emissive_howlees = 0;
 
-            if (emissive_howlees < 128 && ve::cheaprand::random_real() < (1.0f / 32.0f)) {
+            if (emissive_howlees < 127 && ve::cheaprand::random_real() < (1.0f / 32.0f)) {
                 ve::vec3f color = { ve::cheaprand::random_real(), ve::cheaprand::random_real(), ve::cheaprand::random_real() };
                 color *= ve::cheaprand::random_real(25.0f, 50.0f);
 
