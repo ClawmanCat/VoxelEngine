@@ -56,6 +56,9 @@ namespace ve {
 
 
         void update(registry& owner, view_type view, nanoseconds dt) {
+            VE_PROFILE_FN();
+
+
             // TODO: Prevent having to do this copy each update, allow the pipeline to accept the view or something similar?
             static thread_local gfxapi::pipeline::draw_data data { };
             auto clear_on_exit = raii_function { no_op, [&] {

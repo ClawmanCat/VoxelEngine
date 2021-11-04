@@ -5,6 +5,8 @@
 
 namespace ve::gfx {
     void window::init(const window::arguments& args) {
+        VE_PROFILE_FN();
+
         if (args.graphics_window) gfxapi::prepare_api_state(args.api_settings);
 
 
@@ -42,11 +44,13 @@ namespace ve::gfx {
 
 
     void window::begin_frame(void) {
+        VE_PROFILE_FN();
         if (canvas) canvas->begin_frame();
     }
 
 
     void window::end_frame(void) {
+        VE_PROFILE_FN();
         if (canvas) canvas->end_frame();
     }
 

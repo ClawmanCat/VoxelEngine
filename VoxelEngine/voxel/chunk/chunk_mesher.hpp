@@ -50,6 +50,8 @@ namespace ve::voxel {
 
 
     inline tile_mesh mesh_chunk(const voxel_space* space, const chunk* chunk, const tilepos& chunkpos) {
+        VE_PROFILE_FN();
+
         static thread_local hash_map<detail::mesh_cache_key, tile_mesh> mesh_cache { };
         static const detail::skip_tile_list skip_list { };
 

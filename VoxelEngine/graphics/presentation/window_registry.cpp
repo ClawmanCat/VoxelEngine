@@ -13,11 +13,13 @@ namespace ve::gfx {
 
 
     void window_registry::begin_frame(void) {
+        VE_PROFILE_FN();
         for (auto* window : windows) window->begin_frame();
     }
 
 
     void window_registry::end_frame(void) {
+        VE_PROFILE_FN();
         for (auto* window : windows) window->end_frame();
     }
 

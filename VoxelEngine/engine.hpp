@@ -37,6 +37,7 @@ namespace ve {
         static inline state engine_state   = state::UNINITIALIZED;
         static inline u64 tick_count       = 0;
         static inline i32 exit_code        = -1;
+        static inline bool profiler_active = false;
 
         static inline dispatcher_t event_dispatcher = {};
         

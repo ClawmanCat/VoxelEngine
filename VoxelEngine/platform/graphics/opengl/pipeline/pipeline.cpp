@@ -6,6 +6,8 @@
 
 namespace ve::gfx::opengl {
     void single_pass_pipeline::draw(const draw_data& data) {
+        VE_PROFILE_FN();
+
         if (!get_target()->requires_rendering_this_frame()) return;
 
 
@@ -44,6 +46,8 @@ namespace ve::gfx::opengl {
 
 
     void single_pass_pipeline::bind_settings(void) {
+        VE_PROFILE_FN();
+
         std::array gl_toggles { glDisable, glEnable };
 
 

@@ -20,6 +20,8 @@ namespace ve::gfx::opengl {
 
 
         void draw(const draw_data& data) override {
+            VE_PROFILE_FN();
+
             if (!get_target()->requires_rendering_this_frame()) return;
 
 
@@ -52,6 +54,8 @@ namespace ve::gfx::opengl {
         }
     private:
         void setup_pipeline(void) {
+            VE_PROFILE_FN();
+
             auto attachment_template = [](const auto& name, bool color = true) {
                 return framebuffer_attachment {
                     name,

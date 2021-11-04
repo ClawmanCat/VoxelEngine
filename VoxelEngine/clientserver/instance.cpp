@@ -9,6 +9,7 @@ namespace ve {
 
 
     void instance_registry::update_all(nanoseconds dt) {
+        VE_PROFILE_FN();
         for (auto* instance : instances) instance->update(dt);
     }
 }

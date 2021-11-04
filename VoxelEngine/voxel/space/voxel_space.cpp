@@ -13,7 +13,12 @@ namespace ve::voxel {
 
 
     void voxel_space::update(nanoseconds dt) {
-        for (auto& loader : chunk_loaders) loader->update(this);
+        VE_PROFILE_FN();
+
+        for (auto& loader : chunk_loaders) {
+            VE_PROFILE_FN("Updating Chunk Loaders");
+            loader->update(this);
+        }
 
 
         VE_DEBUG_ONLY(
@@ -21,10 +26,15 @@ namespace ve::voxel {
             if (mesh_count) VE_LOG_DEBUG(cat("Re-meshing ", mesh_count, " chunks."));
         );
 
-        for (auto& [pos, chunk_data] : chunks) {
-            if (chunk_data.needs_meshing) {
-                chunk_data.subbuffer->store_mesh(mesh_chunk(this, chunk_data.chunk.get(), pos));
-                chunk_data.needs_meshing = false;
+
+        {
+            VE_PROFILE_FN("Updating Chunk Meshes");
+
+            for (auto& [pos, chunk_data] : chunks) {
+                if (chunk_data.needs_meshing) {
+                    chunk_data.subbuffer->store_mesh(mesh_chunk(this, chunk_data.chunk.get(), pos));
+                    chunk_data.needs_meshing = false;
+                }
             }
         }
     }

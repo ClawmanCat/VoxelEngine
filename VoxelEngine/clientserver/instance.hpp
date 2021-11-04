@@ -61,6 +61,8 @@ namespace ve {
 
 
         void update(nanoseconds dt) {
+            VE_PROFILE_FN();
+
             dispatch_event(instance_pre_tick_event { dt, tick_count });
 
             registry::update(dt);

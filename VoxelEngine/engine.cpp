@@ -64,9 +64,16 @@ namespace ve {
     
     
     void engine::init(void) {
-        game_callbacks::pre_init();
-        engine::event_dispatcher.dispatch_event(engine_pre_init_event { });
+        VE_PROFILE_BEGIN();
+        VE_PROFILE_FN();
 
+        {
+            VE_PROFILE_FN("game::pre_init");
+            game_callbacks::pre_init();
+        }
+
+
+        engine::event_dispatcher.dispatch_event(engine_pre_init_event{});
         engine::engine_state = engine::state::INITIALIZING;
 
 
@@ -83,23 +90,38 @@ namespace ve {
             priority::LOWEST // Give the game the opportunity to handle this event first.
         );
 
-        
-        plugin_registry::instance().scan_folder(io::paths::PATH_PLUGINS);
-        plugin_registry::instance().try_load_all_plugins(false);
+
+        {
+            VE_PROFILE_FN("Load Plugins");
+            plugin_registry::instance().scan_folder(io::paths::PATH_PLUGINS);
+            plugin_registry::instance().try_load_all_plugins(false);
+        }
 
 
         engine::engine_state = engine::state::RUNNING;
-
         engine::event_dispatcher.dispatch_event(engine_post_init_event { });
-        game_callbacks::post_init();
+
+        {
+            VE_PROFILE_FN("game::post_init");
+            game_callbacks::post_init();
+        }
+
+        VE_PROFILE_END(io::paths::PATH_LOGS / "profile_init.opt");
     }
     
     
     void engine::loop(void) {
+        if (!std::exchange(engine::profiler_active, true)) VE_PROFILE_BEGIN();
+        VE_PROFILE_FRAME("Engine Loop");
+
         static nanoseconds last_dt = 1s / 60; // Provide some reasonable fake value for the first tick.
         auto tick_begin = steady_clock::now();
 
-        game_callbacks::pre_loop();
+        {
+            VE_PROFILE_FN("game::pre_loop");
+            game_callbacks::pre_loop();
+        }
+
         engine::event_dispatcher.dispatch_event(engine_pre_loop_event { engine::tick_count });
 
         gfx::window_registry::instance().begin_frame();
@@ -111,7 +133,11 @@ namespace ve {
         gfx::window_registry::instance().end_frame();
 
         engine::event_dispatcher.dispatch_event(engine_post_loop_event { engine::tick_count });
-        game_callbacks::post_loop();
+
+        {
+            VE_PROFILE_FN("game::post_loop");
+            game_callbacks::post_loop();
+        }
 
         ++engine::tick_count;
         last_dt = time_since(tick_begin);
@@ -119,6 +145,8 @@ namespace ve {
     
     
     [[noreturn]] void engine::immediate_exit(void) {
+        if (profiler_active) VE_PROFILE_END(io::paths::PATH_LOGS / "profile_engine.opt");
+
         game_callbacks::pre_exit();
         engine::event_dispatcher.dispatch_event(engine_pre_exit_event { engine::exit_code });
 

@@ -62,6 +62,8 @@ namespace ve::gfx::opengl {
 
 
         void draw(render_context& ctx) const override {
+            VE_PROFILE_FN();
+
             ctx.uniform_state.push_uniforms(this);
             for (const auto& [id, buffer] : buffers) buffer->draw(ctx);
             ctx.uniform_state.pop_uniforms();
@@ -110,6 +112,9 @@ namespace ve::gfx::opengl {
 
 
         void draw(render_context& ctx) const override {
+            VE_PROFILE_FN();
+
+
             VE_DEBUG_ASSERT(
                 ctx.renderpass->get_shader()->get_vertex_type() == get_vertex_type(),
                 "Attempt to render buffer using shader made to render a different type of vertex."
@@ -171,6 +176,9 @@ namespace ve::gfx::opengl {
 
 
         void draw(render_context& ctx) const override {
+            VE_PROFILE_FN();
+
+
             VE_DEBUG_ASSERT(
                 ctx.renderpass->get_shader()->get_vertex_type() == get_vertex_type(),
                 "Attempt to render buffer using shader made to render a different type of vertex."

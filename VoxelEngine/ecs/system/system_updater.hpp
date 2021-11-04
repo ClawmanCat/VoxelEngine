@@ -30,6 +30,9 @@ namespace ve {
 
 
         void update(registry& owner, view_type view, nanoseconds dt) {
+            VE_PROFILE_FN();
+
+
             invocation_context ctx { &owner, entt::null };
 
             for (auto entity : view) {
