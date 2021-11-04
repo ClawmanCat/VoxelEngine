@@ -15,6 +15,7 @@ create_target(
     PUBLIC CONAN_PKG::abseil
     PUBLIC CONAN_PKG::entt
     PUBLIC CONAN_PKG::fastnoise2
+    PUBLIC CONAN_PKG::optick
     PUBLIC CONAN_PKG::magic_enum
     PUBLIC CONAN_PKG::ctti
     PUBLIC CONAN_PKG::ctre

@@ -9,6 +9,7 @@ magic_enum/0.6.6
 ctre/3.3.2
 entt/3.6.0
 fastnoise2/1.0.0@clawmancat/stable
+optick/1.0.0@clawmancat/stable
 range-v3/0.11.0
 glm/0.9.9.8
 stb/20200203

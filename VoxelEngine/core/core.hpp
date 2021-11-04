@@ -22,6 +22,7 @@
 #include <VoxelEngine/core/legacy.hpp>
 #include <VoxelEngine/core/platform.hpp>
 #include <VoxelEngine/core/preprocessor.hpp>
+#include <VoxelEngine/core/profiler.hpp>
 #include <VoxelEngine/core/range.hpp>
 #include <VoxelEngine/core/typedef/chrono.hpp>
 #include <VoxelEngine/core/typedef/container.hpp>
