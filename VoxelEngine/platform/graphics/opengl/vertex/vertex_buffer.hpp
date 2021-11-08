@@ -7,6 +7,7 @@
 #include <VoxelEngine/utility/traits/null_type.hpp>
 #include <VoxelEngine/utility/traits/always_false.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
+#include <VoxelEngine/utility/traits/ratio.hpp>
 #include <VoxelEngine/platform/graphics/opengl/context/render_context.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_storage.hpp>
@@ -18,6 +19,9 @@
 
 namespace ve::gfx::opengl {
     namespace detail {
+        using vbo_overallocate_factor = std::ratio<3, 2>;
+
+
         inline auto raii_bind_uniforms(const uniform_storage& self, render_context& ctx) {
             return raii_function {
                 [&] {
@@ -153,7 +157,7 @@ namespace ve::gfx::opengl {
 
     protected:
         GLuint vao;
-        buffer<Vertex> vbo;
+        buffer<Vertex, detail::vbo_overallocate_factor> vbo;
     };
 
 
@@ -223,7 +227,7 @@ namespace ve::gfx::opengl {
         }
     private:
         GLuint vao;
-        buffer<Index> ebo;
+        buffer<Index, detail::vbo_overallocate_factor> ebo;
 
 
         constexpr static GLenum get_index_type(void) {

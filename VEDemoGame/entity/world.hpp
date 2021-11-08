@@ -28,7 +28,7 @@ namespace demo_game {
             ve::static_entity(registry),
             space([] {
                 ve::voxel::simple_noise_generator::arguments args {
-                    .heightmap = ve::noise::from_file(ve::io::paths::PATH_NOISE / "mountains_valleys.noise"),
+                    .heightmap = ve::noise::from_file(ve::io::paths::PATH_NOISE / "mountains_valleys_1.noise"),
                     .layers    = get_world_layout()
                 };
 

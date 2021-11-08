@@ -2,12 +2,14 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/assert.hpp>
+#include <VoxelEngine/utility/traits/ratio.hpp>
 
 #include <gl/glew.h>
 
 
 namespace ve::gfx::opengl {
-    template <typename T> class buffer {
+    template <typename T, meta::ratio Overallocate = std::ratio<1, 1>> requires std::ratio_greater_equal_v<Overallocate, std::ratio<1, 1>>
+    class buffer {
     public:
         buffer(void) = default;
         explicit buffer(GLenum type) : gl_type(type) {}
@@ -45,16 +47,22 @@ namespace ve::gfx::opengl {
             VE_ASSERT(gl_type != GL_INVALID_ENUM, "Cannot reserve space for uninitialized buffer.");
             if (count <= capacity) return;
 
+
+            // A lot of buffers will be written to exactly once, so it would be wasteful to over-allocate.
+            // Only over-allocate if this isn't the first time we're performing a write, i.e. capacity > 0.
+            constexpr float f = float(Overallocate::num) / float(Overallocate::den);
+            std::size_t new_capacity = (capacity > 0) ? std::size_t(count * f) : count;
+
             GLuint new_id;
             glGenBuffers(1, &new_id);
             glBindBuffer(gl_type, new_id);
 
-            glBufferData(gl_type, count * sizeof(T), nullptr, GL_DYNAMIC_DRAW);
+            glBufferData(gl_type, new_capacity * sizeof(T), nullptr, GL_DYNAMIC_DRAW);
             if (size) glCopyNamedBufferSubData(id, new_id, 0, 0, size * sizeof(T));
 
             if (id) glDeleteBuffers(1, &id);
             id = new_id;
-            capacity = count;
+            capacity = new_capacity;
         }
 
 

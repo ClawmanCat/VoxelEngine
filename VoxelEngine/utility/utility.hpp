@@ -66,6 +66,7 @@
 #include <VoxelEngine/utility/traits/pack/pack_helpers.hpp>
 #include <VoxelEngine/utility/traits/pack/pack_ops.hpp>
 #include <VoxelEngine/utility/traits/pick.hpp>
+#include <VoxelEngine/utility/traits/ratio.hpp>
 #include <VoxelEngine/utility/traits/reference_as.hpp>
 #include <VoxelEngine/utility/traits/sequence.hpp>
 #include <VoxelEngine/utility/traits/string_arg.hpp>
