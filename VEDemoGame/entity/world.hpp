@@ -38,7 +38,7 @@ namespace demo_game {
             mesh.buffer = space.get_vertex_buffer();
 
             auto load_where  = ve::voxel::tilepos { 0 };
-            auto load_radius = ve::voxel::tilepos { 5, 10, 5 };
+            auto load_radius = ve::voxel::tilepos { 15, 10, 15 };
             space.add_chunk_loader(ve::make_shared<ve::voxel::point_loader<ve::voxel::distance_metrics::L1>>(load_where, load_radius));
         }
 
