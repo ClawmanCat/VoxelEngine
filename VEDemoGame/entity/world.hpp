@@ -12,11 +12,16 @@
 
 namespace demo_game {
     inline const auto& get_world_layout(void) {
-        static ve::voxel::world_layers result;
-        result.set_sky(ve::voxel::tiles::TILE_AIR);
+        static ve::voxel::world_layers result = [] {
+            ve::voxel::world_layers result;
 
-        result.add_layer(-1, tiles::TILE_STONE);
-        result.add_layer(0,  tiles::TILE_GRASS);
+            result.set_sky(ve::voxel::tiles::TILE_AIR);
+
+            result.add_layer(-1, tiles::TILE_STONE);
+            result.add_layer(0,  tiles::TILE_GRASS);
+
+            return result;
+        } ();
 
         return result;
     };
