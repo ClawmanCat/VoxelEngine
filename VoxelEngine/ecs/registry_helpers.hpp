@@ -21,6 +21,8 @@ namespace ve::detail {
 
         virtual ~system_data_base(void) = default;
         virtual void update(registry& self, nanoseconds dt) = 0;
+        virtual void init(registry& self) = 0;
+        virtual void uninit(registry& self) = 0;
 
         u16 priority;
     };
@@ -30,6 +32,14 @@ namespace ve::detail {
 
         void update(registry& self, nanoseconds dt) override {
             system.update(self, System::make_view(get_storage(self)), dt);
+        }
+
+        void init(registry& self) override {
+            system.init(self);
+        }
+
+        void uninit(registry& self) override {
+            system.uninit(self);
         }
 
         System system;

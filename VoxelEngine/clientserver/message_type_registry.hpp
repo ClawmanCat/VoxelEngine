@@ -16,7 +16,7 @@ namespace ve {
 
     struct message_type {
         std::string name;
-        std::size_t type_hash;
+        u64 type_hash;
         mtr_id id;
         bool is_core;
 
@@ -38,7 +38,7 @@ namespace ve {
         }
 
 
-        const message_type& register_type(std::string name, std::size_t type_id, bool is_core = false) {
+        const message_type& register_type(std::string name, u64 type_id, bool is_core = false) {
             VE_DEBUG_ASSERT(!is_discontinuous, "Cannot manually register types into MTR used to register remote types.");
             return register_type(std::move(name), type_id, next_id++, is_core);
         }
@@ -64,6 +64,18 @@ namespace ve {
         }
 
 
+        const message_type* try_get_type(std::string_view name) const {
+            auto it = types_by_name.find(name);
+            return (it == types_by_name.end()) ? nullptr : &it->second;
+        }
+
+
+        const message_type* try_get_type(mtr_id id) const {
+            auto it = types_by_id.find(id);
+            return (it == types_by_id.end()) ? nullptr : it->second;
+        }
+
+
         VE_GET_CREF(types_by_name);
         VE_GET_CREF(types_by_id);
         VE_GET_VAL(num_core_types);
@@ -78,7 +90,7 @@ namespace ve {
         VE_DEBUG_ONLY(bool is_discontinuous = false);
 
 
-        const message_type& register_type(std::string name, std::size_t type_id, mtr_id id, bool is_core = false) {
+        const message_type& register_type(std::string name, u64 type_id, mtr_id id, bool is_core = false) {
             VE_DEBUG_ONLY(is_discontinuous |= (id + 1 != next_id));
 
             auto [it, success] = types_by_name.emplace(name, message_type {

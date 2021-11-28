@@ -2,8 +2,6 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/clientserver/core_messages/core_message.hpp>
-#include <VoxelEngine/clientserver/core_messages/msg_sync_mtr.hpp>
-#include <VoxelEngine/clientserver/core_messages/msg_ignore_this.hpp>
 #include <VoxelEngine/clientserver/client.hpp>
 #include <VoxelEngine/clientserver/server.hpp>
 #include <VoxelEngine/clientserver/message_handler.hpp>
@@ -12,11 +10,21 @@
 #include <VoxelEngine/utility/traits/is_immovable.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
 
+#include <VoxelEngine/clientserver/core_messages/msg_sync_mtr.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_ignore_this.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_compound.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_add_del_entity.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_set_component.hpp>
+
 
 namespace ve {
     const inline std::tuple core_message_type_infos {
         msg_sync_mtr,
-        msg_ignore_this
+        msg_ignore_this,
+        msg_compound,
+        msg_add_entity,
+        msg_del_entity,
+        msg_set_component
     };
 
 

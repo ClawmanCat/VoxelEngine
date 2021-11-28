@@ -30,6 +30,10 @@ namespace ve::serialize {
         std::size_t size(void) const {
             return bytes.size();
         }
+
+        bool empty(void) const {
+            return bytes.empty();
+        }
     };
 
 
@@ -72,6 +76,10 @@ namespace ve::serialize {
 
         std::size_t size(void) const {
             return bytes.size();
+        }
+
+        bool empty(void) const {
+            return bytes.empty();
         }
     };
 }

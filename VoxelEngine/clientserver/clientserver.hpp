@@ -8,6 +8,7 @@
 #include <VoxelEngine/clientserver/connect.hpp>
 #include <VoxelEngine/clientserver/core_messages/core_message.hpp>
 #include <VoxelEngine/clientserver/core_messages/core_message_setup.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_compound.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_ignore_this.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_sync_mtr.hpp>
 #include <VoxelEngine/clientserver/instance.hpp>

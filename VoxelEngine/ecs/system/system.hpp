@@ -39,6 +39,13 @@ namespace ve {
         }
 
 
+        void uninit(registry& storage) {
+            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, init)) {
+                static_cast<Derived*>(this)->uninit(storage);
+            }
+        }
+
+
         void update(registry& owner, view_type view, nanoseconds dt) {
             VE_CRTP_CHECK(Derived, update);
             static_cast<Derived*>(this)->update(owner, view, dt);

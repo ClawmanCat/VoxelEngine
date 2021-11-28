@@ -8,7 +8,7 @@
 using namespace ve::defs;
 
 
-constexpr std::size_t num_clients = 5;
+constexpr std::size_t num_clients = 1;
 
 struct test_message {
     std::string msg;
@@ -23,11 +23,11 @@ test_result test_with_connection_method(
 
     for (std::size_t i = 0; i < num_clients; ++i) {
         auto& client = clients.emplace_back(make_unique<ve::client>());
-        client->get_mtr().register_type<test_message>("ve.test.test_message");
+        //client->get_mtr().register_type<test_message>("ve.test.test_message");
     }
 
     unique<ve::server> server = make_unique<ve::server>();
-    server->get_mtr().register_type<test_message>("ve.test.test_message");
+    //server->get_mtr().register_type<test_message>("ve.test.test_message");
 
 
     const std::string msg_string = "This is a test message!";

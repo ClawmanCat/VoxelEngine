@@ -27,8 +27,14 @@ namespace ve {
 
         VE_GET_VAL(other);
     protected:
-        void send_message(const message_t& msg) override {
-            if (auto locked = other.lock(); locked) locked->on_message_received(msg);
+        void send_message(std::span<const u8> data) override {
+            if (auto locked = other.lock(); locked) [[likely]] locked->on_message_received(data);
+            else VE_LOG_ERROR("Attempt to send message through local message handler with no target.");
+        }
+
+
+        void send_message(mtr_id id, const void* msg, fn<void, const void*, std::vector<u8>&> to_bytes) override {
+            if (auto locked = other.lock(); locked) [[likely]] locked->on_message_received(id, msg, to_bytes);
             else VE_LOG_ERROR("Attempt to send message through local message handler with no target.");
         }
 

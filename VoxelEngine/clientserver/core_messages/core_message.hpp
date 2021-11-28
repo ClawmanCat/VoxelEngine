@@ -8,8 +8,12 @@
 
 namespace ve {
     namespace core_message_types {
-        constexpr std::string_view MSG_SYNC_MTR    = "ve.sync_mtr";
-        constexpr std::string_view MSG_IGNORE_THIS = "ve.ignore_this";
+        constexpr std::string_view MSG_SYNC_MTR      = "ve.sync_mtr";
+        constexpr std::string_view MSG_IGNORE_THIS   = "ve.ignore_this";
+        constexpr std::string_view MSG_COMPOUND      = "ve.compound";
+        constexpr std::string_view MSG_ADD_ENTITY    = "ve.ecs.add_entity";
+        constexpr std::string_view MSG_DEL_ENTITY    = "ve.ecs.del_entity";
+        constexpr std::string_view MSG_SET_COMPONENT = "ve.ecs.set_component";
     }
 
 

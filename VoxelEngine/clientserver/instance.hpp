@@ -4,6 +4,8 @@
 #include <VoxelEngine/ecs/registry.hpp>
 #include <VoxelEngine/clientserver/instance_id.hpp>
 #include <VoxelEngine/clientserver/instance_events.hpp>
+#include <VoxelEngine/clientserver/message_handler.hpp>
+#include <VoxelEngine/clientserver/message_type_registry.hpp>
 #include <VoxelEngine/event/simple_event_dispatcher.hpp>
 #include <VoxelEngine/event/subscribe_only_view.hpp>
 #include <VoxelEngine/utility/arbitrary_storage.hpp>
@@ -12,11 +14,10 @@
 
 
 namespace ve {
-    using instance_dispatcher_t = simple_event_dispatcher<false>;
-    struct overridable_function_tag {};
-
-
     class instance;
+
+
+    struct overridable_function_tag {};
 
 
     class instance_registry {
@@ -45,8 +46,7 @@ namespace ve {
     // Can also be used as unified client / server instance for scenarios where multiplayer support is not required.
     class instance :
         public registry,
-        public arbitrary_storage,
-        public subscribe_only_view<instance_dispatcher_t>
+        public arbitrary_storage
     {
     public:
         instance(void) : id(random_uuid()) {
@@ -78,6 +78,12 @@ namespace ve {
         }
 
 
+        virtual std::vector<shared<message_handler>> get_connections(void) {
+            return { };
+        }
+
+
+        VE_GET_MREF(mtr);
         VE_GET_CREF(id);
         VE_GET_VAL(tick_count);
     protected:
@@ -86,6 +92,7 @@ namespace ve {
         virtual void update(nanoseconds dt, overridable_function_tag) {}
 
     private:
+        message_type_registry mtr;
         instance_id id;
         u64 tick_count = 0;
     };

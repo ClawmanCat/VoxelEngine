@@ -11,11 +11,17 @@ namespace ve {
     public:
         server(void) : instance() {
             initialize_mtr();
+            get_validator().set_allow_by_default(false);
         }
 
 
         std::string get_name(void) const override {
             return "server "s + boost::uuids::to_string(get_id());
+        }
+
+
+        std::vector<shared<message_handler>> get_connections(void) override {
+            return client_connections | views::values | ranges::to<std::vector>;
         }
 
 
@@ -37,11 +43,8 @@ namespace ve {
             return client_connections.at(remote_id);
         }
 
-
-        VE_GET_MREF(mtr);
     private:
         hash_map<instance_id, shared<message_handler>> client_connections;
-        message_type_registry mtr;
 
         void initialize_mtr(void);
     };

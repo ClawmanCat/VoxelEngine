@@ -21,5 +21,6 @@
 #include <VoxelEngine/ecs/system/system_bind_camera.hpp>
 #include <VoxelEngine/ecs/system/system_physics.hpp>
 #include <VoxelEngine/ecs/system/system_renderer.hpp>
+#include <VoxelEngine/ecs/system/system_synchronizer.hpp>
 #include <VoxelEngine/ecs/system/system_updater.hpp>
 #include <VoxelEngine/ecs/view_type.hpp>

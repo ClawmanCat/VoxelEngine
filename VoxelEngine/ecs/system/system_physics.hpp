@@ -15,7 +15,6 @@ namespace ve {
     // TODO: Right now this system just moves entities according to their velocity.
     // Actual physics still needs to be added.
     template <
-        // Tags can be used to split entities across different updaters.
         meta::pack_of_types RequiredTags = meta::pack<>,
         meta::pack_of_types ExcludedTags = meta::pack<dont_apply_physics_by_default_tag>
     > class system_physics : public system<

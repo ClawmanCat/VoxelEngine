@@ -188,7 +188,8 @@ namespace ve::meta {
             
 
             // Given a decomposable class, construct a pack from all its member types.
-            template <typename T> struct from_decomposable {
+            template <typename T> requires is_decomposable_v<T>
+            struct from_decomposable {
                 using decomposer = decomposer_for<T>;
 
                 constexpr static auto gen_type(void) {

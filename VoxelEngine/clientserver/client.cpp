@@ -4,6 +4,6 @@
 
 namespace ve {
     void client::initialize_mtr(void) {
-        register_core_messages(*this, mtr);
+        register_core_messages(*this, get_mtr());
     }
 }
