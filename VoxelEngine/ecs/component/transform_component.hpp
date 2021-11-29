@@ -17,7 +17,7 @@ namespace ve {
         }
 
         mat4f get_uniform_value(void) const {
-            return glm::translate(glm::identity<mat4f>(), position) * glm::mat4_cast(rotation);
+            return glm::translate(glm::identity<mat4f>(), position) * glm::mat4_cast(rotation) * glm::scale(glm::identity<mat4f>(), scale);
         }
 
         producer_t get_uniform_combine_function(void) const {

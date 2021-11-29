@@ -76,11 +76,15 @@ namespace ve {
         }
 
 
-        template <typename Component> Component& set(Component&& component) {
+        // Returns void for empty components. See registry.hpp.
+        template <typename Component> requires (!std::is_reference_v<Component>)
+        Component& set(Component&& component) {
             return get_registry().template set_component<Component>(id, fwd(component));
         }
 
-        template <typename Component> Component& set(const Component& component) {
+
+        template <typename Component> requires (!std::is_reference_v<Component>)
+        Component& set(const Component& component) {
             return get_registry().template set_component<Component>(id, component);
         }
 

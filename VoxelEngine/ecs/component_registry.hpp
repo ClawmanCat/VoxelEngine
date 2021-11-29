@@ -57,9 +57,14 @@ namespace ve {
 
 
     namespace detail {
-        template <typename Component> struct component_registry_helper {
+        template <typename Component> requires (!std::is_reference_v<Component>)
+        struct component_registry_helper {
             const static inline meta::null_type value = [] {
-                if constexpr (serialize::is_serializable<Component>) {
+                constexpr static bool tracked =
+                    serialize::is_serializable<Component> &&
+                    !requires { typename Component::non_syncable_tag; };
+
+                if constexpr (tracked) {
                     component_registry::instance().template register_component<Component>();
                 }
 

@@ -63,9 +63,10 @@ namespace ve {
         static_assert(meta::is_immovable_v<Instance>, "Instances must be immovable so their address may be safely stored.");
         static_assert(meta::is_immovable_v<message_handler>, "Message handlers must be immovable so their address may be safely stored.");
 
+        // The handler needs to be added to the opposite side of the one that's sending the message.
         auto direction = std::is_same_v<Instance, client>
-            ? message_direction::TO_SERVER
-            : message_direction::TO_CLIENT;
+            ? message_direction::TO_CLIENT
+            : message_direction::TO_SERVER;
 
         tuple_foreach(
             core_message_type_infos,

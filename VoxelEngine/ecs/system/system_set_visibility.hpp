@@ -47,7 +47,10 @@ namespace ve {
         constexpr static inline u8 CHANGE_BIT = 0b10;
 
 
-        explicit system_set_visibility(Pred pred = produce(true), u16 priority = priority::LOWEST + 1) :
+        explicit system_set_visibility(
+            Pred pred = [](registry& r, entt::entity e, message_handler* conn) { return true; },
+            u16 priority = priority::LOWEST + 1
+        ) :
             pred(std::move(pred)),
             priority(priority)
         {}
@@ -85,10 +88,12 @@ namespace ve {
             auto connections = i.get_connections();
 
 
-            for (auto entity : view) {
-                for (auto& connection : connections) {
-                    u8 visibility  = (u8) visibility_map[connection->get_remote_id()].get(entity);
-                    u8 visible_now = (u8) std::invoke(pred, owner, entity, connection.get());
+            for (auto& connection : connections) {
+                auto& states_for_connection = visibility_map.try_emplace(connection->get_remote_id(), owner.get_storage()).first->second;
+
+                for (auto entity : view) {
+                    u8& visibility  = (u8&) states_for_connection.try_insert(entity, INVISIBLE);
+                    u8  visible_now = (u8)  std::invoke(pred, owner, entity, connection.get());
 
                     visibility = visibility_state(
                         // Copy visibility bit from new state.
@@ -108,8 +113,17 @@ namespace ve {
         }
 
 
+        auto visibility_for(instance_id remote) {
+            return visibility_map.at(remote).view();
+        }
+
         auto visibility_for(instance_id remote) const {
             return visibility_map.at(remote).view();
+        }
+
+
+        bool is_visible(entt::entity entity, instance_id remote) const {
+            return visibility_map.at(remote).contains(entity);
         }
     private:
         hash_map<instance_id, storage_group<visibility_state>> visibility_map;

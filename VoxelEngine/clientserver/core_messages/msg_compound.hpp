@@ -37,7 +37,9 @@ namespace ve {
             ser.push_bytes(serialize::to_bytes(msg));
             std::size_t new_size = data.size();
 
-            ser.push(type);
+            if constexpr (is_mtr_id<decltype(type)>) ser.push(type);
+            else ser.push(connection->get_local_mtr().get_type(type).id);
+
             serialize::encode_variable_length(new_size - old_size, data);
         }
 
@@ -54,6 +56,11 @@ namespace ve {
         void clear(void) {
             data.clear();
         }
+
+
+        bool empty(void) const {
+            return data.empty();
+        }
     };
 
 
@@ -64,7 +71,7 @@ namespace ve {
         while (!span.empty()) {
             u64    msg_size = serialize::decode_variable_length(span);
             mtr_id msg_type = serialize::from_bytes<mtr_id>(span);
-            auto   msg_data = span.last(msg_size);
+            auto   msg_data = take_back_n(span, msg_size);
 
             handler.on_message_received(msg_type, msg_data);
         }

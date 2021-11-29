@@ -53,9 +53,7 @@ namespace ve {
 
         
         static view_type make_view(entt::registry& registry) {
-            return [&] <typename... Required, typename... Excluded> (meta::pack<Required...>, meta::pack<Excluded...>) {
-                return registry.view<Required...>(entt::exclude_t<Excluded...>{});
-            }(RequiredComponents{}, ExcludedComponents{});
+            return construct_view<required_components, excluded_components>(registry);
         }
     };
 }

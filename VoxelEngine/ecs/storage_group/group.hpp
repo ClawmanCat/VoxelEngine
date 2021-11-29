@@ -16,6 +16,7 @@ namespace ve {
     
     // Allows grouping entities at runtime, e.g. grouping entities by the chunk they're in.
     // E.g.: for (auto e : some_chunk.view() | registry.view<Components...>) { ... }
+    // TODO: Handle empty components like in registry.
     template <typename Data = meta::null_type>
     class storage_group : public detail::component_storage_base<Data> {
     public:
@@ -23,11 +24,23 @@ namespace ve {
         using storage_base          = detail::component_storage_base<Data>;
 
 
+        // Default constructor is provided for the sole purpose of making this class easier to use as a class member.
+        // Storage groups still need a registry in order to be usable.
+        storage_group(void) = default;
         explicit storage_group(entt::registry& registry) : registry(&registry) {}
         
         
         Data& insert(entt::entity entity, auto&&... args) {
             return storage_base::emplace(*registry, entity, Data { fwd(args)... });
+        }
+
+
+        Data& try_insert(entt::entity entity, auto&&... args) {
+            if (storage_base::contains(entity)) {
+                return storage_base::get(entity);
+            } else {
+                return insert(entity, fwd(args)...);
+            }
         }
 
         
@@ -51,9 +64,13 @@ namespace ve {
         auto view(void) const {
             return view_type_for<meta::pack<const Data>, meta::pack<>> { *this };
         }
-        
+
+
+        bool valid(void) const {
+            return registry;
+        }
     protected:
-        entt::registry* registry;
+        entt::registry* registry = nullptr;
     };
     
     

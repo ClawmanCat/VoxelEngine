@@ -19,6 +19,7 @@ create_target(
     PUBLIC CONAN_PKG::magic_enum
     PUBLIC CONAN_PKG::ctti
     PUBLIC CONAN_PKG::ctre
+    PUBLIC CONAN_PKG::xxhash
     PUBLIC CONAN_PKG::range-v3
     PUBLIC CONAN_PKG::glm
     PUBLIC CONAN_PKG::sdl2

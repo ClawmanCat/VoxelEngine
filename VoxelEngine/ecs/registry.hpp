@@ -5,6 +5,7 @@
 #include <VoxelEngine/ecs/registry_helpers.hpp>
 #include <VoxelEngine/ecs/component_registry.hpp>
 #include <VoxelEngine/ecs/change_validator.hpp>
+#include <VoxelEngine/ecs/empty_storage.hpp>
 #include <VoxelEngine/event/simple_event_dispatcher.hpp>
 #include <VoxelEngine/event/subscribe_only_view.hpp>
 
@@ -15,18 +16,22 @@
 
 
 namespace ve {
+    class registry;
     class static_entity;
-    entt::registry& detail::get_storage(registry& registry);
+
+
+    template <typename T>
+    using component_ref_or_void = std::add_lvalue_reference_t<std::conditional_t<std::is_empty_v<T>, void, T>>;
 
 
     template <typename Derived> struct registry_access_for_visibility_provider;
     template <typename Derived> struct registry_access_for_static_entity;
 
 
-    struct entity_created_event   { entt::entity entity; };
-    struct entity_destroyed_event { entt::entity entity; };
-    template <typename Component> struct component_created_event   { entt::entity entity; const Component* component; };
-    template <typename Component> struct component_destroyed_event { entt::entity entity; const Component* component; };
+    struct entity_created_event   { registry* owner; entt::entity entity; };
+    struct entity_destroyed_event { registry* owner; entt::entity entity; };
+    template <typename Component> struct component_created_event   { registry* owner; entt::entity entity; const Component* component; };
+    template <typename Component> struct component_destroyed_event { registry* owner; entt::entity entity; const Component* component; };
 
 
     // The registry is responsible for storing entities, components and systems.
@@ -80,15 +85,7 @@ namespace ve {
         template <typename... Components>
         entt::entity create_entity(Components&&... components) {
             auto entity = storage.create();
-            dispatch_event(entity_created_event { entity });
-
-            ([&] <typename Component> (Component&& component) {
-                VE_REGISTER_COMPONENT_T(Component);
-
-                // Don't need to check if the component exists since this is a new entity.
-                Component& stored_component = storage.template emplace<Component>(entity, fwd(component));
-                dispatch_event(component_created_event<Component> { entity, &stored_component });
-            }(fwd(components)), ...);
+            create_entity_common(entity, fwd(components)...);
 
             return entity;
         }
@@ -97,17 +94,7 @@ namespace ve {
         template <typename... Components>
         entt::entity create_entity_with_id(entt::entity id, Components&&... components) {
             auto entity = storage.create(id);
-            VE_ASSERT(entity == id, "Failed to create entity with ID ", id, ": an entity with this ID already exists.");
-
-            dispatch_event(entity_created_event { entity });
-
-            ([&] <typename Component> (Component&& component) {
-                VE_REGISTER_COMPONENT_T(Component);
-
-                // Don't need to check if the component exists since this is a new entity.
-                Component& stored_component = storage.template emplace<Component>(entity, fwd(component));
-                dispatch_event(component_created_event<Component> { entity, &stored_component });
-            }(fwd(components)), ...);
+            create_entity_common(entity, fwd(components)...);
 
             return entity;
         }
@@ -129,62 +116,59 @@ namespace ve {
 
 
         void destroy_entity(entt::entity entity) {
-            dispatch_event(entity_destroyed_event { entity });
+            dispatch_event(entity_destroyed_event { this, entity });
             return storage.destroy(entity);
         }
 
 
         template <typename Component> Component* try_get_component(entt::entity entity) {
-            return storage.template try_get<Component>(entity);
+            if constexpr (std::is_empty_v<Component>) return &empty_storage_for<Component>();
+            else return storage.template try_get<Component>(entity);
         }
 
         template <typename Component> const Component* try_get_component(entt::entity entity) const {
-            return storage.template try_get<Component>(entity);
+            if constexpr (std::is_empty_v<Component>) return &empty_storage_for<Component>();
+            else return storage.template try_get<Component>(entity);
         }
 
 
         template <typename Component> Component& get_component(entt::entity entity) {
-            return storage.template get<Component>(entity);
+            if constexpr (std::is_empty_v<Component>) return empty_storage_for<Component>();
+            else return storage.template get<Component>(entity);
         }
 
         template <typename Component> const Component& get_component(entt::entity entity) const {
-            return storage.template get<Component>(entity);
+            if constexpr (std::is_empty_v<Component>) return empty_storage_for<Component>();
+            else return storage.template get<Component>(entity);
         }
 
 
-        template <typename Component> requires (!std::is_reference_v<Component>) // Don't allow universal references here.
+        template <typename Component> requires (!std::is_reference_v<Component>)
         Component& set_component(entt::entity entity, Component&& component) {
             VE_REGISTER_COMPONENT_T(Component);
 
 
             if (has_component<Component>(entity)) {
-                return storage.template replace<Component>(entity, fwd(component));
+                return ve_impl_component_access(Component, storage.template replace<Component>, entity, fwd(component));
             } else {
-                Component& stored_component = storage.template emplace<Component>(entity, fwd(component));
-                dispatch_event(component_created_event<Component> { entity, &stored_component });
-
-                return stored_component;
-            }
-        }
-
-        template <typename Component> Component& set_component(entt::entity entity, const Component& component) {
-            VE_REGISTER_COMPONENT_T(Component);
-
-
-            if (has_component<Component>(entity)) {
-                return storage.template replace<Component>(entity, fwd(component));
-            } else {
-                Component& stored_component = storage.template emplace<Component>(entity, fwd(component));
-                dispatch_event(component_created_event<Component> { entity, &stored_component });
+                Component& stored_component = ve_impl_component_access(Component, storage.template emplace<Component>, entity, fwd(component));
+                dispatch_event(component_created_event<Component> { this, entity, &stored_component });
 
                 return stored_component;
             }
         }
 
 
-        template <typename Component> Component remove_component(entt::entity entity) {
+        template <typename Component> requires (!std::is_reference_v<Component>)
+        Component& set_component(entt::entity entity, const Component& component) {
+            return set_component(entity, Component { component });
+        }
+
+
+        template <typename Component> requires (!requires { typename Component::non_removable_tag; })
+        Component remove_component(entt::entity entity) {
             Component& stored_component = get_component<Component>(entity);
-            dispatch_event(component_destroyed_event<Component> { entity, &stored_component });
+            dispatch_event(component_destroyed_event<Component> { this, entity, &stored_component });
 
             Component component = std::move(stored_component);
             storage.template remove<Component>(entity);
@@ -198,13 +182,21 @@ namespace ve {
         }
 
 
+        // Views
         template <typename... Components> auto view(void) {
-            return storage.template view<Components...>();
+            return construct_view<meta::pack<Components...>, meta::pack<>>(storage);
         }
 
-
         template <typename... Components> auto view(void) const {
-            return storage.template view<Components...>();
+            return construct_view<meta::pack<Components...>, meta::pack<>>(storage);
+        }
+
+        template <meta::pack_of_types Required, meta::pack_of_types Excluded> auto view_except(void) {
+            return construct_view<Required, Excluded>(storage);
+        }
+
+        template <meta::pack_of_types Required, meta::pack_of_types Excluded> auto view_except(void) const {
+            return construct_view<Required, Excluded>(storage);
         }
 
 
@@ -221,15 +213,26 @@ namespace ve {
         void set_default_visibility(bool enabled) { visible_by_default = enabled; }
 
 
-        // Can't give out mutable references, since we have to ensure events are dispatched.
-        VE_GET_CREF(storage);
+        // Note: acting upon the storage directly will cause events to not be fired, and should be avoided, as systems may depend on them.
+        VE_GET_MREF(storage);
         VE_GET_MREF(validator);
     private:
+        template <typename... Components> void create_entity_common(entt::entity entity, Components&&... components) {
+            set_component(entity, detail::common_component { });
+            dispatch_event(entity_created_event { this, entity });
+
+            ([&] <typename Component> (Component&& component) {
+                VE_REGISTER_COMPONENT_T(Component);
+
+                // Don't need to check if the component exists since this is a new entity.
+                Component& stored_component = ve_impl_component_access(Component, storage.template emplace, entity, fwd(component));
+                dispatch_event(component_created_event<Component> { this, entity, &stored_component });
+            }(fwd(components)), ...);
+        }
+
+
         template <typename Derived> friend struct registry_access_for_visibility_provider;
         template <typename Derived> friend struct registry_access_for_static_entity;
-
-        // Access to storage to create views for system invocation.
-        friend entt::registry& detail::get_storage(registry& registry);
 
 
         // TODO: Better cache locality would probably help here, since a system is likely to iterate over many of the same type of static entity in order.
