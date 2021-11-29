@@ -3,7 +3,7 @@ cmake
 
 
 [requires]
-boost/1.76.0
+boost/1.77.0
 abseil/20200923.3
 magic_enum/0.6.6
 ctre/3.3.2

@@ -62,6 +62,8 @@ namespace ve {
                 if constexpr (serialize::is_serializable<Component>) {
                     component_registry::instance().template register_component<Component>();
                 }
+
+                return meta::null_type { };
             } ();
         };
     }

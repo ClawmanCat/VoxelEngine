@@ -15,6 +15,7 @@
 #include <VoxelEngine/clientserver/core_messages/msg_compound.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_add_del_entity.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_set_component.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_del_component.hpp>
 
 
 namespace ve {
@@ -24,7 +25,8 @@ namespace ve {
         msg_compound,
         msg_add_entity,
         msg_del_entity,
-        msg_set_component
+        msg_set_component,
+        msg_del_component
     };
 
 

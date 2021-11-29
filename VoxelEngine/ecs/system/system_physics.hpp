@@ -24,7 +24,12 @@ namespace ve {
         ExcludedTags
     > {
     public:
-        explicit system_physics(u16 priority = priority::HIGH) : priority(priority) {}
+        // "max_dt" can be used to skip physics updates if the dt becomes very large.
+        // This can be used to prevent applied movement from becoming too large if the game hangs for a significant amount of time.
+        explicit system_physics(nanoseconds max_dt = 250ms, u16 priority = priority::HIGH) :
+            max_dt(max_dt),
+            priority(priority)
+        {}
 
 
         u16 get_priority(void) const {
@@ -33,6 +38,9 @@ namespace ve {
 
 
         void update(registry& owner, view_type view, nanoseconds dt) {
+            if (dt >= max_dt) return;
+
+
             const float dt_seconds = float(dt.count()) / 1e9f;
 
             for (auto entity : view) {
@@ -46,6 +54,7 @@ namespace ve {
         }
 
     private:
+        nanoseconds max_dt;
         u16 priority;
     };
 }

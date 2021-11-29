@@ -183,8 +183,13 @@ namespace ve {
 
 
         template <typename Component> Component remove_component(entt::entity entity) {
-            dispatch_event(component_destroyed_event<Component> { entity, &get_component<Component>(entity) });
-            return storage.template remove<Component>(entity);
+            Component& stored_component = get_component<Component>(entity);
+            dispatch_event(component_destroyed_event<Component> { entity, &stored_component });
+
+            Component component = std::move(stored_component);
+            storage.template remove<Component>(entity);
+
+            return component;
         }
 
 
@@ -312,7 +317,7 @@ namespace ve {
 
             const T* old_value = r.template try_get_component<T>(e);
 
-            if (!r.get_validator().is_allowed(remote, r, e, old_value, nullptr)) return change_result::DENIED;
+            if (!r.get_validator().is_allowed(remote, r, e, old_value, (const T*) nullptr)) return change_result::DENIED;
 
             r.template remove_component<T>(e);
             return change_result::ALLOWED;

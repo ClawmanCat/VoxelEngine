@@ -10,6 +10,7 @@
 #include <VoxelEngine/clientserver/core_messages/msg_compound.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_add_del_entity.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_set_component.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_del_component.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
 
 
@@ -106,12 +107,40 @@ namespace ve {
             }
 
 
-            // TODO: Also send a list of components that have been removed.
+            // Also send a list of components that have been removed.
+            for (const auto& conn : connections) {
+                auto visibility_view =
+                    visibility->visibility_for(conn->get_remote_id()) |
+                    removed_components.view()                         |
+                    view;
+
+
+                compound_message msg;
+                const auto msg_id = conn->get_local_mtr().get_type(core_message_types::MSG_DEL_COMPONENT).id;
+
+                for (auto entity : view) {
+                    for (const auto& component : view.template get<removed_component_list>().components) {
+                        msg.push_message(
+                            msg_id,
+                            del_component_message { .component_type = component, .entity = entity },
+                            conn.get()
+                        );
+                    }
+                }
+
+
+                conn->send_message(core_message_types::MSG_COMPOUND, msg);
+            }
+
+            removed_components.clear();
         }
 
 
         VE_GET_VAL(visibility);
     private:
+        struct removed_component_list { small_vector<u64, 4> components; };
+        storage_group<removed_component_list> removed_components;
+
         visibility_system* visibility;
         registry::system_id visibility_id;
 
