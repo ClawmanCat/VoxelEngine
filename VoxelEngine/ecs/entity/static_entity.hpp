@@ -20,8 +20,11 @@ namespace ve {
     // as a template for many identical entities.
     // By extending this base class, a class may add static components. These components are present on all entities
     // created from that class, and can be accessed as if they were class members.
-    class static_entity {
+    class static_entity : private registry_access_for_static_entity<static_entity> {
     public:
+        using static_entity_tag = void;
+
+
         explicit static_entity(registry& registry) :
             id(registry.create_entity()),
             registry(&registry)
@@ -44,7 +47,7 @@ namespace ve {
 
         static_entity& operator=(static_entity&& other) {
             if (id != entt::null) {
-                get_registry().on_static_entity_destroyed(id);
+                on_static_entity_destroyed(get_registry(), id);
                 get_registry().destroy_entity(id);
             }
 
@@ -73,11 +76,15 @@ namespace ve {
         }
 
 
-        template <typename Component> Component& set(Component&& component) {
+        // Returns void for empty components. See registry.hpp.
+        template <typename Component> requires (!std::is_reference_v<Component>)
+        Component& set(Component&& component) {
             return get_registry().template set_component<Component>(id, fwd(component));
         }
 
-        template <typename Component> Component& set(const Component& component) {
+
+        template <typename Component> requires (!std::is_reference_v<Component>)
+        Component& set(const Component& component) {
             return get_registry().template set_component<Component>(id, component);
         }
 

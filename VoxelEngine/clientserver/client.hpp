@@ -11,11 +11,20 @@ namespace ve {
     public:
         client(void) : instance() {
             initialize_mtr();
+            get_validator().set_allow_by_default(true);
         }
 
 
         std::string get_name(void) const override {
             return "client "s + boost::uuids::to_string(get_id());
+        }
+
+
+        std::vector<shared<message_handler>> get_connections(void) override {
+            std::vector<shared<message_handler>> result;
+            if (server_connection) result.push_back(server_connection);
+
+            return result;
         }
 
 
@@ -41,11 +50,8 @@ namespace ve {
             return server_connection;
         }
 
-
-        VE_GET_MREF(mtr);
     private:
         shared<message_handler> server_connection = nullptr;
-        message_type_registry mtr;
 
         void initialize_mtr(void);
     };

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <VoxelEngine/core/typedef/scalar.hpp>
+
 #include <boost/pfr.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <boost/preprocessor.hpp>
@@ -67,7 +69,7 @@ constexpr std::size_t hash(void) const {                            \
 
 
 namespace ve {
-    template <typename T> constexpr std::size_t type_hash(void) {
+    template <typename T> constexpr u64 type_hash(void) {
         return ctti::unnamed_type_id<T>().hash();
     }
 

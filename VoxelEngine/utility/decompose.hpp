@@ -99,16 +99,18 @@ namespace ve {
 
 
         template <typename T> constexpr inline auto select_decomposer(void) {
-            if constexpr (is_tuple_indexable_v<T>) {
+            if constexpr (has_custom_decomposer_v<T>) {
+                return custom_decomposer<T>{};
+            }
+
+            else if constexpr (is_tuple_indexable_v<T>) {
                 return tuple_decomposer<T>{};
             }
 
+            // TODO: This will currently fail on aggregates with base classes, as PFR doesn't support them and triggers a static assert.
+            // We need to find some way to check if the aggregate has a base class, but this seems to be a non-trivial task.
             else if constexpr (std::is_aggregate_v<T> || std::is_scalar_v<T>) {
                 return pfr_decomposer<T>{};
-            }
-
-            else if constexpr (has_custom_decomposer_v<T>) {
-                return custom_decomposer<T>{};
             }
 
             else static_assert(meta::always_false_v<T>, "Cannot decompose type.");

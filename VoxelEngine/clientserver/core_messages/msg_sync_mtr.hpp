@@ -16,7 +16,7 @@ namespace ve {
 
     struct mtr_sync_message {
         std::string name;
-        std::size_t type_hash;
+        u64 type_hash;
         mtr_id id;
     };
 
@@ -27,7 +27,7 @@ namespace ve {
             VE_LOG_DEBUG(cat("Registering new MTR type ", msg.name, " on ", instance.get_name(), " for remote ", handler.get_remote_id(), "."));
             mtr_friend_access{}.register_type(handler.get_remote_mtr(), msg.name, msg.type_hash, msg.id);
         } else {
-            const message_type& type = instance.get_mtr().get_type(msg.name);
+            const message_type& type = handler.get_remote_mtr().get_type(msg.name);
 
             if (type.id == msg.id && type.type_hash == msg.type_hash) {
                 VE_LOG_WARN(cat("Ignoring re-registration of already registered type ", type.name));
@@ -44,7 +44,7 @@ namespace ve {
 
 
     // This message type is used to synchronize other message types between different instances.
-    // Note: dispatching of this message are handled manually by the message handler.
+    // Note: dispatching of this message is handled automatically by the message handler.
     const inline core_message<mtr_sync_message> msg_sync_mtr {
         .name               = core_message_types::MSG_SYNC_MTR,
         .direction          = message_direction::BIDIRECTIONAL,

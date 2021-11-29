@@ -8,6 +8,7 @@
 #include <boost/pfr.hpp>
 #include <ctti/type_id.hpp>
 #include <glm/gtc/matrix_access.hpp>
+#include <entt/entt.hpp>
 
 #include <sstream>
 
@@ -41,6 +42,12 @@ namespace ve {
         else if constexpr (requires (T t) { std::string { t }; }) return std::string { value };
         else if constexpr (requires (T t) { t.to_string();     }) return value.to_string();
         else if constexpr (requires (T t) { t.string();        }) return value.string();
+        else if constexpr (requires (T t) { t.cppstring();     }) return value.cppstring();
+
+        // If T is an entity, print its ID.
+        else if constexpr (std::is_same_v<T, entt::entity>) {
+            return "[Entity "s + to_string(entt::to_integral(value)) + "]";
+        }
 
         // If T is a GLM vector print its elements.
         else if constexpr (meta::glm_traits<T>::is_vector) {

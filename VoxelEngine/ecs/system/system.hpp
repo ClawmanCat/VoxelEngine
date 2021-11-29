@@ -39,6 +39,13 @@ namespace ve {
         }
 
 
+        void uninit(registry& storage) {
+            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, init)) {
+                static_cast<Derived*>(this)->uninit(storage);
+            }
+        }
+
+
         void update(registry& owner, view_type view, nanoseconds dt) {
             VE_CRTP_CHECK(Derived, update);
             static_cast<Derived*>(this)->update(owner, view, dt);
@@ -46,9 +53,7 @@ namespace ve {
 
         
         static view_type make_view(entt::registry& registry) {
-            return [&] <typename... Required, typename... Excluded> (meta::pack<Required...>, meta::pack<Excluded...>) {
-                return registry.view<Required...>(entt::exclude_t<Excluded...>{});
-            }(RequiredComponents{}, ExcludedComponents{});
+            return construct_view<required_components, excluded_components>(registry);
         }
     };
 }
