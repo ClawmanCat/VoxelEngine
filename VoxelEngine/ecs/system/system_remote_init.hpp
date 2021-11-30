@@ -36,6 +36,9 @@ namespace ve {
                     VE_LOG_ERROR(cat("Remote requested initialization of entity using unknown initializer ", type, "."));
                 }
             }
+
+            // Component will not get synchronized again unless changed.
+            owner.template remove_all_components<remote_init_component>();
         }
 
 

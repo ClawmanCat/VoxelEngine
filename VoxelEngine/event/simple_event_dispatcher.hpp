@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/assert.hpp>
 #include <VoxelEngine/utility/thread/dummy_mutex.hpp>
 #include <VoxelEngine/utility/traits/function_traits.hpp>
 #include <VoxelEngine/event/event_handler_id.hpp>
@@ -112,6 +113,8 @@ namespace ve {
             constexpr auto type = ctti::unnamed_type_id<Event>();
 
 
+            // Keep track of events being dispatched to we don't edit storage while iterating
+            // if the handler itself interacts with the dispatcher.
             currently_dispatched.push_back(type);
 
             if (auto it = handlers.find(type); it != handlers.end()) {
@@ -121,10 +124,31 @@ namespace ve {
             currently_dispatched.pop_back();
 
 
-            if (!pending_actions.empty()) [[unlikely]] {
+            // Execute any actions we couldn't perform during handling of the event.
+            if (currently_dispatched.empty() && !pending_actions.empty()) [[unlikely]] {
                 for (const auto& action : pending_actions) action();
                 pending_actions.clear();
             }
+        }
+
+
+        // Does this dispatcher have any handlers for the given event type?
+        // This can be used as an optimisation before dispatching a large number of events of the same type.
+        // This method may not be called while the handler has pending actions, i.e. during handling of events that themselves add or remove handlers.
+        template <typename Event> bool has_handlers_for(void) {
+            std::lock_guard lock { mtx };
+            VE_DEBUG_ASSERT(pending_actions.empty(), "has_handlers_for may not be called while the event handler has pending actions.");
+
+            if (auto it = handlers.find(ctti::type_id<Event>()); it != handlers.end()) {
+                return !it->second.empty();
+            }
+
+            return false;
+        }
+
+
+        bool has_pending_actions(void) const {
+            return !pending_actions.empty();
         }
     private:
         template <typename Event>
@@ -162,6 +186,7 @@ namespace ve {
             virtual ~handler_data_base(void) = default;
             virtual void invoke(const void* event) = 0;
             virtual void erase(handler_id id) = 0;
+            virtual bool empty(void) const = 0;
         };
     
         template <typename Event> struct handler_data : handler_data_base {
@@ -203,6 +228,10 @@ namespace ve {
                 for (Priority p : handlers | views::keys | views::remove(0)) {
                     if (check(p)) return;
                 }
+            }
+
+            bool empty(void) const override {
+                return handlers.empty();
             }
         };
         
