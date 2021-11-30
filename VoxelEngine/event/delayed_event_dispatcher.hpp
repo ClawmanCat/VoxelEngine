@@ -144,12 +144,33 @@ namespace ve {
                 currently_dispatched = std::nullopt;
             }
         }
+
+
+        // Does this dispatcher have any handlers for the given event type?
+        // This can be used as an optimisation before dispatching a large number of events of the same type.
+        // This method may not be called while the handler has pending actions, i.e. during handling of events that themselves add or remove handlers.
+        template <typename Event> bool has_handlers_for(void) {
+            std::lock_guard lock { mtx };
+            VE_DEBUG_ASSERT(pending_actions.empty(), "has_handlers_for may not be called while the event handler has pending actions.");
+
+            if (auto it = handlers.find(ctti::type_id<Event>()); it != handlers.end()) {
+                return !it->second.empty();
+            }
+
+            return false;
+        }
+
+
+        bool has_pending_actions(void) const {
+            return !pending_actions.empty();
+        }
     private:
         struct handler_data_base {
             virtual ~handler_data_base(void) = default;
             virtual void add(void* event) = 0;
             virtual void invoke(void) = 0;
             virtual void erase(handler_id id) = 0;
+            virtual bool empty(void) const = 0;
         };
         
         template <typename Event> struct handler_data : handler_data_base {
@@ -212,6 +233,10 @@ namespace ve {
                 for (Priority p : handlers | views::keys | views::remove(0)) {
                     if (check(p)) return;
                 }
+            }
+
+            bool empty(void) const override {
+                return handlers.empty();
             }
         };
         

@@ -177,6 +177,21 @@ namespace ve {
         }
 
 
+        template <typename Component> requires (!requires { typename Component::non_removable_tag; })
+        void remove_all_components(void) {
+            auto v = view<Component>();
+
+            // Skip event handling if there are no handlers.
+            if (has_pending_actions() || has_handlers_for<component_destroyed_event<Component>>()) {
+                for (auto entity : v) {
+                    dispatch_event(component_destroyed_event<Component> { this, entity, &v.template get<Component>(entity) });
+                }
+            }
+
+            storage.template clear<Component>();
+        }
+
+
         template <typename Component> bool has_component(entt::entity entity) const {
             return storage.template has<Component>(entity);
         }
