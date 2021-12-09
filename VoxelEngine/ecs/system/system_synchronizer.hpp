@@ -37,6 +37,7 @@ namespace ve {
     // Broadcasts changes to the ECS to remote instances.
     // This system should be coupled to a system_set_visibility.
     // TODO: Handle per-component synchronization rates.
+    // TODO: Move entity add/remove messages to a different system.
     template <
         meta::pack_of_types Synchronized,
         meta::pack_of_types RequiredTags = meta::pack<>,
@@ -61,7 +62,9 @@ namespace ve {
         explicit system_synchronizer(visibility_system* visibility, u16 priority = priority::LOWEST) :
             visibility(visibility),
             priority(priority)
-        {}
+        {
+            VE_ASSERT(visibility->get_priority() > this->get_priority(), "Visibility should be updated before synchronization.");
+        }
 
 
         u16 get_priority(void) const {

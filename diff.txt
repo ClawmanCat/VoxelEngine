@@ -1,0 +1,67 @@
+diff --git a/VoxelEngine/ecs/component/self_component.hpp b/VoxelEngine/ecs/component/self_component.hpp
+index ae3ea68..699e8bb 100644
+--- a/VoxelEngine/ecs/component/self_component.hpp
++++ b/VoxelEngine/ecs/component/self_component.hpp
+@@ -8,5 +8,10 @@ namespace ve {
+ 
+ 
+     // Used by static_entities to interface with their associated instance.
+-    struct self_component { static_entity* self = nullptr; };
++    struct self_component {
++        using non_syncable_tag  = void;
++        using non_removable_tag = void;
++
++        static_entity* self = nullptr;
++    };
+ }
+\ No newline at end of file
+diff --git a/VoxelEngine/ecs/registry.hpp b/VoxelEngine/ecs/registry.hpp
+index ed32b06..0d8629e 100644
+--- a/VoxelEngine/ecs/registry.hpp
++++ b/VoxelEngine/ecs/registry.hpp
+@@ -100,8 +100,8 @@ namespace ve {
+         }
+ 
+ 
+-        // For static entities, it is not required to store the instance in the registry, just to keep it alive.
+-        // Although it can be useful to do so, so one need not store it manually.
++        // It is allowed, but not required, to store a static entity within the registry containing its components.
++        // If this is done, the static entity will be automatically destroyed when the underlying entity is destroyed.
+         template <typename Entity> requires std::is_base_of_v<static_entity, Entity>
+         Entity& store_static_entity(Entity&& entity) {
+             entt::entity id = entity.get_id();
+diff --git a/VoxelEngine/ecs/system/system_synchronizer.hpp b/VoxelEngine/ecs/system/system_synchronizer.hpp
+index be3f240..7eb69a9 100644
+--- a/VoxelEngine/ecs/system/system_synchronizer.hpp
++++ b/VoxelEngine/ecs/system/system_synchronizer.hpp
+@@ -37,6 +37,7 @@ namespace ve {
+     // Broadcasts changes to the ECS to remote instances.
+     // This system should be coupled to a system_set_visibility.
+     // TODO: Handle per-component synchronization rates.
++    // TODO: Move entity add/remove messages to a different system.
+     template <
+         meta::pack_of_types Synchronized,
+         meta::pack_of_types RequiredTags = meta::pack<>,
+@@ -61,7 +62,9 @@ namespace ve {
+         explicit system_synchronizer(visibility_system* visibility, u16 priority = priority::LOWEST) :
+             visibility(visibility),
+             priority(priority)
+-        {}
++        {
++            VE_ASSERT(visibility->get_priority() > this->get_priority(), "Visibility should be updated before synchronization.");
++        }
+ 
+ 
+         u16 get_priority(void) const {
+diff --git a/VoxelEngine/voxel/tile/tile_registry.hpp b/VoxelEngine/voxel/tile/tile_registry.hpp
+index a80bf01..b218e18 100644
+--- a/VoxelEngine/voxel/tile/tile_registry.hpp
++++ b/VoxelEngine/voxel/tile/tile_registry.hpp
+@@ -18,6 +18,7 @@ namespace ve::voxel {
+         tile_data get_state(const tile* tile, tile_metadata_t meta) const;
+         bool is_removable(const tile* tile) const;
+     private:
++        // TODO: Use entt::basic_storage here?
+         std::vector<const tile*> stateful_tiles;
+         std::vector<tile_id_t> stateful_tombstones;
+ 

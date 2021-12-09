@@ -100,8 +100,8 @@ namespace ve {
         }
 
 
-        // For static entities, it is not required to store the instance in the registry, just to keep it alive.
-        // Although it can be useful to do so, so one need not store it manually.
+        // It is allowed, but not required, to store a static entity within the registry containing its components.
+        // If this is done, the static entity will be automatically destroyed when the underlying entity is destroyed.
         template <typename Entity> requires std::is_base_of_v<static_entity, Entity>
         Entity& store_static_entity(Entity&& entity) {
             entt::entity id = entity.get_id();
