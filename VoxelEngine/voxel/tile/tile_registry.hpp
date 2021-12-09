@@ -18,6 +18,7 @@ namespace ve::voxel {
         tile_data get_state(const tile* tile, tile_metadata_t meta) const;
         bool is_removable(const tile* tile) const;
     private:
+        // TODO: Use entt::basic_storage here?
         std::vector<const tile*> stateful_tiles;
         std::vector<tile_id_t> stateful_tombstones;
 
