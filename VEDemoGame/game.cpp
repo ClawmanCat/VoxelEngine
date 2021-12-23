@@ -80,7 +80,7 @@ namespace demo_game {
         auto& entity_world  = game::client.store_static_entity(world { game::client });
         auto& entity_skybox = game::client.store_static_entity(skybox { game::client, &entity_player });
 
-        entity_world.space.add_chunk_loader(ve::make_shared<ve::voxel::entity_loader<>>(entity_player.get_id(), game::client, ve::voxel::tilepos { 5 }));
+        entity_world.space->add_chunk_loader(ve::make_shared<ve::voxel::entity_loader<>>(entity_player.get_id(), game::client, ve::voxel::tilepos { 5 }));
 
 
         for (ve::i32 x = -32; x < 32; ++x) {

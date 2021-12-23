@@ -5,12 +5,17 @@
 #include <VoxelEngine/utility/functional.hpp>
 #include <VoxelEngine/utility/io/file_io.hpp>
 #include <VoxelEngine/utility/io/image.hpp>
+#include <VoxelEngine/utility/thread/thread_pool.hpp>
 #include <VoxelEngine/graphics/texture/missing_texture.hpp>
 #include <VoxelEngine/graphics/texture/texture_source.hpp>
 #include <VoxelEngine/graphics/texture/generative_texture_atlas.hpp>
 
+#include <shared_mutex>
+
 
 namespace ve::gfx {
+    // Manages the loading and caching of textures from different sources.
+    // This class is thread-safe, even if the underlying atlas or graphics API is not.
     template <typename Atlas = aligned_generative_texture_atlas>
     class texture_manager {
     public:
@@ -22,6 +27,8 @@ namespace ve::gfx {
 
         // Loads the texture from the given source, if it is not cached already, otherwise returns the cached value.
         subtexture get_or_load(texture_source& src) {
+            std::unique_lock lock { mtx };
+
             const std::string name = src.name();
             if (auto tex = get_if_exists(name); tex) return *tex;
 
@@ -35,6 +42,8 @@ namespace ve::gfx {
         // Same as above, but guarantees that all subtextures will be part of the same texture.
         // If the combination of images is too large to fit on a single texture, this method throws.
         std::vector<subtexture> get_or_load_to_common_texture(const std::vector<texture_source*>& sources) {
+            std::unique_lock lock { mtx };
+
             auto names = sources | views::indirect | views::transform(&texture_source::name);
             if (auto textures = get_if_exists_common_texture(names); !textures.empty()) return textures;
 
@@ -67,6 +76,8 @@ namespace ve::gfx {
 
 
         void remove_texture(std::string_view name) {
+            std::unique_lock lock { mtx };
+
             auto it = subtextures.find(name);
             if (it == subtextures.end()) return;
 
@@ -76,6 +87,7 @@ namespace ve::gfx {
 
 
         bool is_loaded(std::string_view name) const {
+            std::shared_lock lock { mtx };
             return subtextures.contains(name);
         }
 
@@ -84,8 +96,10 @@ namespace ve::gfx {
     private:
         shared<Atlas> atlas;
         hash_map<std::string, subtexture> subtextures;
+        mutable std::shared_mutex mtx;
 
 
+        // Note: calling method is responsible for acquiring lock.
         subtexture* get_if_exists(std::string_view name) {
             if (auto it = subtextures.find(name); it != subtextures.end()) {
                 return &(it->second);
@@ -100,6 +114,7 @@ namespace ve::gfx {
         // - If all of the textures in the range are loaded, and have the same atlas texture, returns those textures.
         // - If only some of the textures are loaded, triggers an assert.
         // - If two or more of the textures have different atlas textures, triggers an assert.
+        // Note: calling method is responsible for acquiring lock.
         // TODO: These asserts could probably be resolved by moving textures around when a new requirement is imposed.
         std::vector<subtexture> get_if_exists_common_texture(const auto& names) {
             std::vector<subtexture> result;
@@ -151,12 +166,19 @@ namespace ve::gfx {
 
         // Loads the given images to a common atlas texture.
         // Does not perform checks for whether or not images already exist.
+        // Note: calling method is responsible for acquiring lock.
         std::vector<subtexture> load_to_common_texture(const auto& images) {
-            auto result = atlas->store_all(images | views::values | ranges::to<std::vector>);
+            std::vector<subtexture> result;
 
-            for (const auto& [name, tex] : views::zip(images | views::keys, result)) {
-                subtextures.emplace(std::string { name }, tex);
-            }
+            // Actual graphics API actions are performed on the main thread since some APIs (notably OpenGL)
+            // don't support calls from different threads, even if they are not ran in parallel.
+            thread_pool::instance().invoke_on_main_or_run([&] {
+                result = atlas->store_all(images | views::values | ranges::to<std::vector>);
+
+                for (const auto& [name, tex] : views::zip(images | views::keys, result)) {
+                    subtextures.emplace(std::string { name }, tex);
+                }
+            });
 
             return result;
         }

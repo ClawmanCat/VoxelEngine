@@ -18,3 +18,4 @@
 #include <VoxelEngine/voxel/tile/tile_registry.hpp>
 #include <VoxelEngine/voxel/tile/tiles.hpp>
 #include <VoxelEngine/voxel/tile_provider.hpp>
+#include <VoxelEngine/voxel/utility.hpp>

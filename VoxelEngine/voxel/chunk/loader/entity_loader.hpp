@@ -41,6 +41,11 @@ namespace ve::voxel {
         void stop_loading(voxel_space* space) override {
             if (!loaded.empty()) update_loaded(space, { });
         }
+
+
+        VE_GET_VAL(range);
+        VE_GET_VAL(entity);
+        VE_GET_VAL(registry);
     private:
         hash_set<tilepos> loaded;
         tilepos range;

@@ -4,7 +4,6 @@
 #include <VoxelEngine/voxel/settings.hpp>
 #include <VoxelEngine/voxel/chunk/chunk.hpp>
 #include <VoxelEngine/voxel/tile_provider.hpp>
-#include <VoxelEngine/utility/bit.hpp>
 #include <VoxelEngine/utility/traits/evaluate_if_valid.hpp>
 #include <VoxelEngine/utility/traits/null_type.hpp>
 
@@ -31,11 +30,41 @@ namespace ve::voxel {
     }
 
 
-    class voxel_space : public tile_provider<voxel_space> {
+    // A chunk and its neighbours.
+    struct chunk_neighbourhood {
+        const class chunk* chunk;
+        std::array<const class chunk*, directions.size()> neighbours;
+    };
+
+
+    class voxel_space : public tile_provider<voxel_space>, public std::enable_shared_from_this<voxel_space> {
     public:
-        explicit voxel_space(unique<chunk_generator>&& generator);
+        // RAII object that keeps the chunk and the space that contains it alive and locked while it exists.
+        class chunk_locker {
+        public:
+            chunk_locker(shared<voxel_space> space, std::vector<tilepos> where);
+            ~chunk_locker(void);
+
+            ve_swap_move_only(chunk_locker, space, loader);
+
+            VE_GET_VAL(space);
+            VE_GET_VAL(loader);
+        private:
+            shared<voxel_space> space = nullptr;
+            shared<chunk_loader> loader = nullptr;
+        };
+
+
+        ve_shared_only(voxel_space, unique<chunk_generator>&& generator) :
+            vertex_buffer(detail::buffer_t::create())
+        {
+            // chunk_generator is incomplete here, so this must be done in the CPP file.
+            init(std::move(generator));
+        }
+
         virtual ~voxel_space(void) = default;
         ve_rt_move_only(voxel_space);
+
 
         virtual void update(nanoseconds dt);
 
@@ -47,25 +76,14 @@ namespace ve::voxel {
         void remove_chunk_loader(const shared<chunk_loader>& loader);
 
         VE_GET_CREF(vertex_buffer);
-
-
-        constexpr static tilepos to_chunkpos(const tilepos& worldpos) {
-            return worldpos >> tilepos::value_type(lsb(voxel_settings::chunk_size));
-        }
-
-        constexpr static tilepos to_worldpos(const tilepos& chunkpos, const tilepos& offset = tilepos { 0 }) {
-            return (chunkpos << tilepos::value_type(lsb(voxel_settings::chunk_size))) + offset;
-        }
-
-        constexpr static tilepos to_localpos(const tilepos& worldpos) {
-            return worldpos - to_worldpos(to_chunkpos(worldpos));
-        }
     private:
         struct per_chunk_data {
             unique<chunk> chunk;
+
             shared<detail::subbuffer_t> subbuffer;
             detail::buffer_t::buffer_handle handle;
-            bool needs_meshing;
+            enum { NEEDS_MESHING, MESHING, MESHED } mesh_status;
+            u32 most_recent_mesh_task = 0;
 
             std::size_t load_count;
         };
@@ -78,6 +96,10 @@ namespace ve::voxel {
         shared<detail::buffer_t> vertex_buffer;
 
 
+        void init(unique<chunk_generator>&& generator);
+        void update_meshes(void);
+
+        // TODO: Use access facade?
         friend class chunk_loader;
         void load_chunk(const tilepos& where);
         void unload_chunk(const tilepos& where);

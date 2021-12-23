@@ -35,7 +35,7 @@ namespace ve::voxel {
             }
 
 
-            result->foreach([&] (const auto& pos, tile_data& data) {
+            chunk_access::foreach(*result, [&] (const auto& pos, tile_data& data) {
                 data = layer_cache[pos.y];
             });
 

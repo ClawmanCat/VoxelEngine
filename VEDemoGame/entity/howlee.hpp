@@ -61,7 +61,7 @@ namespace demo_game {
             const float dt_seconds = float(dt.count()) / 1e9f;
 
 
-            auto tile_at = [&] (const auto& pos) { return world->space.get_state(ve::voxel::tilepos { pos }).tile; };
+            auto tile_at = [&] (const auto& pos) { return world->space->get_state(ve::voxel::tilepos { pos }).tile; };
 
             auto current_tile = tile_at(transform.position);
             auto standing_on  = tile_at(transform.position - ve::vec3f { 0, 1, 0 });
@@ -104,7 +104,7 @@ namespace demo_game {
 
                 // And randomly build if this is a builder Howlee.
                 if (type == howlee_type::BUILDER && ve::cheaprand::random_real() < build_chance * dt_seconds) {
-                    world->space.set_state(
+                    world->space->set_state(
                         ve::voxel::tilepos { transform.position },
                         ve::voxel::tile_state { .tile = tiles::TILE_BRICK, .meta = 0 }
                     );

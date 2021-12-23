@@ -2,14 +2,35 @@
 #include <VoxelEngine/voxel/chunk/loader/loader.hpp>
 #include <VoxelEngine/voxel/chunk/generator/generator.hpp>
 #include <VoxelEngine/voxel/chunk/chunk_mesher.hpp>
+#include <VoxelEngine/utility/thread/thread_pool.hpp>
 #include <VoxelEngine/voxel/tile/tiles.hpp>
 
 
 namespace ve::voxel {
-    voxel_space::voxel_space(unique<chunk_generator>&& generator) :
-        generator(std::move(generator)),
-        vertex_buffer(detail::buffer_t::create())
-    {}
+    voxel_space::chunk_locker::chunk_locker(shared<voxel_space> space, std::vector<tilepos> where) :
+        space(std::move(space)),
+        loader(make_shared<multi_chunk_loader>(std::move(where)))
+    {
+        this->space->add_chunk_loader(loader);
+
+        const auto& positions = static_cast<const multi_chunk_loader*>(loader.get())->get_loaded_chunks();
+        for (const auto& pos : positions) this->space->chunks[pos].chunk->toggle_write_lock(true);
+    }
+
+
+    voxel_space::chunk_locker::~chunk_locker(void) {
+        if (!loader) return;
+
+        const auto& positions = static_cast<const multi_chunk_loader*>(loader.get())->get_loaded_chunks();
+        for (const auto& pos : positions) this->space->chunks[pos].chunk->toggle_write_lock(false);
+
+        this->space->remove_chunk_loader(loader);
+    }
+
+
+    void voxel_space::init(unique<chunk_generator>&& generator) {
+        this->generator = std::move(generator);
+    }
 
 
     void voxel_space::update(nanoseconds dt) {
@@ -20,21 +41,72 @@ namespace ve::voxel {
             loader->update(this);
         }
 
+        update_meshes();
+    }
+
+
+    void voxel_space::update_meshes(void) {
+        VE_PROFILE_FN("Dispatching Mesh Update Tasks");
 
         VE_DEBUG_ONLY(
-            u32 mesh_count = ranges::count_if(chunks | views::values, equal_on(&per_chunk_data::needs_meshing, true));
+            u32 mesh_count = ranges::count_if(chunks | views::values, equal_on(&per_chunk_data::mesh_status, per_chunk_data::NEEDS_MESHING));
             if (mesh_count) VE_LOG_DEBUG(cat("Re-meshing ", mesh_count, " chunks."));
         );
 
 
-        {
-            VE_PROFILE_FN("Updating Chunk Meshes");
+        // TODO: Convert to coroutine and allow task to be cancelled if a newer mesh task is launched.
+        // (E.g. co_yield after every n tiles or something similar.)
+        struct mesh_task {
+            std::optional<chunk_locker> locker;
+            chunk_neighbourhood neighbourhood;
+            tilepos chunkpos;
+            u64 task_id;
 
-            for (auto& [pos, chunk_data] : chunks) {
-                if (chunk_data.needs_meshing) {
-                    chunk_data.subbuffer->store_mesh(mesh_chunk(this, chunk_data.chunk.get(), pos));
-                    chunk_data.needs_meshing = false;
+            void operator()(void) {
+                VE_PROFILE_WORKER_THREAD("Updating Mesh");
+                auto mesh = mesh_chunk(neighbourhood, chunkpos);
+
+                thread_pool::instance().invoke_on_main_and_await([&] {
+                    VE_PROFILE_FN("Synchronizing Mesh");
+                    auto& chunk_data = locker->get_space()->chunks[chunkpos];
+
+                    // If there was a new mesh task launched after this one we need to discard the result.
+                    // TODO: This wouldn't be necessary if we could cancel the task.
+                    if (chunk_data.most_recent_mesh_task == task_id) {
+                        chunk_data.subbuffer->store_mesh(std::move(mesh));
+                        chunk_data.mesh_status = per_chunk_data::MESHED;
+                    }
+
+                    locker = std::nullopt;
+                });
+            }
+        };
+
+
+        for (auto& [pos, chunk_data] : chunks) {
+            if (chunk_data.mesh_status == per_chunk_data::NEEDS_MESHING) {
+                chunk_data.mesh_status = per_chunk_data::MESHING;
+
+
+                std::vector<tilepos> positions = { pos };
+                std::array<const chunk*, directions.size()> neighbours;
+
+                for (const auto& [i, direction] : directions | views::enumerate) {
+                    if (auto it = chunks.find(pos + direction); it != chunks.end()) {
+                        positions.push_back(pos + direction);
+                        neighbours[i] = it->second.chunk.get();
+                    } else {
+                        neighbours[i] = nullptr;
+                    }
                 }
+
+
+                thread_pool::instance().invoke_on_thread(mesh_task {
+                    .locker        = chunk_locker { shared_from_this(), std::move(positions) },
+                    .neighbourhood = chunk_neighbourhood { chunk_data.chunk.get(), neighbours },
+                    .chunkpos      = pos,
+                    .task_id       = ++chunk_data.most_recent_mesh_task
+                });
             }
         }
     }
@@ -59,13 +131,13 @@ namespace ve::voxel {
 
 
             // Re-mesh the current chunk and also its neighbours if the position is on the edge of the chunk.
-            it->second.needs_meshing = true;
+            it->second.mesh_status = per_chunk_data::NEEDS_MESHING;
             for (const auto& dir : directions) {
                 auto neighbour_chunkpos = to_chunkpos(where + tilepos { dir });
 
                 if (neighbour_chunkpos != chunkpos) {
                     if (auto neighbour = chunks.find(neighbour_chunkpos); neighbour != chunks.end()) {
-                        neighbour->second.needs_meshing = true;
+                        neighbour->second.mesh_status = per_chunk_data::NEEDS_MESHING;
                     }
                 }
             }
@@ -104,11 +176,11 @@ namespace ve::voxel {
             chunks.emplace(
                 where,
                 per_chunk_data {
-                    .chunk         = generator->generate(this, where),
-                    .subbuffer     = buffer,
-                    .handle        = handle,
-                    .needs_meshing = true,
-                    .load_count    = 1
+                    .chunk                 = generator->generate(this, where),
+                    .subbuffer             = buffer,
+                    .handle                = handle,
+                    .mesh_status           = per_chunk_data::NEEDS_MESHING,
+                    .load_count            = 1
                 }
             );
 
@@ -122,7 +194,7 @@ namespace ve::voxel {
             // Also re-mesh neighbours since we probably don't have to render most of the shared face with this chunk anymore.
             for (const auto& dir : directions) {
                 if (auto neighbour = chunks.find(where + tilepos { dir }); neighbour != chunks.end()) {
-                    neighbour->second.needs_meshing = true;
+                    neighbour->second.mesh_status = per_chunk_data::NEEDS_MESHING;
                 }
             }
         }
@@ -140,7 +212,7 @@ namespace ve::voxel {
                 // Re-mesh neighbours since we need to start rendering the shared face with this chunk again.
                 for (const auto& dir : directions) {
                     if (auto neighbour = chunks.find(where + tilepos { dir }); neighbour != chunks.end()) {
-                        neighbour->second.needs_meshing = true;
+                        neighbour->second.mesh_status = per_chunk_data::NEEDS_MESHING;
                     }
                 }
             }

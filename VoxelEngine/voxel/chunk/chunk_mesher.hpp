@@ -2,7 +2,9 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/voxel/settings.hpp>
+#include <VoxelEngine/voxel/utility.hpp>
 #include <VoxelEngine/voxel/chunk/chunk.hpp>
+#include <VoxelEngine/voxel/tile/tiles.hpp>
 #include <VoxelEngine/voxel/space/voxel_space.hpp>
 #include <VoxelEngine/utility/direction.hpp>
 #include <VoxelEngine/utility/traits/is_std_array.hpp>
@@ -49,11 +51,12 @@ namespace ve::voxel {
     }
 
 
-    inline tile_mesh mesh_chunk(const voxel_space* space, const chunk* chunk, const tilepos& chunkpos) {
+    inline tile_mesh mesh_chunk(const chunk_neighbourhood& nb, const tilepos& chunkpos) {
         VE_PROFILE_FN();
 
         static thread_local hash_map<detail::mesh_cache_key, tile_mesh> mesh_cache { };
         static const detail::skip_tile_list skip_list { };
+        static const tile_data unknown_tile_data = voxel_settings::get_tile_registry().get_default_state(tiles::TILE_UNKNOWN);
 
 
         // Converts normalized tile coordinates to coordinates within the mesh.
@@ -71,7 +74,7 @@ namespace ve::voxel {
 
 
         tile_mesh result;
-        chunk->foreach([&](const auto& where, const auto& data) {
+        nb.chunk->foreach([&](const auto& where, const auto& data) {
             if (skip_list.skip(data)) return;
 
 
@@ -87,9 +90,10 @@ namespace ve::voxel {
 
                 tile_data neighbour_data;
                 if (glm::any(neighbour < 0 || neighbour >= voxel_settings::chunk_size)) {
-                    neighbour_data = space->get_data(chunkpos * tilepos { voxel_settings::chunk_size } + neighbour);
+                    const auto* neighbour_chunk = nb.neighbours[neighbour_direction(neighbour)];
+                    neighbour_data = neighbour_chunk ? neighbour_chunk->get_data(to_localpos(neighbour)) : unknown_tile_data;
                 } else {
-                    neighbour_data = chunk->get_data(neighbour);
+                    neighbour_data = nb.chunk->get_data(neighbour);
                 }
 
 

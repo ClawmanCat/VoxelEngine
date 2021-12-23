@@ -22,10 +22,12 @@
 
     #define VE_PROFILE_FRAME(Name) OPTICK_FRAME(Name)
     #define VE_PROFILE_FN(...) OPTICK_EVENT(__VA_ARGS__)
+    #define VE_PROFILE_WORKER_THREAD(...) OPTICK_THREAD(__VA_ARGS__)
 #else
     #define VE_PROFILE_BEGIN()
     #define VE_PROFILE_END(...)
 
     #define VE_PROFILE_FRAME(Name)
     #define VE_PROFILE_FN(...)
+    #define VE_PROFILE_WORKER_THREAD(...)
 #endif

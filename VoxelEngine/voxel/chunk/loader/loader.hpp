@@ -45,18 +45,19 @@ namespace ve::voxel {
     };
 
 
+    // Loads chunks around the given point.
     template <auto DistanceMetric = distance_metrics::L2>
     class point_loader : public chunk_loader {
     public:
-        point_loader(const tilepos& where, const tilepos& range) : where(where), range(range) {}
+        point_loader(const tilepos& center, const tilepos& range) : center(center), range(range) {}
 
 
         void start_loading(voxel_space* space) override {
             spatial_foreach(
                 [&] (const tilepos& pos) {
-                    if (DistanceMetric(pos, where) <= DistanceMetric(tilepos { 0 }, range)) load(space, pos);
+                    if (DistanceMetric(pos, center) <= DistanceMetric(tilepos { 0 }, range)) load(space, pos);
                 },
-                where,
+                center,
                 range
             );
         }
@@ -65,30 +66,36 @@ namespace ve::voxel {
         void stop_loading(voxel_space* space) override {
             spatial_foreach(
                 [&] (const tilepos& pos) {
-                    if (DistanceMetric(pos, where) <= DistanceMetric(tilepos { 0 }, range)) unload(space, pos);
+                    if (DistanceMetric(pos, center) <= DistanceMetric(tilepos { 0 }, range)) unload(space, pos);
                 },
-                where,
+                center,
                 range
             );
         }
 
+
+        VE_GET_VAL(center);
+        VE_GET_VAL(range);
     private:
-        tilepos where, range;
+        tilepos center, range;
     };
 
 
-    class single_chunk_loader : public chunk_loader {
+    // Loads the provided list of chunks.
+    class multi_chunk_loader : public chunk_loader {
     public:
-        explicit single_chunk_loader(const tilepos& where) : where(where) {}
+        explicit multi_chunk_loader(std::vector<tilepos> loaded_chunks) : loaded_chunks(std::move(loaded_chunks)) {}
 
         void start_loading(voxel_space* space) override {
-            load(space, where);
+            for (const auto& pos : loaded_chunks) load(space, pos);
         }
 
         void stop_loading(voxel_space* space) override {
-            unload(space, where);
+            for (const auto& pos : loaded_chunks) unload(space, pos);
         }
+
+        VE_GET_CREF(loaded_chunks);
     private:
-        tilepos where;
+        std::vector<tilepos> loaded_chunks;
     };
 }

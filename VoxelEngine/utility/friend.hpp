@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/traits/function_traits.hpp>
 
 
 #define ve_impl_friend_accessor(R, D, E) \

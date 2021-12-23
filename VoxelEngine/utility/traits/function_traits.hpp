@@ -20,6 +20,7 @@ namespace ve::meta {
         
         using return_type = Ret;
         using arguments   = pack<Args...>;
+        using signature   = Ret(Args...);
     };
     
     
@@ -32,6 +33,7 @@ namespace ve::meta {
         using owning_class = Cls;
         using return_type  = Ret;
         using arguments    = pack<Args...>;
+        using signature    = Ret(Cls&, Args...);
         
         constexpr static bool is_const = false;
     };
@@ -46,6 +48,7 @@ namespace ve::meta {
         using owning_class = Cls;
         using return_type  = Ret;
         using arguments    = pack<Args...>;
+        using signature    = Ret(const Cls&, Args...);
         
         constexpr static bool is_const = true;
     };
@@ -59,6 +62,7 @@ namespace ve::meta {
             
             using return_type = Ret;
             using arguments   = pack<Args...>;
+            using signature   = Ret(Args...);
         };
     
         template <typename R, typename... A>
@@ -71,5 +75,6 @@ namespace ve::meta {
         
         using return_type  = typename decltype(helper { std::function { std::declval<T>() } })::return_type;
         using arguments    = typename decltype(helper { std::function { std::declval<T>() } })::arguments;
+        using signature    = typename decltype(helper { std::function { std::declval<T>() } })::signature;
     };
 }

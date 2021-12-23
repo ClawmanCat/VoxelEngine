@@ -31,25 +31,25 @@ namespace demo_game {
     public:
         explicit world(ve::registry& registry) :
             ve::static_entity(registry),
-            space([] {
+            space(ve::voxel::voxel_space::create([] {
                 ve::voxel::simple_noise_generator::arguments args {
                     .heightmap = ve::noise::from_file(ve::io::paths::PATH_NOISE / "mountains_valleys_1.noise"),
                     .layers    = get_world_layout()
                 };
 
                 return ve::make_unique<ve::voxel::simple_noise_generator>(std::move(args));
-            }())
+            }()))
         {
-            mesh.buffer = space.get_vertex_buffer();
+            mesh.buffer = space->get_vertex_buffer();
 
             auto load_where  = ve::voxel::tilepos { 0 };
             auto load_radius = ve::voxel::tilepos { 15, 10, 15 };
-            space.add_chunk_loader(ve::make_shared<ve::voxel::point_loader<ve::voxel::distance_metrics::L1>>(load_where, load_radius));
+            space->add_chunk_loader(ve::make_shared<ve::voxel::point_loader<ve::voxel::distance_metrics::L1>>(load_where, load_radius));
         }
 
 
         void VE_COMPONENT_FN(update)(ve::nanoseconds dt) {
-            space.update(dt);
+            space->update(dt);
         }
 
 
@@ -57,6 +57,6 @@ namespace demo_game {
         ve::mesh_component VE_COMPONENT(mesh) = ve::mesh_component { };
         render_tag_pbr VE_COMPONENT(render_tag) = render_tag_pbr { };
 
-        ve::voxel::voxel_space space;
+        ve::shared<ve::voxel::voxel_space> space;
     };
 }

@@ -50,7 +50,7 @@ namespace ve::voxel {
             );
 
 
-            result->foreach([&] (const auto& pos, tile_data& data) {
+            chunk_access::foreach(*result, [&] (const auto& pos, tile_data& data) {
                 // Position at which to sample the heightmap. Flattened XZ in chunk-local coordinates.
                 auto sample_height = pos.z * tilepos::value_type { voxel_settings::chunk_size } + pos.x;
                 // Height coordinate of the current voxel in global space.

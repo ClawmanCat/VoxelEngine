@@ -35,4 +35,15 @@ namespace ve {
         // Every 2n and 2n + 1 index is an opposing direction pair, so just flip the last bit to get the opposing direction.
         return dir ^ 1;
     }
+
+
+    constexpr inline direction_t direction_from_vector(const vec3i& vec) {
+        // LSB contains the direction of the set axis (1 for -1 or 0 for 1),
+        // other two bits store whether the non-zero axis was in the Y or X direction.
+        return direction_t(
+            bool(vec.x + vec.y + vec.z - 1) |
+            (bool(vec.y) << 1) |
+            (bool(vec.x) << 2)
+        );
+    }
 }

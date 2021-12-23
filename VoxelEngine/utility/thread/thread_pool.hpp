@@ -2,11 +2,13 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/assert.hpp>
+#include <VoxelEngine/utility/traits/function_traits.hpp>
 
 #include <boost/asio.hpp>
 
 #include <thread>
 #include <mutex>
+#include <future>
 #include <condition_variable>
 #include <queue>
 
@@ -31,7 +33,8 @@ namespace ve {
     
         template <typename Task>
         auto invoke_on_thread_with_future(Task&& task) {
-            return boost::asio::post(pool, fwd(task), boost::asio::use_future);
+            using task_t = std::packaged_task<typename meta::function_traits<Task>::signature>;
+            return boost::asio::post(pool, task_t { fwd(task) });
         }
     
         template <typename Task>
@@ -47,13 +50,28 @@ namespace ve {
         
         template <typename Task>
         auto invoke_on_main_with_future(Task&& task) {
-            return boost::asio::post(main_thread_ctx, fwd(task), boost::asio::use_future);
+            using task_t = std::packaged_task<typename meta::function_traits<Task>::signature>;
+            return boost::asio::post(main_thread_ctx, task_t { fwd(task) });
         }
     
         template <typename Task>
         void invoke_on_main_and_await(Task&& task) {
-            VE_ASSERT(std::this_thread::get_id() != main_thread_id, "Cannot await main thread on main thread!");
+            VE_ASSERT(!is_main_thread(), "Cannot await main thread on main thread!");
             invoke_on_main_with_future(fwd(task)).wait();
+        }
+
+        // Similar to above, but if we're already on the main thread, the task is executed immediately.
+        template <typename Task>
+        void invoke_on_main_or_run(Task&& task) {
+            if (is_main_thread()) {
+                std::invoke(task);
+            } else {
+                invoke_on_main_with_future(fwd(task)).wait();
+            }
+        }
+
+        bool is_main_thread(void) const {
+            return std::this_thread::get_id() == main_thread_id;
         }
     private:
         const static inline auto main_thread_id = std::this_thread::get_id();
