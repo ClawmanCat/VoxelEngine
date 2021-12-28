@@ -4,6 +4,7 @@
 #include <VoxelEngine/voxel/settings.hpp>
 #include <VoxelEngine/voxel/chunk/chunk.hpp>
 #include <VoxelEngine/voxel/tile_provider.hpp>
+#include <VoxelEngine/utility/priority.hpp>
 #include <VoxelEngine/utility/traits/evaluate_if_valid.hpp>
 #include <VoxelEngine/utility/traits/null_type.hpp>
 
@@ -86,6 +87,7 @@ namespace ve::voxel {
             u32 most_recent_mesh_task = 0;
 
             std::size_t load_count;
+            u16 load_priority;
         };
 
 
@@ -94,6 +96,7 @@ namespace ve::voxel {
         hash_set<shared<chunk_loader>> chunk_loaders;
 
         shared<detail::buffer_t> vertex_buffer;
+        unique<std::atomic_uint32_t> ongoing_mesh_tasks = make_unique<std::atomic_uint32_t>(0); // Use pointer to keep class movable.
 
 
         void init(unique<chunk_generator>&& generator);
@@ -101,7 +104,7 @@ namespace ve::voxel {
 
         // TODO: Use access facade?
         friend class chunk_loader;
-        void load_chunk(const tilepos& where);
+        void load_chunk(const tilepos& where, u16 priority = priority::LOWEST);
         void unload_chunk(const tilepos& where);
     };
 }

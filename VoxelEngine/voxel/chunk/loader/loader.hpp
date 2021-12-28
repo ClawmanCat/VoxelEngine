@@ -24,8 +24,8 @@ namespace ve::voxel {
         virtual void update(voxel_space* space) {}
 
     protected:
-        static void load(voxel_space* space, const tilepos& chunk) {
-            space->load_chunk(chunk);
+        static void load(voxel_space* space, const tilepos& chunk, u16 priority = priority::LOWEST) {
+            space->load_chunk(chunk, priority);
         }
 
         static void unload(voxel_space* space, const tilepos& chunk) {

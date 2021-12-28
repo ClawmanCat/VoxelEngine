@@ -2,6 +2,7 @@
 #include <VoxelEngine/voxel/chunk/loader/loader.hpp>
 #include <VoxelEngine/voxel/chunk/generator/generator.hpp>
 #include <VoxelEngine/voxel/chunk/chunk_mesher.hpp>
+#include <VoxelEngine/utility/functional.hpp>
 #include <VoxelEngine/utility/thread/thread_pool.hpp>
 #include <VoxelEngine/voxel/tile/tiles.hpp>
 
@@ -36,6 +37,8 @@ namespace ve::voxel {
     void voxel_space::update(nanoseconds dt) {
         VE_PROFILE_FN();
 
+        // TODO: Account for loading priority when loading chunks.
+        // TODO: Priority should not persist after chunk has been loaded.
         for (auto& loader : chunk_loaders) {
             VE_PROFILE_FN("Updating Chunk Loaders");
             loader->update(this);
@@ -47,11 +50,6 @@ namespace ve::voxel {
 
     void voxel_space::update_meshes(void) {
         VE_PROFILE_FN("Dispatching Mesh Update Tasks");
-
-        VE_DEBUG_ONLY(
-            u32 mesh_count = ranges::count_if(chunks | views::values, equal_on(&per_chunk_data::mesh_status, per_chunk_data::NEEDS_MESHING));
-            if (mesh_count) VE_LOG_DEBUG(cat("Re-meshing ", mesh_count, " chunks."));
-        );
 
 
         // TODO: Convert to coroutine and allow task to be cancelled if a newer mesh task is launched.
@@ -78,15 +76,20 @@ namespace ve::voxel {
                     }
 
                     locker = std::nullopt;
+                    --(*locker->get_space()->ongoing_mesh_tasks);
                 });
             }
         };
 
 
+        // TODO: Account for loading priority when first meshing chunks.
         for (auto& [pos, chunk_data] : chunks) {
+            // If the current chunk is locked and has pending changes, don't mesh it yet, as we would mesh the old state.
+            if (chunk_data.chunk->has_pending_changes()) continue;
+
+
             if (chunk_data.mesh_status == per_chunk_data::NEEDS_MESHING) {
                 chunk_data.mesh_status = per_chunk_data::MESHING;
-
 
                 std::vector<tilepos> positions = { pos };
                 std::array<const chunk*, directions.size()> neighbours;
@@ -132,6 +135,7 @@ namespace ve::voxel {
 
             // Re-mesh the current chunk and also its neighbours if the position is on the edge of the chunk.
             it->second.mesh_status = per_chunk_data::NEEDS_MESHING;
+
             for (const auto& dir : directions) {
                 auto neighbour_chunkpos = to_chunkpos(where + tilepos { dir });
 
@@ -164,9 +168,10 @@ namespace ve::voxel {
     }
 
 
-    void voxel_space::load_chunk(const tilepos& where) {
+    void voxel_space::load_chunk(const tilepos& where, u16 priority) {
         if (auto it = chunks.find(where); it != chunks.end()) {
             it->second.load_count++;
+            it->second.load_priority = std::max(it->second.load_priority, priority);
         } else {
             // Note: actual meshing is performed during the next tick, so if we load multiple chunks at once,
             // we don't need to mesh them twice.
@@ -180,7 +185,8 @@ namespace ve::voxel {
                     .subbuffer             = buffer,
                     .handle                = handle,
                     .mesh_status           = per_chunk_data::NEEDS_MESHING,
-                    .load_count            = 1
+                    .load_count            = 1,
+                    .load_priority         = priority
                 }
             );
 

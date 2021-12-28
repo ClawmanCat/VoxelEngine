@@ -16,6 +16,7 @@ namespace ve::gfx::opengl {
     }
 
 
+    // TODO: Support assignment to reduce heap allocations when changing uniforms.
     class uniform {
     public:
         template <typename T> uniform(std::string name, meta::type_wrapper<T> type) :
@@ -57,7 +58,7 @@ namespace ve::gfx::opengl {
 
         const void* combine(const void* current_value) const override {
             combination = current_value
-                ? std::invoke(combine_fn, value, *((const T*) current_value))
+                ? std::invoke(combine_fn, *((const T*) current_value), value)
                 : value;
 
             return &*combination;
@@ -86,7 +87,7 @@ namespace ve::gfx::opengl {
 
         const void* combine(const void* current_value) const override {
             combination = current_value
-                ? std::invoke(combine_fn, std::invoke(produce_fn), *((const T*) current_value))
+                ? std::invoke(combine_fn, *((const T*) current_value), std::invoke(produce_fn))
                 : std::invoke(produce_fn);
 
             return &*combination;

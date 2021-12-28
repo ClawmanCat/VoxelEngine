@@ -24,11 +24,18 @@ namespace ve::voxel {
             }
 
             auto where = (tilepos) (registry->template get_component<transform_component>(entity).position / ((f32) voxel_settings::chunk_size));
-            hash_set<tilepos> new_loaded;
+            hash_map<tilepos, u16> new_loaded;
 
             spatial_foreach(
                 [&] (const tilepos& pos) {
-                    if (DistanceMetric(pos, where) <= DistanceMetric(tilepos { 0 }, range)) new_loaded.insert(pos);
+                    auto distance_to_entity = DistanceMetric(pos, where);
+
+                    if (distance_to_entity <= DistanceMetric(tilepos { 0 }, range)) {
+                        new_loaded.emplace(
+                            pos,
+                            std::min(priority::NORMAL, u16(priority::NORMAL - distance_to_entity))
+                        );
+                    }
                 },
                 where,
                 range
@@ -47,20 +54,20 @@ namespace ve::voxel {
         VE_GET_VAL(entity);
         VE_GET_VAL(registry);
     private:
-        hash_set<tilepos> loaded;
+        hash_map<tilepos, u16> loaded;
         tilepos range;
 
         entt::entity entity;
         const registry* registry;
 
 
-        void update_loaded(voxel_space* space, hash_set<tilepos> new_loaded) {
-            for (const auto& pos : loaded) {
+        void update_loaded(voxel_space* space, hash_map<tilepos, u16> new_loaded) {
+            for (const auto& [pos, priority] : loaded) {
                 if (!new_loaded.contains(pos)) unload(space, pos);
             }
 
-            for (const auto& pos : new_loaded) {
-                if (!loaded.contains(pos)) load(space, pos);
+            for (const auto& [pos, priority] : new_loaded) {
+                if (!loaded.contains(pos)) load(space, pos, priority);
             }
 
             loaded = std::move(new_loaded);

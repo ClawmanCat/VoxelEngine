@@ -54,6 +54,11 @@ namespace ve::voxel {
         }
 
 
+        bool has_pending_changes(void) const {
+            return !pending_changes.empty();
+        }
+
+
         VE_GET_BOOL_IS(locked);
     private:
         friend struct chunk_access;

@@ -6,5 +6,6 @@ tools/
 .vscode/
 
 cmake.lock
+diff.txt
 
 !.gitignore
