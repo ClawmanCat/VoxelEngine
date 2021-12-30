@@ -33,9 +33,18 @@ namespace ve {
 
         void remove_client_connection(instance_id remote_id) {
             if (auto it = client_connections.find(remote_id); it != client_connections.end()) {
-                dispatch_event(instance_disconnected_event { get_id(), it->second->get_remote_id() });
+                dispatch_event(instance_disconnected_event { get_id(), remote_id });
                 client_connections.erase(it);
             }
+        }
+
+
+        void clear_client_connections(void) {
+            for (const auto& [id, connection] : client_connections) {
+                dispatch_event(instance_disconnected_event { get_id(), id });
+            }
+
+            client_connections.clear();
         }
 
 

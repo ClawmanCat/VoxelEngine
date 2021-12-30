@@ -1,14 +1,12 @@
 #include <VoxelEngine/tests/test_common.hpp>
 #include <VoxelEngine/clientserver/client.hpp>
 #include <VoxelEngine/clientserver/server.hpp>
-#include <VoxelEngine/clientserver/connect.hpp>
 
 #include <atomic>
 
+
 using namespace ve::defs;
 
-
-constexpr std::size_t num_clients = 1;
 
 struct test_message {
     std::string msg;
@@ -17,17 +15,16 @@ struct test_message {
 
 test_result test_with_connection_method(
     const std::function<void(ve::client&, ve::server&)>& connect,
-    const std::function<void(ve::client&, ve::server&)>& disconnect
+    const std::function<void(ve::client&, ve::server&)>& disconnect,
+    std::size_t num_clients
 ) {
     std::vector<unique<ve::client>> clients;
 
     for (std::size_t i = 0; i < num_clients; ++i) {
         auto& client = clients.emplace_back(make_unique<ve::client>());
-        //client->get_mtr().register_type<test_message>("ve.test.test_message");
     }
 
     unique<ve::server> server = make_unique<ve::server>();
-    //server->get_mtr().register_type<test_message>("ve.test.test_message");
 
 
     const std::string msg_string = "This is a test message!";
@@ -98,13 +95,4 @@ test_result test_with_connection_method(
     }
 
     return VE_TEST_SUCCESS;
-}
-
-
-test_result test_main(void) {
-    VE_LOG_INFO("Testing message exchange with local connection.");
-    auto result = test_with_connection_method(ve::connect_local, ve::disconnect_local);
-
-
-    return result;
 }

@@ -16,6 +16,7 @@ namespace ve {
         using handler_id = typename Dispatcher::handler_id;
         using priority_t = typename Dispatcher::priority_t;
         using lock_t     = typename Dispatcher::lock_t;
+        using wrapped_t  = Dispatcher;
 
         constexpr static bool is_cancellable = Dispatcher::is_cancellable;
         constexpr static bool is_threadsafe  = Dispatcher::is_cancellable;

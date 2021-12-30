@@ -241,7 +241,7 @@ namespace ve {
                 type = local_mtr->try_get_type(remote_mtr.get_type(id).name);
             } catch (...) {
                 // Remote sent a message of an ID it hasn't registered. Just ignore it.
-                VE_LOG_ERROR(cat("Received message from remote ", remote_id, " of unregistered type ", id, ". Message will be ignored."));
+                VE_LOG_ERROR(cat("Received message on ", local_id, " from remote ", remote_id, " of unregistered type ", id, ". Message will be ignored."));
                 return;
             }
 

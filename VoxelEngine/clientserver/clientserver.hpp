@@ -20,4 +20,9 @@
 #include <VoxelEngine/clientserver/local_message_handler.hpp>
 #include <VoxelEngine/clientserver/message_handler.hpp>
 #include <VoxelEngine/clientserver/message_type_registry.hpp>
+#include <VoxelEngine/clientserver/remote_message_handler.hpp>
 #include <VoxelEngine/clientserver/server.hpp>
+#include <VoxelEngine/clientserver/socket/defs.hpp>
+#include <VoxelEngine/clientserver/socket/socket_client.hpp>
+#include <VoxelEngine/clientserver/socket/socket_server.hpp>
+#include <VoxelEngine/clientserver/socket/socket_session.hpp>

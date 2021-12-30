@@ -182,7 +182,7 @@ namespace ve {
             auto v = view<Component>();
 
             // Skip event handling if there are no handlers.
-            if (has_pending_actions() || has_handlers_for<component_destroyed_event<Component>>()) {
+            if (has_handlers_for<component_destroyed_event<Component>>()) {
                 for (auto entity : v) {
                     dispatch_event(component_destroyed_event<Component> { this, entity, &v.template get<Component>(entity) });
                 }
