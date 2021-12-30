@@ -18,6 +18,7 @@
 #include <VoxelEngine/ecs/empty_storage.hpp>
 #include <VoxelEngine/ecs/entity/static_component.hpp>
 #include <VoxelEngine/ecs/entity/static_entity.hpp>
+#include <VoxelEngine/ecs/partially_synchronized.hpp>
 #include <VoxelEngine/ecs/registry.hpp>
 #include <VoxelEngine/ecs/registry_helpers.hpp>
 #include <VoxelEngine/ecs/storage_group/group.hpp>

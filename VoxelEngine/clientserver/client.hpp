@@ -9,7 +9,7 @@
 namespace ve {
     class client : public instance {
     public:
-        client(void) : instance() {
+        client(void) : instance(instance::CLIENT) {
             initialize_mtr();
             get_validator().set_allow_by_default(true);
         }

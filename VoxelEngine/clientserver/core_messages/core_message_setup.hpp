@@ -5,6 +5,7 @@
 #include <VoxelEngine/clientserver/client.hpp>
 #include <VoxelEngine/clientserver/server.hpp>
 #include <VoxelEngine/clientserver/message_handler.hpp>
+#include <VoxelEngine/utility/assert.hpp>
 #include <VoxelEngine/utility/tuple_foreach.hpp>
 #include <VoxelEngine/utility/traits/pick.hpp>
 #include <VoxelEngine/utility/traits/is_immovable.hpp>
@@ -16,6 +17,7 @@
 #include <VoxelEngine/clientserver/core_messages/msg_add_del_entity.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_set_component.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_del_component.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_partial_sync.hpp>
 
 
 namespace ve {
@@ -26,8 +28,24 @@ namespace ve {
         msg_add_entity,
         msg_del_entity,
         msg_set_component,
-        msg_del_component
+        msg_del_component,
+        msg_partial_sync
     };
+
+
+    inline mtr_id get_core_mtr_id(std::string_view name) {
+        mtr_id result = 0;
+
+        tuple_foreach(core_message_type_infos, [&] (const auto& info) {
+            if (info.name == name) return false;
+
+            ++result;
+            return true;
+        });
+
+        VE_DEBUG_ASSERT(result < std::tuple_size_v<decltype(core_message_type_infos)>, "No such core message:", name);
+        return result;
+    }
 
 
     // Register the existence of all core message types into the provided MTR.

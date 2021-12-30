@@ -9,7 +9,7 @@
 namespace ve {
     class server : public instance {
     public:
-        server(void) : instance() {
+        server(void) : instance(instance::SERVER) {
             initialize_mtr();
             get_validator().set_allow_by_default(false);
         }

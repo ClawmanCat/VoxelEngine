@@ -121,6 +121,12 @@ namespace ve {
         }
 
 
+        template <typename Component> entt::entity entity_for_component(const Component& cmp) const {
+            return entt::to_entity(storage, cmp);
+        }
+
+
+        // Component Methods
         template <typename Component> Component* try_get_component(entt::entity entity) {
             if constexpr (std::is_empty_v<Component>) return &empty_storage_for<Component>();
             else return storage.template try_get<Component>(entity);

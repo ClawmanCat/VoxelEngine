@@ -14,12 +14,18 @@ namespace ve {
     
     
     // Calls the given predicate for every element of a structure that supports indexing through std::get<index> (e.g. tuple, pair).
+    // If the given predicate returns bool, returning false breaks the foreach.
     template <typename Tpl, typename Pred, std::size_t I = 0>
     constexpr void tuple_foreach(Tpl& tuple, Pred&& pred) {
         using base_t = std::remove_cvref_t<Tpl>;
     
         if constexpr (I < std::tuple_size_v<base_t>) {
-            pred(std::get<I>(tuple));
+            if constexpr (std::is_same_v<std::invoke_result_t<Pred, std::tuple_element_t<I, Tpl>>, bool>) {
+                if (!pred(std::get<I>(tuple))) return;
+            } else {
+                pred(std::get<I>(tuple));
+            }
+
             tuple_foreach<Tpl, Pred, I + 1>(tuple, fwd(pred));
         }
     }
@@ -30,7 +36,12 @@ namespace ve {
         using base_t = std::remove_cvref_t<Tpl>;
         
         if constexpr (I < std::tuple_size_v<base_t>) {
-            pred(std::get<I>(fwd(tuple)));
+            if constexpr (std::is_same_v<std::invoke_result_t<Pred, std::tuple_element_t<I, Tpl>>, bool>) {
+                if (!pred(std::get<I>(fwd(tuple)))) return;
+            } else {
+                pred(std::get<I>(fwd(tuple)));
+            }
+
             tuple_foreach<Tpl, Pred, I + 1>(fwd(tuple), fwd(pred));
         }
     }

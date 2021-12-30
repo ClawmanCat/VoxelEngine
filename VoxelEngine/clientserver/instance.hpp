@@ -49,7 +49,10 @@ namespace ve {
         public arbitrary_storage
     {
     public:
-        instance(void) : id(random_uuid()) {
+        enum instance_type { CLIENT, SERVER, UNIFIED };
+
+
+        instance(instance_type type = UNIFIED) : id(random_uuid()), type(type) {
             instance_registry::instance().add_instance(this);
         }
 
@@ -85,6 +88,7 @@ namespace ve {
 
         VE_GET_MREF(mtr);
         VE_GET_CREF(id);
+        VE_GET_VAL(type);
         VE_GET_VAL(tick_count);
     protected:
         // Prevent overriding the main update method so we can force the dispatching of the events to occur
@@ -94,6 +98,8 @@ namespace ve {
     private:
         message_type_registry mtr;
         instance_id id;
+        instance_type type;
+
         u64 tick_count = 0;
     };
 }

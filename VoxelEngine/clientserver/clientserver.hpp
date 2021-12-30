@@ -12,6 +12,7 @@
 #include <VoxelEngine/clientserver/core_messages/msg_compound.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_del_component.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_ignore_this.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_partial_sync.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_set_component.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_sync_mtr.hpp>
 #include <VoxelEngine/clientserver/instance.hpp>
