@@ -53,11 +53,16 @@ namespace ve {
 
     template <typename T> constexpr static bool has_custom_decomposer_v = requires { T::get_members(); };
 
+
+    // If this trait causes a compile error for your type add a nested typedef pfr_blacklist_tag to it.
+    // e.g. struct my_type { using pfr_blacklist_tag = void; };
     template <typename T> constexpr static bool is_decomposable_v =
-        has_custom_decomposer_v<T> ||
-        is_tuple_indexable_v<T>    ||
-        std::is_aggregate_v<T>     ||
-        std::is_scalar_v<T>;
+        (!requires { typename T::pfr_blacklist_tag; }) && (
+            has_custom_decomposer_v<T> ||
+            is_tuple_indexable_v<T>    ||
+            std::is_aggregate_v<T>     ||
+            std::is_scalar_v<T>
+        );
 
 
     namespace detail {

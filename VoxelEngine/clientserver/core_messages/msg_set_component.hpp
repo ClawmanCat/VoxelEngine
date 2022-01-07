@@ -7,6 +7,7 @@
 
 #include <entt/entt.hpp>
 
+#include <magic_enum.hpp>
 
 namespace ve {
     struct set_component_message {

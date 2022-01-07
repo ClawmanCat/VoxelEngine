@@ -40,6 +40,7 @@
 #include <VoxelEngine/utility/raii.hpp>
 #include <VoxelEngine/utility/random.hpp>
 #include <VoxelEngine/utility/repeat.hpp>
+#include <VoxelEngine/utility/spatial_iterate.hpp>
 #include <VoxelEngine/utility/stack_polymorph.hpp>
 #include <VoxelEngine/utility/string.hpp>
 #include <VoxelEngine/utility/thread/assert_main_thread.hpp>

@@ -11,6 +11,8 @@ namespace ve {
     public:
         server(void) : instance(instance::SERVER) {
             initialize_mtr();
+
+            set_default_visibility(false);
             get_validator().set_allow_by_default(false);
         }
 

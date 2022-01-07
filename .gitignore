@@ -5,6 +5,10 @@ tools/
 .vs/
 .vscode/
 
+old/
+OLD/
+wip/
+WIP/
 cmake.lock
 diff.txt
 

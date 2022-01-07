@@ -11,7 +11,9 @@
 #include <VoxelEngine/voxel/chunk/generator/world_layers.hpp>
 #include <VoxelEngine/voxel/chunk/loader/entity_loader.hpp>
 #include <VoxelEngine/voxel/chunk/loader/loader.hpp>
+#include <VoxelEngine/voxel/chunk/loader/remote_loader.hpp>
 #include <VoxelEngine/voxel/settings.hpp>
+#include <VoxelEngine/voxel/space/events.hpp>
 #include <VoxelEngine/voxel/space/voxel_space.hpp>
 #include <VoxelEngine/voxel/tile/tile.hpp>
 #include <VoxelEngine/voxel/tile/tile_data.hpp>

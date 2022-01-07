@@ -48,7 +48,7 @@ namespace ve {
 
 
         explicit system_set_visibility(
-            Pred pred = [](registry& r, entt::entity e, message_handler* conn) { return true; },
+            Pred pred    = [] (auto& r, auto e, auto* h) { return true; },
             u16 priority = priority::LOWEST + 1
         ) :
             pred(std::move(pred)),

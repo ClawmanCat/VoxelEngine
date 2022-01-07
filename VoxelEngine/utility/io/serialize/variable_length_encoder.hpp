@@ -42,11 +42,12 @@ namespace ve::serialize {
 
 
     // Used with boost asio to check if a message containing a variable length integer has been fully transferred.
+    // Note: variable lengths are transmitted in reverse so the last byte has its msb set, rather than the first one.
     template <typename Ctr> struct transfer_variable_length_t {
         const Ctr* destination;
 
         std::size_t operator()(const auto& error, std::size_t transferred) const {
-            return error || (!destination->empty() && destination->back() & 0b1000'0000) ? 0 : 1;
+            return error || (!destination->empty() && (destination->back() & 0b1000'0000)) ? 0 : 1;
         }
     };
 

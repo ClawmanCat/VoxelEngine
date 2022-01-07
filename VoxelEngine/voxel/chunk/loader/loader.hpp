@@ -84,7 +84,8 @@ namespace ve::voxel {
     // Loads the provided list of chunks.
     class multi_chunk_loader : public chunk_loader {
     public:
-        explicit multi_chunk_loader(std::vector<tilepos> loaded_chunks) : loaded_chunks(std::move(loaded_chunks)) {}
+        explicit multi_chunk_loader(hash_set<tilepos> loaded_chunks = {}) : loaded_chunks(std::move(loaded_chunks)) {}
+
 
         void start_loading(voxel_space* space) override {
             for (const auto& pos : loaded_chunks) load(space, pos);
@@ -94,8 +95,30 @@ namespace ve::voxel {
             for (const auto& pos : loaded_chunks) unload(space, pos);
         }
 
+        void update(voxel_space* space) override {
+            for (const auto& pending : pending_loads) {
+                auto [it, success] = loaded_chunks.emplace(pending);
+                if (success) load(space, pending);
+            }
+
+            pending_loads.clear();
+        }
+
+
+        void add_chunk(const tilepos& where) {
+            pending_loads.push_back(where);
+        }
+
+        void remove_chunk(const tilepos& where) {
+            loaded_chunks.erase(where);
+            std::erase(pending_loads, where);
+        }
+
+
+        // Note: only returns chunks that are actually loaded, not pending ones.
         VE_GET_CREF(loaded_chunks);
     private:
-        std::vector<tilepos> loaded_chunks;
+        hash_set<tilepos> loaded_chunks;
+        std::vector<tilepos> pending_loads;
     };
 }

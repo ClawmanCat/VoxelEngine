@@ -14,6 +14,7 @@
 #include <VoxelEngine/ecs/component/remote_init_component.hpp>
 #include <VoxelEngine/ecs/component/self_component.hpp>
 #include <VoxelEngine/ecs/component/transform_component.hpp>
+#include <VoxelEngine/ecs/component/voxel_component.hpp>
 #include <VoxelEngine/ecs/component_registry.hpp>
 #include <VoxelEngine/ecs/empty_storage.hpp>
 #include <VoxelEngine/ecs/entity/static_component.hpp>

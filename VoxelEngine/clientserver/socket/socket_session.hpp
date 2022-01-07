@@ -25,6 +25,10 @@ namespace ve::connection {
         ~socket_session(void) {
             stop();
             VE_ASSERT(!is_open(), "Session failed to close correctly.");
+
+            // Note that we can't simply dispatch any remaining events when we close the socket,
+            // since we want to guarantee event handlers are called from the thread that invokes owner::update().
+            VE_ASSERT(!has_pending_events(), "Session was destroyed with pending events.");
         }
 
         ve_immovable(socket_session);
@@ -53,7 +57,6 @@ namespace ve::connection {
                 if (error) dispatch_event(session_error_event { id, error });
                 dispatch_event(session_end_event { id });
 
-                update(); // Dispatch any remaining events.
                 is_closed = true;
             }
         }
@@ -121,8 +124,10 @@ namespace ve::connection {
 
             is_writing = true;
 
+            // Header is transferred in reverse so the last byte has its msb set, which we use to indicate the end of the header.
             write_header_buffer.clear();
             serialize::encode_variable_length(write_queue.front().size(), write_header_buffer);
+            std::reverse(write_header_buffer.begin(), write_header_buffer.end());
 
             asio::async_write(
                 socket,
@@ -164,13 +169,14 @@ namespace ve::connection {
         void on_async_read_header(error_code error, std::size_t n) {
             if (error) [[unlikely]] {
                 // EOF can still trigger if all data was received.
-                if (serialize::transfer_variable_length(read_header_buffer)(false, n) != 0) {
+                if (error != asio::error::eof || serialize::transfer_variable_length(read_header_buffer)(false, n) != 0) {
                     dispatch_event(session_error_event { id, error });
                     return stop();
                 }
             }
 
-
+            // Header is transferred in reverse so the last byte has its msb set, which we use to indicate the end of the header.
+            std::reverse(read_header_buffer.begin(), read_header_buffer.end());
             auto span = std::span<const u8> { read_header_buffer.begin(), read_header_buffer.end() };
             u64 message_size = serialize::decode_variable_length(span);
 

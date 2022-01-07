@@ -53,6 +53,7 @@ namespace ve::connection {
         }
 
 
+        // Note: this will dispatch any remaining events and should therefore be called from the same thread as update.
         void stop(void) {
             if (exited) return;
             exited = true;

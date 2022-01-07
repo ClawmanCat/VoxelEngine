@@ -11,12 +11,7 @@ namespace ve {
     // system_remote_init maps type tags to initializer functions.
     // A remote may add a remote_init_component with the same type tag to an entity and synchronize it,
     // causing initialization to occur on the other end, using the initializer mapping to that type tag.
-    template <typename Pred = fn<void, entt::entity>> requires (std::is_invocable_v<Pred, entt::entity>)
-    class system_remote_init : public system<
-        system_remote_init<Pred>,
-        meta::pack<remote_init_component>,
-        meta::pack<>
-    > {
+    class system_remote_init : public system<system_remote_init, meta::pack<remote_init_component>> {
     public:
         explicit system_remote_init(u16 priority = priority::HIGHEST) : priority(priority) {}
 
@@ -28,12 +23,10 @@ namespace ve {
 
         void update(registry& owner, view_type view, nanoseconds dt) {
             for (auto entity : view) {
-                u64 type = view.template get<remote_init_component>(entity).type;
+                const auto& cmp = view.template get<remote_init_component>(entity);
 
-                if (auto it = initializers.find(type); it != initializers.end()) [[likely]] {
-                    std::invoke(it->second, entity);
-                } else {
-                    VE_LOG_ERROR(cat("Remote requested initialization of entity using unknown initializer ", type, "."));
+                if (auto it = initializers.find(cmp.type); it != initializers.end()) {
+                    it->second->init(entity, owner, cmp);
                 }
             }
 
@@ -42,11 +35,32 @@ namespace ve {
         }
 
 
-        template <typename Tag> void add_initializer(Pred pred) {
-            initializers[type_hash<Tag>()].push_back(std::move(pred));
+        template <typename Pred, typename T = std::remove_cvref_t<typename meta::function_traits<Pred>::arguments::template get<2>>>
+        requires std::is_invocable_v<Pred, entt::entity, ve::registry&, const T&>
+        void add_initializer(Pred&& pred) {
+            initializers.emplace(
+                type_hash<T>(),
+                make_unique<initializer_data<Pred, T>>(fwd(pred))
+            );
         }
     private:
-        hash_map<u64, small_vector<Pred, 1>> initializers;
+        struct initializer_data_base {
+            virtual ~initializer_data_base(void) = default;
+            virtual void init(entt::entity entity, registry& owner, const remote_init_component& cmp) = 0;
+        };
+
+        template <typename Pred, typename T> struct initializer_data : public initializer_data_base {
+            Pred pred;
+
+            explicit initializer_data(Pred pred) : initializer_data_base(), pred(std::move(pred)) {}
+
+            void init(entt::entity entity, registry& owner, const remote_init_component& cmp) override {
+                std::invoke(pred, entity, owner, serialize::from_bytes<T>(cmp.data));
+            }
+        };
+
+
+        hash_map<u64, unique<initializer_data_base>> initializers;
         u16 priority;
     };
 }

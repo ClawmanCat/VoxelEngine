@@ -5,12 +5,16 @@
 #include <VoxelEngine/voxel/tile_provider.hpp>
 #include <VoxelEngine/voxel/tile/tile_data.hpp>
 #include <VoxelEngine/utility/math.hpp>
+#include <VoxelEngine/utility/spatial_iterate.hpp>
 #include <VoxelEngine/utility/traits/function_traits.hpp>
 
 
 namespace ve::voxel {
     class chunk : public tile_provider<chunk> {
     public:
+        using data_t = std::array<tile_data, cube(voxel_settings::chunk_size)>;
+
+
         constexpr static bool is_bounded(void) {
             return true;
         }
@@ -25,13 +29,15 @@ namespace ve::voxel {
         }
 
 
-        void set_data(const tilepos& where, const tile_data& td) {
+        tile_data set_data(const tilepos& where, const tile_data& td) {
+            auto& old_value = data[flatten(where, (tilepos::value_type) voxel_settings::chunk_size)];
+
             if (locked) [[unlikely]] {
                 pending_changes.emplace_back(where, td);
-                return;
+                return old_value;
             }
 
-            data[flatten(where, (tilepos::value_type) voxel_settings::chunk_size)] = td;
+            return std::exchange(old_value, td);
         }
 
 
@@ -59,12 +65,38 @@ namespace ve::voxel {
         }
 
 
+        void set_chunk_data(const data_t& data) {
+            if (locked) [[unlikely]] {
+                // TODO: Find a more optimal way to do this.
+                std::size_t i = 0;
+
+                pending_changes.clear();
+                pending_changes.reserve(cube(voxel_settings::chunk_size));
+
+                spatial_iterate<
+                    voxel_settings::chunk_size,
+                    voxel_settings::chunk_size,
+                    voxel_settings::chunk_size
+                >([&] (auto... position) {
+                    pending_changes.emplace_back(tilepos { position... }, data[i++]);
+                });
+            } else {
+                this->data = data;
+            }
+        }
+
+
+        const data_t& get_chunk_data(void) const {
+            return data;
+        }
+
+
         VE_GET_BOOL_IS(locked);
     private:
         friend struct chunk_access;
 
-        // TODO: Use a more cache-optimal data layout.
-        std::array<tile_data, cube(voxel_settings::chunk_size)> data;
+
+        data_t data;
 
         bool locked = false;
         small_vector<std::pair<tilepos, tile_data>> pending_changes;
@@ -83,13 +115,13 @@ namespace ve::voxel {
         static void foreach_common(auto pred, auto& self) {
             std::size_t i = 0;
 
-            for (u32 x = 0; x < voxel_settings::chunk_size; ++x) {
-                for (u32 y = 0; y < voxel_settings::chunk_size; ++y) {
-                    for (u32 z = 0; z < voxel_settings::chunk_size; ++z) {
-                        std::invoke(pred, tilepos { x, y, z }, self.data[i++]);
-                    }
-                }
-            }
+            spatial_iterate<
+                voxel_settings::chunk_size,
+                voxel_settings::chunk_size,
+                voxel_settings::chunk_size
+            >([&] (auto... position) {
+                std::invoke(pred, tilepos { position... }, self.data[i++]);
+            });
         }
     };
 

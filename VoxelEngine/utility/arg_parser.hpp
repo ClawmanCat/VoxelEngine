@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/functional.hpp>
 
 #include <boost/algorithm/string.hpp>
 
@@ -19,12 +20,11 @@ namespace ve {
         
         
         void feed(std::size_t argc, const char** argv) {
-            for (std::size_t i = 0; i < argc; ++i) {
+            for (std::size_t i = 1; i < argc; ++i) { // Note: skip argv[0] as its just the path to the executable.
                 const char* arg_ptr = argv[i];
                 while(arg_ptr[0] == '-') ++arg_ptr;
                 
                 std::string arg { arg_ptr };
-                
                 
                 if (auto split = arg.find('='); split != std::string::npos) {
                     auto key = arg.substr(0, split);
@@ -38,10 +38,10 @@ namespace ve {
         }
         
         
-        template <typename T> std::optional<T> get(std::string_view name) {
+        template <typename T> std::optional<T> get(std::string_view name) const {
             auto it = arguments.find(name);
             if (it == arguments.end()) return std::nullopt;
-            
+
             if (std::holds_alternative<T>(it->second)) return std::get<T>(it->second);
             else return std::nullopt;
         }
@@ -66,15 +66,28 @@ namespace ve {
             auto lower = boost::algorithm::to_lower_copy(value);
             if (lower == "true")  return argument_t { true };
             if (lower == "false") return argument_t { false };
-            
+
+
+            // Performs the equivalent action to stoll / stod / etc. depending on fn,
+            // but fails the conversion if only part of the string is a number.
+            auto stox_full = [] (auto fn, const auto& str) {
+                std::size_t processed = 0;
+                auto result = std::invoke(fn, str, &processed);
+
+                if (processed != str.length()) throw std::runtime_error { "String contains non-numeric parts." };
+                return result;
+            };
+
+
             try {
-                return argument_t { std::stoll(value) };
+                return argument_t { stox_full(ve_wrap_callable(std::stoll), value) };
             } catch (...) {}
             
             try {
-                return argument_t { std::stod(value) };
+                return argument_t { stox_full(ve_wrap_callable(std::stod), value) };
             } catch (...) {}
-            
+
+
             return argument_t { value };
         }
     };

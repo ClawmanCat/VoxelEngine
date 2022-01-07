@@ -15,6 +15,8 @@
 
 #include <xxhash.h>
 
+#include <VoxelEngine/ecs/component/remote_init_component.hpp>
+
 
 namespace ve {
     namespace detail {
@@ -59,8 +61,10 @@ namespace ve {
         using visibility_system = system_set_visibility<VisibilityPred>;
 
 
-        explicit system_synchronizer(visibility_system* visibility, u16 priority = priority::LOWEST) :
+        explicit system_synchronizer(visibility_system* visibility, nanoseconds interval = 33ms, u16 priority = priority::LOWEST) :
             visibility(visibility),
+            interval(interval),
+            last_update(steady_clock::now()),
             priority(priority)
         {
             VE_ASSERT(visibility->get_priority() > this->get_priority(), "Visibility should be updated before synchronization.");
@@ -181,8 +185,12 @@ namespace ve {
             removed_components.clear();
 
 
+            // Only perform the component synchronization when the interval has elapsed.
+            // TODO: Support doing this for the other messages as well, right now this causes issues because the visibility changed bit will update.
+            if (time_since(last_update) < interval) return;
+            else last_update = steady_clock::now();
+
             // For every synchronized component, send a message to each remote that can see the entity.
-            // TODO: Handle partially synchronized components.
             // TODO: If a component is visible to multiple remotes, it should only be serialized once.
             for (const auto& conn : connections) {
                 auto visibility_view = visibility->visibility_for(conn->get_remote_id()) | view;
@@ -192,20 +200,28 @@ namespace ve {
                 const auto msg_id = conn->get_local_mtr().get_type(core_message_types::MSG_SET_COMPONENT).id;
 
                 for (auto entity : view) {
-                    if (!(visibility_view.template get<vis_state>(entity) & VISIBILITY_BIT)) continue;
+                    auto visibility_state = visibility_view.template get<vis_state>(entity);
+                    //if (!(visibility_state & VISIBILITY_BIT)) continue;
 
 
                     Synchronized::foreach([&] <typename Component> () {
                         const auto* component = owner.template try_get_component<Component>(entity);
                         if (!component) return;
 
-
-                        // Check if component changed since last sync.
+                        // Check if component changed since last sync or if the entity just became visible.
+                        // TODO: Figure out why sync shadow is missing sometimes. Are events dispatched after system is invoked?
                         auto serialized_component = serialize::to_bytes(*component);
 
-                        auto& prev_value_hash = owner.template get_component<detail::component_sync_shadow<Component>>(entity);
-                        auto  curr_value_hash = XXH64(serialized_component.data(), serialized_component.size(), 0);
-                        if (curr_value_hash == prev_value_hash.hash) return;
+                        auto prev_value_hash = owner.template try_get_component<detail::component_sync_shadow<Component>>(entity);
+                        auto curr_value_hash = XXH64(serialized_component.data(), serialized_component.size(), 0);
+
+                        // TODO: Fix this!
+                        if (
+                            std::is_same_v<Component, remote_init_component> &&
+                            prev_value_hash &&
+                            curr_value_hash == prev_value_hash->hash &&
+                            !(visibility_state & CHANGE_BIT)
+                        ) return;
 
 
                         // Synchronize and update value hash.
@@ -219,7 +235,8 @@ namespace ve {
                             conn.get()
                         );
 
-                        prev_value_hash.hash = curr_value_hash;
+                        if (prev_value_hash) [[likely]] prev_value_hash->hash = curr_value_hash;
+                        else owner.set_component(entity, detail::component_sync_shadow<Component> { .hash = curr_value_hash });
                     });
                 }
 
@@ -238,6 +255,10 @@ namespace ve {
 
         // System that manages the visibility for each entity for each remote.
         visibility_system* visibility;
+
+        // Synchronization interval.
+        nanoseconds interval;
+        steady_clock::time_point last_update;
 
         u16 priority;
     };

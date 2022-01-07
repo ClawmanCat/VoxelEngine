@@ -20,7 +20,7 @@ namespace ve {
         using base_t = std::remove_cvref_t<Tpl>;
     
         if constexpr (I < std::tuple_size_v<base_t>) {
-            if constexpr (std::is_same_v<std::invoke_result_t<Pred, std::tuple_element_t<I, Tpl>>, bool>) {
+            if constexpr (std::is_same_v<std::invoke_result_t<Pred, std::tuple_element_t<I, Tpl>&>, bool>) {
                 if (!pred(std::get<I>(tuple))) return;
             } else {
                 pred(std::get<I>(tuple));

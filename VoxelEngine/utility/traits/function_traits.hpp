@@ -77,4 +77,8 @@ namespace ve::meta {
         using arguments    = typename decltype(helper { std::function { std::declval<T>() } })::arguments;
         using signature    = typename decltype(helper { std::function { std::declval<T>() } })::signature;
     };
+
+
+    template <typename Fn, std::size_t N>
+    using nth_argument = typename function_traits<Fn>::arguments::template get<N>;
 }

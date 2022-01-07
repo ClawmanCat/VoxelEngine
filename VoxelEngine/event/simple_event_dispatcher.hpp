@@ -142,7 +142,7 @@ namespace ve {
             if (!pending_actions.empty()) return true;
 
             if (auto it = handlers.find(ctti::type_id<Event>()); it != handlers.end()) {
-                return !it->second.empty();
+                return !it->second->empty();
             }
 
             return false;

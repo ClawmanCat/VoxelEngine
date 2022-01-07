@@ -8,11 +8,9 @@
 #include <VoxelEngine/ecs/empty_storage.hpp>
 #include <VoxelEngine/event/simple_event_dispatcher.hpp>
 #include <VoxelEngine/event/subscribe_only_view.hpp>
+#include <VoxelEngine/clientserver/instance_id.hpp>
 
 #include <entt/entt.hpp>
-
-#include <VoxelEngine/utility/assert.hpp>
-#include <ctti/nameof.hpp>
 
 
 namespace ve {
@@ -291,7 +289,7 @@ namespace ve {
                 throw std::runtime_error { "Registry may have at most one active visibility provider." };
             }
 
-            registry.visibility_provider.system = this;
+            registry.visibility_provider.system = (const Derived*) this;
             registry.visibility_provider.invoke = [](const void* self, instance_id remote, entt::entity entity) {
                 return static_cast<const Derived*>(self)->is_visible(entity, remote);
             };
@@ -322,7 +320,7 @@ namespace ve {
         // Attempts to set the component to the value stored in the provided buffer.
         // If the provided remote is not allowed to perform this action, no changes to the registry are made.
         template <typename T> inline change_result set_component(instance_id remote, registry& r, entt::entity e, std::span<const u8> data) {
-            if (!r.is_visible(remote, e)) return change_result::UNOBSERVABLE;
+            //if (!r.is_visible(remote, e)) return change_result::UNOBSERVABLE;
 
             const T* old_value = r.template try_get_component<T>(e);
             T new_value = serialize::from_bytes<T>(data);
@@ -337,14 +335,19 @@ namespace ve {
         // Attempts to remote the component from the registry.
         // If the provided remote is not allowed to perform this action, no changes to the registry are made.
         template <typename T> inline change_result remove_component(instance_id remote, registry& r, entt::entity e) {
-            if (!r.is_visible(remote, e)) return change_result::UNOBSERVABLE;
+            //if (!r.is_visible(remote, e)) return change_result::UNOBSERVABLE;
 
-            const T* old_value = r.template try_get_component<T>(e);
 
-            if (!r.get_validator().is_allowed(remote, r, e, old_value, (const T*) nullptr)) return change_result::DENIED;
+            if constexpr (requires { typename T::non_removable_tag; }) {
+                return change_result::DENIED;
+            } else {
+                const T* old_value = r.template try_get_component<T>(e);
 
-            r.template remove_component<T>(e);
-            return change_result::ALLOWED;
+                if (!r.get_validator().is_allowed(remote, r, e, old_value, (const T*) nullptr)) return change_result::DENIED;
+
+                r.template remove_component<T>(e);
+                return change_result::ALLOWED;
+            }
         }
 
 
