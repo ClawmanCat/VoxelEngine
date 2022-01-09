@@ -1,5 +1,7 @@
 out/
-tools/
+
+tools/*
+!tools/README.md
 
 .idea/
 .vs/
