@@ -20,7 +20,7 @@ namespace ve {
     // as a template for many identical entities.
     // By extending this base class, a class may add static components. These components are present on all entities
     // created from that class, and can be accessed as if they were class members.
-    class static_entity : private registry_access_for_static_entity<static_entity> {
+    class static_entity {
     public:
         using static_entity_tag = void;
 
@@ -32,22 +32,24 @@ namespace ve {
             set(self_component { this });
         }
 
+
+        // Note: not virtual by default on purpose: type erasure is handled by entity storage in registry so it is not needed in most cases.
+        #ifdef VE_POLYMORPHIC_STATIC_ENTITY
+            virtual
+        #endif
+
         ~static_entity(void) {
-            // - If the entity is not owned by a static_entity_storage, we don't need to remove it from there.
-            // - If the entity *is* owned by a static_entity_storage, the only way to destroy it is through there,
-            //   so we don't need to ever manually remove it from there.
-            if (id != entt::null) {
-                get_registry().destroy_entity(id);
-                id = entt::null;
-            }
+            // If the entity is not owned by a static_entity_storage, we don't need to remove it from there.
+            // If the entity *is* owned by a static_entity_storage, the only way to destroy it is through there
+            // (through destroy_entity or by destroying the registry), so we don't need to ever manually remove it from there.
         }
 
 
-        static_entity(static_entity&& other) { (*this) = std::move(other); }
+        static_entity(static_entity&& other) noexcept { (*this) = std::move(other); }
 
-        static_entity& operator=(static_entity&& other) {
+        static_entity& operator=(static_entity&& other) noexcept {
+            // We're overwriting this entity, so delete the old entt::entity from the registry.
             if (id != entt::null) {
-                on_static_entity_destroyed(get_registry(), id);
                 get_registry().destroy_entity(id);
             }
 

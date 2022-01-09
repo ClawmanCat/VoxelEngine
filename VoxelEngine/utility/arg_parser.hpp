@@ -56,6 +56,11 @@ namespace ve {
             auto it = arguments.find(name);
             return it != arguments.end() && std::holds_alternative<T>(it->second);
         }
+
+
+        template <typename T> T value_or(std::string_view name, T&& default_value = T { }) const {
+            return get<T>(name).value_or(fwd(default_value));
+        }
     private:
         hash_map<std::string, argument_t> arguments;
         
