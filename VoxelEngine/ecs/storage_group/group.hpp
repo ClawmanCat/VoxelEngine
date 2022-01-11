@@ -16,6 +16,7 @@ namespace ve {
     
     // Allows grouping entities at runtime, e.g. grouping entities by the chunk they're in.
     // E.g.: for (auto e : some_chunk.view() | registry.view<Components...>) { ... }
+    // The main difference with using entt::basic_storage directly is that the components are still stored in the registry.
     // TODO: Handle empty components like in registry.
     template <typename Data = meta::null_type>
     class storage_group : public detail::component_storage_base<Data> {

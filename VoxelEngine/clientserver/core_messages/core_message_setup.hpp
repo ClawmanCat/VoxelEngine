@@ -14,13 +14,20 @@
 #include <VoxelEngine/clientserver/core_messages/msg_sync_mtr.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_ignore_this.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_compound.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_add_del_entity.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_set_component.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_del_component.hpp>
 
 
 namespace ve {
     const inline std::tuple core_message_type_infos {
         msg_sync_mtr,
         msg_ignore_this,
-        msg_compound
+        msg_compound,
+        msg_add_entity,
+        msg_del_entity,
+        msg_set_component,
+        msg_del_component
     };
 
 

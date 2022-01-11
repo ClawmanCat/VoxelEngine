@@ -14,6 +14,16 @@
 }()
 
 
+#define ve_impl_component_access_noeval(T, fn, ...) \
+[&] () -> decltype(auto) {                          \
+    if constexpr (std::is_empty_v<T>) {             \
+        return ve::empty_storage_for<T>();          \
+    } else {                                        \
+        return fn(__VA_ARGS__);                     \
+    }                                               \
+}()
+
+
 namespace ve {
     namespace detail {
         struct empty {};

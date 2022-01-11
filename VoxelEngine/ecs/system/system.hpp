@@ -12,9 +12,12 @@ namespace ve {
     class registry;
 
 
+    struct create_empty_view_tag {};
+
+
     template <
         typename Derived,
-        meta::pack_of_types RequiredComponents,
+        meta::pack_of_types RequiredComponents = meta::pack<>,
         meta::pack_of_types ExcludedComponents = meta::pack<>
     > struct system {
         using required_components = RequiredComponents;
@@ -32,6 +35,8 @@ namespace ve {
         }
 
 
+        // Called after the system is added to the registry.
+        // Note: the engine guarantees the address of the system remains constant between calls to init() and uninit().
         void init(registry& storage) {
             if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, init)) {
                 static_cast<Derived*>(this)->init(storage);
@@ -39,6 +44,7 @@ namespace ve {
         }
 
 
+        // Called before the system is removed from the registry.
         void uninit(registry& storage) {
             if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, init)) {
                 static_cast<Derived*>(this)->uninit(storage);

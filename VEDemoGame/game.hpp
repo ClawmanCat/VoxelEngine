@@ -39,7 +39,15 @@ namespace demo_game {
 
 
         static void setup_client(void);
+        static void setup_client_graphics(void);
+        static void setup_client_input(void);
+        static void setup_client_synchronization(void);
+        static void setup_client_systems(void);
+
         static void setup_server(void);
+        static void setup_server_synchronization(void);
+        static void setup_server_systems(void);
+        static void setup_server_entities(void);
     };
 }
 

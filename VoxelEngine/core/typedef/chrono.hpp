@@ -12,6 +12,12 @@ namespace ve {
         inline Duration time_since(const TimePoint& when) {
             return duration_cast<Duration>(TimePoint::clock::now() - when);
         }
+
+
+        template <typename TimePoint>
+        inline TimePoint epoch_time(void) {
+            return TimePoint { };
+        }
     }
     
     using namespace defs;

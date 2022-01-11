@@ -74,5 +74,6 @@
 #include <VoxelEngine/utility/traits/traits.hpp>
 #include <VoxelEngine/utility/traits/value.hpp>
 #include <VoxelEngine/utility/tuple_foreach.hpp>
+#include <VoxelEngine/utility/type_registry.hpp>
 #include <VoxelEngine/utility/uuid.hpp>
 #include <VoxelEngine/utility/version.hpp>

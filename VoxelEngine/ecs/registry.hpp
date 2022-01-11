@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/ecs/component_registry.hpp>
 #include <VoxelEngine/ecs/registry_helpers.hpp>
 #include <VoxelEngine/ecs/empty_storage.hpp>
 #include <VoxelEngine/ecs/system/system.hpp>
@@ -53,6 +54,7 @@ namespace ve {
             systems_by_priority[priority].emplace(next_system_id, it->second.get());
 
 
+            // Note: init occurs after insertion to assure address remains constant until uninit is called.
             it->second->init(*this);
             return { next_system_id++, ((unique<detail::system_data<System>>&) it->second)->system };
         }
@@ -62,6 +64,7 @@ namespace ve {
             auto it = systems.find(system);
             if (it == systems.end()) return;
 
+            // Note: uninit is called before removal to assure address remains constant during the system's time in the registry.
             it->second->uninit(*this);
 
             systems_by_priority[it->second->priority].erase(system);
@@ -144,6 +147,11 @@ namespace ve {
 
         template <typename Component> requires (!std::is_reference_v<Component>)
         Component& set_component(entt::entity entity, Component&& component) {
+            // This is the only component method that requires registration, since if a component type is never set,
+            // it could never be present in the registry, and thus could never require registration.
+            autoregister_component<Component>();
+
+
             if (has_component<Component>(entity)) {
                 return ve_impl_component_access(Component, storage.template replace<Component>, entity, fwd(component));
             } else {
@@ -174,13 +182,34 @@ namespace ve {
 
 
         template <typename Component> requires (!requires { typename Component::non_removable_tag; })
+        void remove_all_components(auto& view) {
+            // Skip event handling if there are no handlers.
+            if (has_handlers_for<component_destroyed_event<Component>>()) {
+                for (auto entity : view) {
+                    dispatch_event(component_destroyed_event<Component> {
+                        this,
+                        entity,
+                        &ve_impl_component_access_noeval(Component, view.template get<Component>, entity)
+                    });
+                }
+            }
+
+            storage.template remove<Component>(view.begin(), view.end());
+        }
+
+
+        template <typename Component> requires (!requires { typename Component::non_removable_tag; })
         void remove_all_components(void) {
             auto v = view<Component>();
 
             // Skip event handling if there are no handlers.
             if (has_handlers_for<component_destroyed_event<Component>>()) {
                 for (auto entity : v) {
-                    dispatch_event(component_destroyed_event<Component> { this, entity, &v.template get<Component>(entity) });
+                    dispatch_event(component_destroyed_event<Component> {
+                        this,
+                        entity,
+                        &ve_impl_component_access_noeval(Component, v.template get<Component>, entity)
+                    });
                 }
             }
 
@@ -219,6 +248,8 @@ namespace ve {
             dispatch_event(entity_created_event { this, entity });
 
             ([&] <typename Component> (Component&& component) {
+                autoregister_component<Component>();
+
                 // Don't need to check if the component exists since this is a new entity.
                 Component& stored_component = ve_impl_component_access(Component, storage.template emplace, entity, fwd(component));
                 dispatch_event(component_created_event<Component> { this, entity, &stored_component });
@@ -237,4 +268,23 @@ namespace ve {
 
         system_id next_system_id = 0;
     };
+
+
+    // Wrappers around registry functions. Unlike the registry member methods, these can be forward declared.
+    namespace registry_callbacks {
+        template <typename T> void set_component(registry& r, entt::entity e, T&& v) {
+            r.set_component(e, fwd(v));
+        }
+
+
+        template <typename T> T& get_component(registry& r, entt::entity e) {
+            return r.template get_component<T>(e);
+        }
+
+
+        template <typename T> void remove_component(registry& r, entt::entity e) {
+            if constexpr (!requires { typename T::non_removable_tag; }) r.template remove_component<T>(e);
+            else VE_ASSERT(false, "Attempt to remove non-removable component");
+        }
+    }
 }

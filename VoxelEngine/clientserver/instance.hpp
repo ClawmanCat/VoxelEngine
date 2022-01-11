@@ -66,6 +66,7 @@ namespace ve {
         void update(nanoseconds dt) {
             VE_PROFILE_FN();
 
+            last_dt = dt;
             dispatch_event(instance_pre_tick_event { dt, tick_count });
 
             registry::update(dt);
@@ -90,6 +91,7 @@ namespace ve {
         VE_GET_CREF(id);
         VE_GET_VAL(type);
         VE_GET_VAL(tick_count);
+        VE_GET_VAL(last_dt);
     protected:
         // Prevent overriding the main update method so we can force the dispatching of the events to occur
         // before and after all other update calls.
@@ -101,5 +103,6 @@ namespace ve {
         instance_type type;
 
         u64 tick_count = 0;
+        nanoseconds last_dt = 1ns;
     };
 }

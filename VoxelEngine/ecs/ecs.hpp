@@ -11,6 +11,7 @@
 #include <VoxelEngine/ecs/component/named_component.hpp>
 #include <VoxelEngine/ecs/component/self_component.hpp>
 #include <VoxelEngine/ecs/component/transform_component.hpp>
+#include <VoxelEngine/ecs/component_registry.hpp>
 #include <VoxelEngine/ecs/empty_storage.hpp>
 #include <VoxelEngine/ecs/entity/static_component.hpp>
 #include <VoxelEngine/ecs/entity/static_entity.hpp>
@@ -18,7 +19,9 @@
 #include <VoxelEngine/ecs/registry_helpers.hpp>
 #include <VoxelEngine/ecs/storage_group/group.hpp>
 #include <VoxelEngine/ecs/system/system.hpp>
+#include <VoxelEngine/ecs/system/system_entity_visibility.hpp>
 #include <VoxelEngine/ecs/system/system_physics.hpp>
 #include <VoxelEngine/ecs/system/system_renderer.hpp>
+#include <VoxelEngine/ecs/system/system_synchronizer.hpp>
 #include <VoxelEngine/ecs/system/system_updater.hpp>
 #include <VoxelEngine/ecs/view_type.hpp>
