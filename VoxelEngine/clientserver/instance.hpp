@@ -23,6 +23,7 @@ namespace ve {
     class instance_registry {
     public:
         static instance_registry& instance(void);
+        ~instance_registry(void);
 
 
         void update_all(nanoseconds dt);
@@ -57,7 +58,7 @@ namespace ve {
         }
 
         virtual ~instance(void) {
-            instance_registry::instance().remove_instance(this);
+            if (registry_alive) instance_registry::instance().remove_instance(this);
         }
 
         ve_immovable(instance);
@@ -98,6 +99,12 @@ namespace ve {
         virtual void update(nanoseconds dt, overridable_function_tag) {}
 
     private:
+        // Instances are typically declared as globals or static class members, so we can't control if it's the instance
+        // or the registry that's destroyed first. So just set a flag in the instance if the registry is gone.
+        // TODO: Find a cleaner way to do this.
+        friend class instance_registry;
+        bool registry_alive = true;
+
         message_type_registry mtr;
         instance_id id;
         instance_type type;

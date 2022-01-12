@@ -6,6 +6,8 @@
 
 namespace ve::gfx::opengl {
     struct texture_format {
+        std::string_view name;
+
         GLenum components;      // "format"
         GLint  pixel_format;    // "internal_format"
 
@@ -19,12 +21,12 @@ namespace ve::gfx::opengl {
 
 
     constexpr inline auto texture_formats = make_array<texture_format>(
-        texture_format { GL_RED,             GL_R8,                  1,  8,  { 8,  0,  0,  0  } },
-        texture_format { GL_RG,              GL_RG8,                 2,  16, { 8,  8,  0,  0  } },
-        texture_format { GL_RGB,             GL_RGB8,                3,  24, { 8,  8,  8,  0  } },
-        texture_format { GL_RGBA,            GL_RGBA8,               4,  32, { 8,  8,  8,  8  } },
-        texture_format { GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT32F,  1,  32, { 32, 0,  0,  0  } },
-        texture_format { GL_RGBA,            GL_RGBA32F,             4,  32, { 32, 32, 32, 32 } }
+        texture_format { "R8",       GL_RED,             GL_R8,                  1,  8,  { 8,  0,  0,  0  } },
+        texture_format { "RG8",      GL_RG,              GL_RG8,                 2,  16, { 8,  8,  0,  0  } },
+        texture_format { "RGB8",     GL_RGB,             GL_RGB8,                3,  24, { 8,  8,  8,  0  } },
+        texture_format { "RGBA8",    GL_RGBA,            GL_RGBA8,               4,  32, { 8,  8,  8,  8  } },
+        texture_format { "DEPTH32F", GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT32F,  1,  32, { 32, 0,  0,  0  } },
+        texture_format { "RGBA32F",  GL_RGBA,            GL_RGBA32F,             4,  32, { 32, 32, 32, 32 } }
     );
 
     inline const auto& texture_format_RGBA8    = texture_formats[3];
