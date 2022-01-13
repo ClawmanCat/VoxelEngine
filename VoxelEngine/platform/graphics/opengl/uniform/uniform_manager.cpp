@@ -74,7 +74,7 @@ namespace ve::gfx::opengl {
 
         for (const auto& [stage_info, stage] : reflection.stages) {
             for (const auto& sampler : stage.samplers) {
-                //if (already_stored.contains(sampler.name)) continue;
+                if (already_stored.contains(sampler.name)) continue;
 
 
                 auto sampler_source = sampler_state.find(sampler.name);

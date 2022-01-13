@@ -5,6 +5,7 @@
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
+#include <VoxelEngine/platform/graphics/opengl/utility/reset_texture_bindings.hpp>
 
 #include <gl/glew.h>
 #include <magic_enum.hpp>
@@ -185,6 +186,13 @@ namespace ve::gfx::opengl {
 
                 std::swap(old_attachment, new_attachment);
             }
+
+
+            // Reset the currently bound textures to the default texture, since if the attachment texture is not compatible
+            // with whatever sampler is used in the shader (e.g. its a depth texture), it will raise an UB warning,
+            // even if we rebind it before actually using the sampler.
+            reset_texture_bindings((GLint) attachments.size());
+
 
             if (false) VE_DEBUG_ASSERT(
                 glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE,
