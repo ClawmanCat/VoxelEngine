@@ -1,8 +1,8 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/ecs/view/view.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
-#include <VoxelEngine/ecs/view_type.hpp>
 #include <VoxelEngine/utility/priority.hpp>
 
 #include <entt/entt.hpp>
@@ -22,7 +22,7 @@ namespace ve {
     > struct system {
         using required_components = RequiredComponents;
         using excluded_components = ExcludedComponents;
-        using view_type           = view_type_for<RequiredComponents, ExcludedComponents>;
+        using view_type           = ve::view<RequiredComponents, ExcludedComponents>;
         using ecs_system_tag      = void;
 
 
@@ -59,7 +59,7 @@ namespace ve {
 
         
         static view_type make_view(entt::registry& registry) {
-            return construct_view<required_components, excluded_components>(registry);
+            return ve::view_registry<required_components, excluded_components>(registry);
         }
     };
 }

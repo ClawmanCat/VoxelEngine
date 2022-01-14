@@ -134,6 +134,21 @@ namespace ve::meta {
 
         template <typename T> constexpr static std::size_t find = find_impl<T>();
 
+
+        // Filters the pack, leaving only the types for which the given trait is true.
+        template <template <typename...> typename Trait>
+        constexpr static auto filter_trait_impl(void) {
+            if constexpr (size == 0) return ve_beptr(empty){};
+            else {
+                using tail_t = ve_deptr(tail::template filter_trait_impl<Trait>);
+
+                if constexpr (Trait<head>::value) return ve_beptr(typename pack<head>::template append_pack<tail_t>){};
+                else return ve_beptr(tail_t){};
+            }
+        }
+
+        template <template <typename...> typename Trait> using filter_trait = ve_deptr(filter_trait_impl<Trait>);
+
         
         // Invokes pred for each element in the pack. Returns early if pred returns false.
         template <typename Pred>

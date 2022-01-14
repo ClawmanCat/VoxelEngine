@@ -224,19 +224,19 @@ namespace ve {
 
         // Views
         template <typename... Components> auto view(void) {
-            return construct_view<meta::pack<Components...>, meta::pack<>>(storage);
+            return view_registry<meta::pack<Components...>, meta::pack<>>(storage);
         }
 
         template <typename... Components> auto view(void) const {
-            return construct_view<meta::pack<Components...>, meta::pack<>>(storage);
+            return view_registry<meta::pack<Components...>, meta::pack<>>(storage);
         }
 
-        template <meta::pack_of_types Required, meta::pack_of_types Excluded> auto view_except(void) {
-            return construct_view<Required, Excluded>(storage);
+        template <meta::pack_of_types Required, meta::pack_of_types Excluded = meta::pack<>> auto view_pack(void) {
+            return view_registry<Required, Excluded>(storage);
         }
 
-        template <meta::pack_of_types Required, meta::pack_of_types Excluded> auto view_except(void) const {
-            return construct_view<Required, Excluded>(storage);
+        template <meta::pack_of_types Required, meta::pack_of_types Excluded = meta::pack<>> auto view_pack(void) const {
+            return view_registry<Required, Excluded>(storage);
         }
 
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/ecs/view_type.hpp>
+#include <VoxelEngine/ecs/view/view.hpp>
 #include <VoxelEngine/utility/traits/null_type.hpp>
 
 #include <entt/entt.hpp>
@@ -59,11 +59,11 @@ namespace ve {
         
         
         auto view(void) {
-            return view_type_for<meta::pack<Data>, meta::pack<>> { *this };
+            return view_storage<meta::pack<Data>, meta::pack<>>(*this);
         }
     
         auto view(void) const {
-            return view_type_for<meta::pack<const Data>, meta::pack<>> { *this };
+            return view_storage<meta::pack<const Data>, meta::pack<>>(*this);
         }
 
 

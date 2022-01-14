@@ -77,7 +77,7 @@ namespace ve {
 
 
                     // Serialize all components that have not yet been serialized ever.
-                    auto view_unserialized = vis_for_conn | owner.template view_except<
+                    auto view_unserialized = vis_for_conn | owner.template view_pack<
                         typename RequiredTags::template append<Component>,
                         typename ExcludedTags::template append<sync_cache_component<Component>>
                     >();
@@ -94,7 +94,7 @@ namespace ve {
 
                     // Serialize all components that have been synchronized before but are out-of-date.
                     // Splitting this from the unserialized entities prevents unnecessary heap allocations from overwriting the cache component.
-                    auto view_out_of_date = vis_for_conn | owner.template view_except<
+                    auto view_out_of_date = vis_for_conn | owner.template view_pack<
                         typename RequiredTags::template append<Component, sync_cache_component<Component>>,
                         typename ExcludedTags::template append<sync_cache_up_to_date_component<Component>>
                     >();
@@ -136,7 +136,7 @@ namespace ve {
 
                     // Add any removed components to the message.
                     // (If the component was synced before and it has been removed since then, it will still have a cache.)
-                    auto view_removed = vis_for_conn | owner.template view_except<
+                    auto view_removed = vis_for_conn | owner.template view_pack<
                         typename RequiredTags::template append<sync_cache_component<Component>>,
                         typename ExcludedTags::template append<Component>
                     >();
@@ -165,7 +165,7 @@ namespace ve {
 
                     // For any components that were just updated, we can remove the cache if the component was deleted,
                     // as we already sent out the del_component_messages.
-                    auto view_removed = owner.template view_except<
+                    auto view_removed = owner.template view_pack<
                         typename RequiredTags::template append<sync_cache_component<Component>>,
                         typename ExcludedTags::template append<Component>
                     >();

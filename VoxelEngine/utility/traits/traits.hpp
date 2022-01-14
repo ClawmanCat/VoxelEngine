@@ -17,6 +17,7 @@
 #include <VoxelEngine/utility/traits/is_type.hpp>
 #include <VoxelEngine/utility/traits/maybe_const.hpp>
 #include <VoxelEngine/utility/traits/member_traits.hpp>
+#include <VoxelEngine/utility/traits/negate_trait.hpp>
 #include <VoxelEngine/utility/traits/nest.hpp>
 #include <VoxelEngine/utility/traits/null_type.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>

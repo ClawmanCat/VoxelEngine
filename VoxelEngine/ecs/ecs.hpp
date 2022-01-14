@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <VoxelEngine/ecs/component/common_component.hpp>
 #include <VoxelEngine/ecs/component/function_component.hpp>
 #include <VoxelEngine/ecs/component/light_component.hpp>
 #include <VoxelEngine/ecs/component/mesh_component.hpp>
@@ -24,4 +25,4 @@
 #include <VoxelEngine/ecs/system/system_renderer.hpp>
 #include <VoxelEngine/ecs/system/system_synchronizer.hpp>
 #include <VoxelEngine/ecs/system/system_updater.hpp>
-#include <VoxelEngine/ecs/view_type.hpp>
+#include <VoxelEngine/ecs/view/view.hpp>

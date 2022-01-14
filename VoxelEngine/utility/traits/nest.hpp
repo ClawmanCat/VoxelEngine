@@ -21,5 +21,5 @@ namespace ve::meta {
     
     
     template <typename Nested, template <typename...> typename... Templates>
-    using nest = detail::nest_impl<Nested, Templates...>;
+    using nest = typename detail::nest_impl<Nested, Templates...>::type;
 }
