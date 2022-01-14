@@ -14,7 +14,6 @@
 
 
 namespace ve {
-    // TODO: Move entity addition / removal logic to separate system.
     template <
         meta::pack_of_types Synchronized,
         typename VisibilitySystem,
@@ -29,6 +28,9 @@ namespace ve {
         meta::pack<create_empty_view_tag>
     > {
     private:
+        using vis_status = std::add_const_t<typename VisibilitySystem::visibility_status>;
+
+
         template <typename Component> struct sync_cache_component {
             std::vector<u8> data;
         };
@@ -65,8 +67,7 @@ namespace ve {
 
 
             for (auto& connection : instance.get_connections()) {
-                using vis_status   = std::add_const_t<typename VisibilitySystem::visibility_status>;
-                auto  vis_for_conn = visibility_system->visibility_for_remote(connection->get_remote_id());
+                auto vis_for_conn = visibility_system->visibility_for_remote(connection->get_remote_id());
 
 
                 compound_message msg;
@@ -75,110 +76,21 @@ namespace ve {
                 Synchronized::foreach_indexed([&] <typename Component, std::size_t Index> {
                     if (!synchronize_now[Index]) return;
 
-
-                    // Serialize all components that have not yet been serialized ever.
-                    auto view_unserialized = vis_for_conn | owner.template view_pack<
-                        typename RequiredTags::template append<Component>,
-                        typename ExcludedTags::template append<sync_cache_component<Component>>
-                    >();
-
-                    for (auto entity : view_unserialized) {
-                        if (!(view_unserialized.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
-
-                        const auto& cmp = view_unserialized.template get<Component>(entity);
-
-                        owner.set_component(entity, sync_cache_component<Component> { serialize::to_bytes(cmp) });
-                        owner.set_component(entity, sync_cache_up_to_date_component<Component> { });
-                    }
-
-
-                    // Serialize all components that have been synchronized before but are out-of-date.
-                    // Splitting this from the unserialized entities prevents unnecessary heap allocations from overwriting the cache component.
-                    auto view_out_of_date = vis_for_conn | owner.template view_pack<
-                        typename RequiredTags::template append<Component, sync_cache_component<Component>>,
-                        typename ExcludedTags::template append<sync_cache_up_to_date_component<Component>>
-                    >();
-
-                    for (auto entity : view_out_of_date) {
-                        if (!(view_out_of_date.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
-
-                        const auto& cmp = view_out_of_date.template get<Component>(entity);
-                        auto& cache     = view_out_of_date.template get<sync_cache_component<Component>>(entity);
-
-                        cache.data.clear();
-                        serialize::to_bytes(cmp, cache.data);
-
-                        owner.set_component(entity, sync_cache_up_to_date_component<Component> { });
-                    }
-
-
-                    // Add the updated component data to the message.
-                    // We don't have to bother checking the constraints here, since the existence of the cache already implies these are met.
-                    auto view_synchronized = vis_for_conn | owner.template view<sync_cache_component<Component>>();
-
-                    for (auto entity : view_synchronized) {
-                        if (!(view_synchronized.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
-
-                        const static mtr_id id = get_core_mtr_id(core_message_types::MSG_SET_COMPONENT);
-                        const auto& cache = view_synchronized.template get<sync_cache_component<Component>>(entity);
-
-                        msg.push_message(
-                            id,
-                            set_component_message {
-                                .component_data = cache.data, // TODO: Elude this copy!
-                                .component_type = type_hash<Component>(),
-                                .entity         = entity
-                            },
-                            connection.get()
-                        );
-                    }
-
-
-                    // Add any removed components to the message.
-                    // (If the component was synced before and it has been removed since then, it will still have a cache.)
-                    auto view_removed = vis_for_conn | owner.template view_pack<
-                        typename RequiredTags::template append<sync_cache_component<Component>>,
-                        typename ExcludedTags::template append<Component>
-                    >();
-
-                    for (auto entity : view_removed) {
-                        if (!(view_removed.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
-
-                        const static mtr_id id = get_core_mtr_id(core_message_types::MSG_DEL_COMPONENT);
-                        const auto& cache = view_removed.template get<sync_cache_component<Component>>(entity);
-
-                        msg.push_message(
-                            id,
-                            del_component_message {
-                                .component_type = type_hash<Component>(),
-                                .entity         = entity
-                            },
-                            connection.get()
-                        );
-                    }
-                });
-
-
-                Synchronized::foreach_indexed([&] <typename Component, std::size_t Index> {
-                    if (!synchronize_now[Index]) return;
-
-
-                    // For any components that were just updated, we can remove the cache if the component was deleted,
-                    // as we already sent out the del_component_messages.
-                    auto view_removed = owner.template view_pack<
-                        typename RequiredTags::template append<sync_cache_component<Component>>,
-                        typename ExcludedTags::template append<Component>
-                    >();
-
-                    owner.template remove_all_components<sync_cache_component<Component>>(view_removed);
-
-
-                    // The sync cache should be updated again the next time the system is ran.
-                    owner.template remove_all_components<sync_cache_up_to_date_component<Component>>();
+                    update_serialized_values<Component>(owner, vis_for_conn);
+                    add_changes_to_message<Component>(connection.get(), msg, owner, vis_for_conn);
+                    add_removals_to_message<Component>(connection.get(), msg, owner, vis_for_conn);
+                    remove_destroyed_component_data<Component>(owner);
                 });
 
 
                 connection->send_message(core_message_types::MSG_COMPOUND, msg);
+
+
+                // Remove cached values for components that no longer exist.
+                Synchronized::foreach_indexed([&] <typename Component, std::size_t Index> {
+                    if (!synchronize_now[Index]) return;
+                    remove_destroyed_component_data<Component>(owner);
+                });
             }
 
 
@@ -200,5 +112,108 @@ namespace ve {
 
         std::array<nanoseconds, Synchronized::size> sync_rates;
         std::array<steady_clock::time_point, Synchronized::size> last_sync;
+
+
+        // Serialize all component values that are visible to the remote and have not yet been serialized.
+        template <typename Component> void update_serialized_values(registry& owner, auto visibility_view) {
+            // Serialize all components that have not yet been serialized ever.
+            auto view_unserialized = visibility_view | owner.template view_pack<
+                typename RequiredTags::template append<Component>,
+                typename ExcludedTags::template append<sync_cache_component<Component>>
+            >();
+
+            for (auto entity : view_unserialized) {
+                if (!(view_unserialized.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
+
+                const auto& cmp = view_unserialized.template get<Component>(entity);
+
+                owner.set_component(entity, sync_cache_component<Component> { serialize::to_bytes(cmp) });
+                owner.set_component(entity, sync_cache_up_to_date_component<Component> { });
+            }
+
+
+            // Serialize all components that have been synchronized before but are out-of-date.
+            // Splitting this from the unserialized entities prevents unnecessary heap allocations from overwriting the cache component.
+            auto view_out_of_date = visibility_view | owner.template view_pack<
+                typename RequiredTags::template append<Component, sync_cache_component<Component>>,
+                typename ExcludedTags::template append<sync_cache_up_to_date_component<Component>>
+            >();
+
+            for (auto entity : view_out_of_date) {
+                if (!(view_out_of_date.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
+
+                const auto& cmp = view_out_of_date.template get<Component>(entity);
+                auto& cache     = view_out_of_date.template get<sync_cache_component<Component>>(entity);
+
+                cache.data.clear();
+                serialize::to_bytes(cmp, cache.data);
+
+                owner.set_component(entity, sync_cache_up_to_date_component<Component> { });
+            }
+        }
+
+
+        // Add the data about which (visible) components were changed to the provided message.
+        template <typename Component> void add_changes_to_message(message_handler* connection, compound_message& msg, registry& owner, auto visibility_view) {
+            auto view_synchronized = visibility_view | owner.template view_pack<
+                typename RequiredTags::template append<sync_cache_component<Component>>,
+                ExcludedTags
+            >();
+
+            for (auto entity : view_synchronized) {
+                if (!(view_synchronized.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
+
+                const static mtr_id id = get_core_mtr_id(core_message_types::MSG_SET_COMPONENT);
+                const auto& cache = view_synchronized.template get<sync_cache_component<Component>>(entity);
+
+                msg.push_message(
+                    id,
+                    set_component_message {
+                        .component_data = cache.data, // TODO: Elude this copy!
+                        .component_type = type_hash<Component>(),
+                        .entity         = entity
+                    },
+                    connection
+                );
+            }
+        }
+
+
+        // Add the data about which (visible) components were removed to the provided message.
+        template <typename Component> void add_removals_to_message(message_handler* connection, compound_message& msg, registry& owner, auto visibility_view) {
+            // If the component was synced before and it has been removed since then, it will still have a cache.
+            auto view_removed = visibility_view | owner.template view_pack<
+                typename RequiredTags::template append<sync_cache_component<Component>>,
+                typename ExcludedTags::template append<Component>
+            >();
+
+            for (auto entity : view_removed) {
+                if (!(view_removed.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
+
+                const static mtr_id id = get_core_mtr_id(core_message_types::MSG_DEL_COMPONENT);
+                const auto& cache = view_removed.template get<sync_cache_component<Component>>(entity);
+
+                msg.push_message(
+                    id,
+                    del_component_message {
+                        .component_type = type_hash<Component>(),
+                        .entity         = entity
+                    },
+                    connection
+                );
+            }
+        }
+
+
+        // Remove caches from the registry for components that have been removed.
+        template <typename Component> void remove_destroyed_component_data(registry& owner) {
+            // If the component was synced before and it has been removed since then, it will still have a cache.
+            auto view_removed = owner.template view_pack<
+                typename RequiredTags::template append<sync_cache_component<Component>>,
+                typename ExcludedTags::template append<Component>
+            >();
+
+            owner.template remove_all_components<sync_cache_component<Component>>(view_removed);
+        }
     };
 }

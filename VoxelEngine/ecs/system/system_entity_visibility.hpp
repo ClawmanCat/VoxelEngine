@@ -13,6 +13,8 @@
 
 
 namespace ve {
+    // TODO: It would be more optimal to have the ability to create a view over all entities with the same visibility state.
+    // E.g. create a view of all visible entities, or all entities that are going invisible.
     template <typename VisibilityRule> requires std::is_invocable_r_v<bool, VisibilityRule, registry&, entt::entity, message_handler*>
     class system_entity_visibility : public system<system_entity_visibility<VisibilityRule>> {
     public:

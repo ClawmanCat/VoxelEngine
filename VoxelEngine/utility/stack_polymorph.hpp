@@ -15,6 +15,7 @@ namespace ve {
     // Provides storage for a polymorphic object, similar to std::unique_ptr.
     // If the stored object is smaller than the given capacity, it is stored directly in the stack polymorph,
     // increasing cache locality.
+    // Null values are supported, even in the case of local storage.
     template <typename Base, std::size_t Capacity, std::size_t Align = alignof(std::max_align_t)> requires std::is_polymorphic_v<Base>
     class stack_polymorph {
     public:
@@ -110,6 +111,7 @@ namespace ve {
             bool has_value : 1 = false;
         } storage_flags;
 
+        // TODO: Consider some other way of managing value moving. Maybe store the function externally to reduce object size?
         fn<void, stack_polymorph&, stack_polymorph&> move_value;
 
 
