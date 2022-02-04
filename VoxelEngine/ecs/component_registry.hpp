@@ -43,7 +43,7 @@ namespace ve {
 
     class component_registry : public type_registry<
         component_registry_data,
-        [] <typename T> (meta::type_wrapper<T>) { return serialize::is_serializable<T>; }
+        /* Skip if: */ [] <typename T> (meta::type_wrapper<T>) { return !serialize::is_serializable<T>; }
     > {
     public:
         static component_registry& instance(void);

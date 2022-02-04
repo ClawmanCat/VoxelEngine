@@ -22,13 +22,13 @@ test_result test_main(void) {
     test_result result = VE_TEST_SUCCESS;
 
     server->add_handler([&] (const ve::connection::message_received_event& e) {
-        if (*e.message != message) result |= VE_TEST_FAIL("Received message contained incorrect data.");
+        if (e.message != message) result |= VE_TEST_FAIL("Received message contained incorrect data.");
         ++server_received;
     });
 
     for (auto& client : clients) {
         client->add_handler([&] (const ve::connection::message_received_event& e) {
-            if (*e.message != message) result |= VE_TEST_FAIL("Received message contained incorrect data.");
+            if (e.message != message) result |= VE_TEST_FAIL("Received message contained incorrect data.");
             ++client_received;
 
             client->get_session()->write(message);

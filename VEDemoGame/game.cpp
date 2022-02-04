@@ -2,6 +2,7 @@
 #include <VEDemoGame/input/input_binder.hpp>
 #include <VEDemoGame/component/render_tag.hpp>
 #include <VEDemoGame/entity/howlee.hpp>
+#include <VEDemoGame/entity/player.hpp>
 
 #include <VoxelEngine/engine.hpp>
 #include <VoxelEngine/clientserver/connect.hpp>
@@ -53,14 +54,6 @@ namespace demo_game {
         game::setup_client_input();
         game::setup_client_synchronization();
         game::setup_client_systems();
-
-
-        // Set up remote initializers for entity classes.
-        // TODO: Refactor this to remote init system.
-        game::client->add_handler([] (const entity_created_event& e) {
-            game::client->set_component(e.entity, howlee::make_mesh());
-            game::client->set_component(e.entity, simple_render_tag { });
-        });
 
 
         // Connect to server.
@@ -128,55 +121,25 @@ namespace demo_game {
                 game::camera.set_aspect_ratio(size.x / size.y);
             }
         });
-
-
-        // TODO: Move this to player entity.
-        constexpr float player_speed            = 10.0f;
-        constexpr float player_look_sensitivity = 1.0f;
-        constexpr float epsilon                 = 1e-6f;
-
-        constexpr std::array player_movements {
-            std::pair { "move_forwards"sv,  direction::FORWARD  },
-            std::pair { "move_backwards"sv, direction::BACKWARD },
-            std::pair { "move_left"sv,      direction::LEFT     },
-            std::pair { "move_right"sv,     direction::RIGHT    },
-            std::pair { "move_up"sv,        direction::UP       },
-            std::pair { "move_down"sv,      direction::DOWN     }
-        };
-
-        for (const auto& [input, direction] : player_movements) {
-            controls.bind(input, [direction = vec3f { direction }](const binary_input::handler_args& args) {
-                float dt = float(game::client->get_last_dt().count()) / 1e9f;
-                game::camera.move((direction * player_speed * dt) * game::camera.get_rotation());
-            });
-        }
-
-        controls.bind("look", [](const motion_input::handler_args& args) {
-            static vec2f mouse_orientation = vec2f { 0 };
-
-            mouse_orientation +=
-                vec2f { args.current.position - args.prev.position } /
-                vec2f { args.window->get_canvas_size() } *
-                constants::f32_pi *
-                player_look_sensitivity;
-
-            mouse_orientation.y = std::clamp(
-                mouse_orientation.y,
-                -constants::f32_half_pi + epsilon,
-                +constants::f32_half_pi - epsilon
-            );
-
-            quatf pitch = glm::angleAxis(mouse_orientation.y, (vec3f) direction::RIGHT);
-            quatf yaw   = glm::angleAxis(mouse_orientation.x, (vec3f) direction::UP);
-
-            game::camera.set_rotation(glm::normalize(pitch * yaw));
-        });
     }
 
 
     void game::setup_client_synchronization(void) {
-        // TODO: Send player position and velocity to server.
         // TODO: Ignore server changes to player position unless it becomes out of sync.
+
+        // Run initializers for newly created entities.
+        auto [init_id, init_system] = game::client->add_system(system_remote_initializer {});
+        init_system.add_initializer(&player::remote_initializer);
+        init_system.add_initializer(&howlee::remote_initializer);
+
+        // Synchronize player motion with server.
+        auto [vis_id, vis_system] = game::client->add_system(system_entity_visibility { produce(true) });
+
+        game::client->add_system(system_synchronizer<
+            ve::meta::pack<transform_component, motion_component>,  // Sync transform & motion,
+            std::remove_cvref_t<decltype(vis_system)>,              // using the vis system,
+            ve::meta::pack<typename player::local_player_tag>       // but only for the player controlled by this client.
+        > { vis_system });
     }
 
 
@@ -205,12 +168,47 @@ namespace demo_game {
     void game::setup_server_synchronization(void) {
         using synced_components = ve::meta::pack<
             transform_component,
-            motion_component
+            motion_component,
+            typename player::player_controller,
+            typename howlee::entity_howlee_tag
         >;
 
 
-        auto [vis_id, vis_system] = game::server->add_system(system_entity_visibility { produce(true) });
-        game::server->add_system(system_synchronizer<synced_components, std::remove_cvref_t<decltype(vis_system)>>{ vis_system });
+        // Allow clients to see all positionless entities and entities within 25 meters of them.
+        auto visibility_rule = [] (registry& owner, entt::entity entity, message_handler* connection) {
+            const auto* entity_transform = owner.try_get_component<transform_component>(entity);
+            const auto* player_transform = owner.try_get_component<transform_component>(player::server_players[connection->get_remote_id()]);
+
+            if (entity_transform && player_transform) {
+                return glm::distance(entity_transform->position, player_transform->position) < 25.0f;
+            } else return true;
+        };
+
+
+        auto [vis_id,  vis_system ] = game::server->add_system(system_entity_visibility { visibility_rule });
+        auto [sync_id, sync_system] = game::server->add_system(system_synchronizer<
+            synced_components,
+            std::remove_cvref_t<decltype(vis_system)>
+        > { vis_system });
+
+
+        // Clients will determine position and velocity of their associated player, so don't sync these values.
+        // TODO: Instead of this, server should sync the values, but client should ignore it, unless the two significantly disagree.
+        auto rule = [] (instance_id remote, registry& owner, entt::entity entity, const auto& cmp) {
+            static hash_set<instance_id> initial_sync_completed;
+
+            const auto& player = owner.template get_component<typename player::player_controller>(entity);
+
+            if (player.controlled_by == remote) {
+                // If this is the remote controlling the player, send the value exactly once to initialize it.
+                auto [it, success] = initial_sync_completed.emplace(remote);
+                return success;
+            } else return true;
+        };
+
+        using rule_requires = ve::meta::pack<typename player::player_controller>;
+        sync_system.add_per_entity_rule<decltype(rule), transform_component, rule_requires>(rule);
+        sync_system.add_per_entity_rule<decltype(rule), motion_component, rule_requires>(rule);
     }
 
 
@@ -228,5 +226,18 @@ namespace demo_game {
                 h.transform.position = vec3f { x, 0, z };
             }
         }
+
+
+        // Create player entity when a client connects to the server.
+        game::server->add_handler([] (const instance_connected_event& e) {
+            game::server->store_static_entity(player { *game::server, e.remote });
+            game::server_logger.info(cat("Player ", e.remote, " connected to the server."));
+        });
+
+        // Remove player entity when a client disconnects from the server.
+        game::server->add_handler([] (const instance_disconnected_event& e) {
+            game::server->destroy_entity(player::server_players[e.remote]);
+            game::server_logger.info(cat("Player ", e.remote, " disconnected from the server."));
+        });
     }
 }

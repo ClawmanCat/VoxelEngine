@@ -37,5 +37,5 @@ namespace ve::connection {
     struct session_start_event    { session_id session; };
     struct session_end_event      { session_id session; };
     struct session_error_event    { session_id session; error_code error; };
-    struct message_received_event { session_id session; shared<message_t> message; };
+    struct message_received_event { session_id session; message_t message; };
 }

@@ -14,7 +14,7 @@ namespace ve {
             session(std::move(session))
         {
             handler_id = this->session->add_handler([this] (const connection::message_received_event& e) {
-                on_message_received(*e.message);
+                on_message_received(e.message);
             });
         }
 

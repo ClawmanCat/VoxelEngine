@@ -1,5 +1,7 @@
 #pragma once
 
+#include <VEDemoGame/component/render_tag.hpp>
+
 #include <VoxelEngine/ecs/ecs.hpp>
 #include <VoxelEngine/graphics/graphics.hpp>
 
@@ -11,11 +13,15 @@ namespace demo_game {
         ve_rt_move_only(howlee);
 
 
-        static ve::mesh_component make_mesh(void) {
+        struct entity_howlee_tag {};
+        entity_howlee_tag VE_COMPONENT(tag) = entity_howlee_tag { };
+
+        static void remote_initializer(ve::registry& owner, entt::entity entity, const entity_howlee_tag& cmp) {
             auto texture = game::get_texture_manager()->get_or_load(ve::io::paths::PATH_ENTITY_TEXTURES / "howlee.png");
             auto buffer  = ve::gfx::textured_quad(ve::vec2f { 1.0f }, texture);
 
-            return ve::mesh_component { std::move(buffer) };
+            owner.set_component(entity, ve::mesh_component { std::move(buffer) });
+            owner.set_component(entity, simple_render_tag { });
         }
 
 
@@ -27,6 +33,7 @@ namespace demo_game {
 
         ve::transform_component VE_COMPONENT(transform) = ve::transform_component { };
         ve::motion_component VE_COMPONENT(motion) = ve::motion_component { };
+
         float t = 0;
     };
 }

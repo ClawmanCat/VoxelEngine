@@ -4,6 +4,7 @@
 #include <VoxelEngine/clientserver/socket/defs.hpp>
 #include <VoxelEngine/utility/raii.hpp>
 #include <VoxelEngine/utility/functional.hpp>
+#include <VoxelEngine/utility/compression.hpp>
 #include <VoxelEngine/utility/io/serialize/variable_length_encoder.hpp>
 #include <VoxelEngine/utility/thread/threadsafe_counter.hpp>
 
@@ -66,8 +67,10 @@ namespace ve::connection {
             // do_async_write and write need to happen on the same thread, so use a strand for dispatching.
             asio::dispatch(
                 strand,
-                [self = shared_from_this(), msg = std::move(message)] () mutable {
-                    self->write_queue.push(std::move(msg));
+                [self = shared_from_this(), msg = std::move(message)] () {
+                    auto compressed_msg = compress(msg, compression_mode::BEST_PERFORMANCE);
+
+                    self->write_queue.push(std::move(compressed_msg));
                     self->do_async_write();
                 }
             );
@@ -208,7 +211,7 @@ namespace ve::connection {
             }
 
 
-            dispatch_event(message_received_event { id, std::move(read_buffer) });
+            dispatch_event(message_received_event { id, decompress(*read_buffer) });
             return do_async_read();
         }
     };

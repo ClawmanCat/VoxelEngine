@@ -7,11 +7,21 @@
 
 
 namespace ve {
-    template <typename Stored, auto RegisterRequirement = produce(true)> class type_registry {
+    namespace detail {
+        // A lambda should be able to do this, but for some reason both Clang and GCC don't like it.
+        template <auto Val> struct producer {
+            constexpr decltype(Val) operator()(auto) const { return Val; }
+        };
+    }
+
+
+    template <typename Stored, auto SkipIf = detail::producer<false>{}, auto ErrorIf = detail::producer<false>{}>
+    class type_registry {
     public:
-        template <typename T>
-        void register_type(void) {
-            if constexpr (std::invoke(RegisterRequirement, meta::type_wrapper<T>{})) {
+        template <typename T> void register_type(void) {
+            static_assert(!ErrorIf(meta::type_wrapper<T>{}), "This type may not be registered in this registry.");
+
+            if constexpr (!SkipIf(meta::type_wrapper<T>{})) {
                 auto [it, success] = storage.emplace(
                     type_hash<T>(),
                     Stored { meta::type_wrapper<T> { } }

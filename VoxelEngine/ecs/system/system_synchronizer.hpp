@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/ecs/view.hpp>
 #include <VoxelEngine/ecs/registry.hpp>
 #include <VoxelEngine/ecs/system/system.hpp>
 #include <VoxelEngine/ecs/system/system_entity_visibility.hpp>
@@ -9,6 +10,7 @@
 #include <VoxelEngine/clientserver/core_messages/msg_compound.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_set_component.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_del_component.hpp>
+#include <VoxelEngine/utility/traits/function_traits.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
 #include <VoxelEngine/utility/io/serialize/binary_serializable.hpp>
 
@@ -37,8 +39,11 @@ namespace ve {
 
         template <typename Component> struct sync_cache_up_to_date_component {};
 
+        // Wrapper around bool types to avoid conflicts with views that also include a bool type from a registry component.
+        struct bool_wrapper { bool value; };
+
     public:
-        explicit system_synchronizer(VisibilitySystem& visibility_system, nanoseconds default_sync_rate = 1s / 30, u16 priority = priority::LOWEST) :
+        explicit system_synchronizer(VisibilitySystem& visibility_system, nanoseconds default_sync_rate = nanoseconds{1s} / 30, u16 priority = priority::LOWEST) :
             priority(priority),
             visibility_system(&visibility_system),
             sync_rates(create_filled_array<Synchronized::size>(produce(default_sync_rate))),
@@ -61,8 +66,9 @@ namespace ve {
             u64 tick = instance.get_tick_count();
 
 
+            const auto now = steady_clock::now();
             auto synchronize_now = create_filled_array<Synchronized::size>([&] (std::size_t i) {
-                return time_since(last_sync[i]) >= sync_rates[i];
+                return (now - last_sync[i]) >= sync_rates[i];
             });
 
 
@@ -76,14 +82,32 @@ namespace ve {
                 Synchronized::foreach_indexed([&] <typename Component, std::size_t Index> {
                     if (!synchronize_now[Index]) return;
 
-                    update_serialized_values<Component>(owner, vis_for_conn);
-                    add_changes_to_message<Component>(connection.get(), msg, owner, vis_for_conn);
-                    add_removals_to_message<Component>(connection.get(), msg, owner, vis_for_conn);
-                    remove_destroyed_component_data<Component>(owner);
+
+                    auto perform_update = [&] (auto& view) {
+                        update_serialized_values<Component>(owner, view);
+                        add_changes_to_message<Component>(connection.get(), msg, owner, view);
+                        add_removals_to_message<Component>(connection.get(), msg, owner, view);
+                        remove_destroyed_component_data<Component>(owner);
+                    };
+
+
+                    if (!per_entity_rules[Index].empty()) {
+                        storage_type<bool_wrapper> included_entities { };
+                        included_entities.insert(vis_for_conn.begin(), vis_for_conn.end(), bool_wrapper { true });
+
+                        for (const auto& rule : per_entity_rules[Index]) {
+                            rule->update_sync_list(owner, connection->get_remote_id(), included_entities);
+                        }
+
+                        auto view_with_rules = view_from_storage(included_entities) | vis_for_conn;
+                        perform_update(view_with_rules);
+                    } else {
+                        perform_update(vis_for_conn);
+                    }
                 });
 
 
-                connection->send_message(core_message_types::MSG_COMPOUND, msg);
+                if (!msg.empty()) connection->send_message(core_message_types::MSG_COMPOUND, msg);
 
 
                 // Remove cached values for components that no longer exist.
@@ -98,12 +122,37 @@ namespace ve {
             Synchronized::foreach([&] <typename Component> {
                 owner.template remove_all_components<sync_cache_up_to_date_component<Component>>();
             });
+
+
+            // Update timestamps for synchronized components.
+            for (std::size_t i = 0; i < Synchronized::size; ++i) {
+                if (synchronize_now[i]) last_sync[i] = now;
+            }
         }
 
 
         template <typename Component> requires Synchronized::template contains<Component>
         void set_sync_rate(nanoseconds interval) {
             sync_rates[Synchronized::template find<Component>] = interval;
+        }
+
+
+        // Adds a rule to determine synchronization of the given component on a per-entity and per-instance basis.
+        template <
+            typename Rule,
+            typename Component = std::remove_cvref_t<typename meta::function_traits<Rule>::arguments::template get<3>>,
+            meta::pack_of_types RuleRequiredTags = meta::pack<>,
+            meta::pack_of_types RuleExcludedTags = meta::pack<>
+        > requires (
+            std::is_invocable_r_v<bool, Rule, instance_id, registry&, entt::entity, const Component&>
+            // If required tags are excluded by the system, the rule would never match anything.
+            // !ExcludedTags::any([] <typename E> { return RuleRequiredTags::template contains<E>; }) &&
+            // If excluded tags are required by the system, the rule would never match anything.
+            // !RequiredTags::any([] <typename R> { return RuleExcludedTags::template contains<R>; })
+        ) void add_per_entity_rule(Rule rule) {
+            per_entity_rules[Synchronized::template find<Component>].emplace_back(
+                rule_storage<Rule, Component, RuleRequiredTags, RuleExcludedTags> { std::move(rule) }
+            );
         }
     private:
         u16 priority;
@@ -112,6 +161,47 @@ namespace ve {
 
         std::array<nanoseconds, Synchronized::size> sync_rates;
         std::array<steady_clock::time_point, Synchronized::size> last_sync;
+
+
+        struct rule_storage_base {
+            virtual ~rule_storage_base(void) = default;
+            virtual void update_sync_list(registry& owner, instance_id remote, storage_type<bool_wrapper>& storage) const = 0;
+        };
+
+        template <typename Rule, typename Component, meta::pack_of_types Required, meta::pack_of_types Excluded>
+        struct rule_storage : rule_storage_base {
+            Rule rule;
+
+            explicit rule_storage(Rule rule) : rule(std::move(rule)) {}
+
+            void update_sync_list(registry& owner, instance_id remote, storage_type<bool_wrapper>& storage) const override {
+                auto view = view_from_storage(storage) | owner.template view_pack<typename Required::template append<Component>, Excluded>();
+
+                for (auto entity : view) {
+                    view.template get<bool_wrapper>(entity).value &= std::invoke(rule, remote, owner, entity, view.template get<Component>(entity));
+                }
+            }
+        };
+
+        using rule_storage_poly_t = stack_polymorph<rule_storage_base, sizeof(rule_storage_base) + 32>;
+        std::array<small_vector<rule_storage_poly_t, 1>, Synchronized::size> per_entity_rules;
+
+
+        // Given an entity and a visibility view (possibly with a per-entity-rule bool_wrapper exclusion component),
+        // Returns whether or not the given entity is synchronized,
+        static bool is_synchronized(const auto& entity, const auto& view) {
+            using view_t = std::remove_cvref_t<decltype(view)>;
+
+            // Skip entities excluded by a per-entity-rule.
+            if constexpr (view_traits<view_t>::component_types::template contains<bool_wrapper>) {
+                if (!view.template get<bool_wrapper>(entity).value) return false;
+            }
+
+            // Skip entities that are not visible.
+            if (!(view.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) return false;
+
+            return true;
+        }
 
 
         // Serialize all component values that are visible to the remote and have not yet been serialized.
@@ -123,7 +213,7 @@ namespace ve {
             >();
 
             for (auto entity : view_unserialized) {
-                if (!(view_unserialized.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
+                if (!is_synchronized(entity, view_unserialized)) continue;
 
                 const auto& cmp = view_unserialized.template get<Component>(entity);
 
@@ -140,7 +230,7 @@ namespace ve {
             >();
 
             for (auto entity : view_out_of_date) {
-                if (!(view_out_of_date.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
+                if (!is_synchronized(entity, view_out_of_date)) continue;
 
                 const auto& cmp = view_out_of_date.template get<Component>(entity);
                 auto& cache     = view_out_of_date.template get<sync_cache_component<Component>>(entity);
@@ -161,7 +251,7 @@ namespace ve {
             >();
 
             for (auto entity : view_synchronized) {
-                if (!(view_synchronized.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
+                if (!is_synchronized(entity, view_synchronized)) continue;
 
                 const static mtr_id id = get_core_mtr_id(core_message_types::MSG_SET_COMPONENT);
                 const auto& cache = view_synchronized.template get<sync_cache_component<Component>>(entity);
@@ -188,7 +278,7 @@ namespace ve {
             >();
 
             for (auto entity : view_removed) {
-                if (!(view_removed.template get<vis_status>(entity) & VisibilitySystem::VISIBILITY_BIT)) continue;
+                if (!is_synchronized(entity, view_removed)) continue;
 
                 const static mtr_id id = get_core_mtr_id(core_message_types::MSG_DEL_COMPONENT);
                 const auto& cache = view_removed.template get<sync_cache_component<Component>>(entity);

@@ -16,7 +16,7 @@ namespace ve {
     // If the stored object is smaller than the given capacity, it is stored directly in the stack polymorph,
     // increasing cache locality.
     // Null values are supported, even in the case of local storage.
-    template <typename Base, std::size_t Capacity, std::size_t Align = alignof(std::max_align_t)> requires std::is_polymorphic_v<Base>
+    template <typename Base, std::size_t Capacity, std::size_t Align = alignof(std::max_align_t)>
     class stack_polymorph {
     public:
         using base_t = Base;
@@ -36,8 +36,11 @@ namespace ve {
         }
 
 
-        template <typename Derived> requires std::is_base_of_v<Base, Derived>
-        stack_polymorph& operator=(Derived&& value) noexcept {
+        template <typename Derived> requires (
+            // If Base isn't polymorphic, storing derived types would cause issues when deleting.
+            (std::is_base_of_v<Base, Derived> && std::is_polymorphic_v<Base>) ||
+            std::is_same_v<Base, Derived>
+        ) stack_polymorph& operator=(Derived&& value) noexcept {
             delete_value();
             storage_flags.has_value = true;
             move_value = make_mover<Derived>();

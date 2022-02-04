@@ -1,9 +1,9 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/ecs/view.hpp>
 #include <VoxelEngine/ecs/component_registry.hpp>
 #include <VoxelEngine/ecs/registry_helpers.hpp>
-#include <VoxelEngine/ecs/empty_storage.hpp>
 #include <VoxelEngine/ecs/system/system.hpp>
 #include <VoxelEngine/event/simple_event_dispatcher.hpp>
 #include <VoxelEngine/event/subscribe_only_view.hpp>
@@ -15,6 +15,7 @@
 namespace ve {
     class registry;
     class static_entity;
+    class system_remote_initializer;
 
 
     struct entity_created_event   { registry* owner; entt::entity entity; };
@@ -124,24 +125,38 @@ namespace ve {
 
         // Component Methods
         template <typename Component> Component* try_get_component(entt::entity entity) {
-            if constexpr (std::is_empty_v<Component>) return &empty_storage_for<Component>();
-            else return storage.template try_get<Component>(entity);
+            return storage.template try_get<Component>(entity);
         }
 
         template <typename Component> const Component* try_get_component(entt::entity entity) const {
-            if constexpr (std::is_empty_v<Component>) return &empty_storage_for<Component>();
-            else return storage.template try_get<Component>(entity);
+            return storage.template try_get<Component>(entity);
+        }
+
+
+        template <typename... Components> std::tuple<Components*...> try_get_components(entt::entity entity) {
+            return std::tuple(try_get_component<Components>(entity)...);
+        }
+
+        template <typename... Components> std::tuple<const Components*...> try_get_components(entt::entity entity) const {
+            return std::tuple(try_get_component<Components>(entity)...);
         }
 
 
         template <typename Component> Component& get_component(entt::entity entity) {
-            if constexpr (std::is_empty_v<Component>) return empty_storage_for<Component>();
-            else return storage.template get<Component>(entity);
+            return storage.template get<Component>(entity);
         }
 
         template <typename Component> const Component& get_component(entt::entity entity) const {
-            if constexpr (std::is_empty_v<Component>) return empty_storage_for<Component>();
-            else return storage.template get<Component>(entity);
+            return storage.template get<Component>(entity);
+        }
+
+
+        template <typename... Components> std::tuple<Components&...> get_components(entt::entity entity) {
+            return std::forward_as_tuple(get_component<Components>(entity)...);
+        }
+
+        template <typename... Components> std::tuple<const Components&...> get_components(entt::entity entity) const {
+            return std::forward_as_tuple(get_component<Components>(entity)...);
         }
 
 
@@ -153,9 +168,9 @@ namespace ve {
 
 
             if (has_component<Component>(entity)) {
-                return ve_impl_component_access(Component, storage.template replace<Component>, entity, fwd(component));
+                return storage.template replace<Component>(entity, fwd(component));
             } else {
-                Component& stored_component = ve_impl_component_access(Component, storage.template emplace<Component>, entity, fwd(component));
+                Component& stored_component = storage.template emplace<Component>(entity, fwd(component));
                 dispatch_event(component_created_event<Component> { this, entity, &stored_component });
 
                 return stored_component;
@@ -189,7 +204,7 @@ namespace ve {
                     dispatch_event(component_destroyed_event<Component> {
                         this,
                         entity,
-                        &ve_impl_component_access_noeval(Component, view.template get<Component>, entity)
+                        &view.template get<Component>(entity)
                     });
                 }
             }
@@ -200,15 +215,15 @@ namespace ve {
 
         template <typename Component> requires (!requires { typename Component::non_removable_tag; })
         void remove_all_components(void) {
-            auto v = view<Component>();
-
             // Skip event handling if there are no handlers.
             if (has_handlers_for<component_destroyed_event<Component>>()) {
+                auto v = view<Component>();
+
                 for (auto entity : v) {
                     dispatch_event(component_destroyed_event<Component> {
                         this,
                         entity,
-                        &ve_impl_component_access_noeval(Component, v.template get<Component>, entity)
+                        &v.template get<Component>(entity)
                     });
                 }
             }
@@ -218,25 +233,33 @@ namespace ve {
 
 
         template <typename Component> bool has_component(entt::entity entity) const {
-            return storage.template has<Component>(entity);
+            return storage.template all_of<Component>(entity);
+        }
+
+        template <typename... Components> bool has_all(entt::entity entity) const {
+            return storage.template all_of<Components...>(entity);
+        }
+
+        template <typename... Components> bool has_any(entt::entity entity) const {
+            return storage.template any_of<Components...>(entity);
         }
 
 
         // Views
         template <typename... Components> auto view(void) {
-            return view_registry<meta::pack<Components...>, meta::pack<>>(storage);
+            return storage.template view<Components...>();
         }
 
         template <typename... Components> auto view(void) const {
-            return view_registry<meta::pack<Components...>, meta::pack<>>(storage);
+            return storage.template view<Components...>();
         }
 
         template <meta::pack_of_types Required, meta::pack_of_types Excluded = meta::pack<>> auto view_pack(void) {
-            return view_registry<Required, Excluded>(storage);
+            return view_from_registry<Required, Excluded>(storage);
         }
 
         template <meta::pack_of_types Required, meta::pack_of_types Excluded = meta::pack<>> auto view_pack(void) const {
-            return view_registry<Required, Excluded>(storage);
+            return view_from_registry<Required, Excluded>(storage);
         }
 
 
@@ -244,14 +267,13 @@ namespace ve {
         VE_GET_MREF(storage);
     private:
         template <typename... Components> void create_entity_common(entt::entity entity, Components&&... components) {
-            set_component(entity, detail::common_component { });
             dispatch_event(entity_created_event { this, entity });
 
             ([&] <typename Component> (Component&& component) {
                 autoregister_component<Component>();
 
                 // Don't need to check if the component exists since this is a new entity.
-                Component& stored_component = ve_impl_component_access(Component, storage.template emplace, entity, fwd(component));
+                Component& stored_component = storage.template emplace(entity, fwd(component));
                 dispatch_event(component_created_event<Component> { this, entity, &stored_component });
             }(fwd(components)), ...);
         }

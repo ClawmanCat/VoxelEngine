@@ -40,8 +40,8 @@ namespace ve::random {
             using result_type = u64;
 
 
-            constexpr explicit xorshift(u64 seed = 0ull) : state(seed ^ alternating_bits) {}
-            constexpr explicit xorshift(const std::array<u8, sizeof(u64)>& seed) : state(std::bit_cast<u64>(seed) ^ alternating_bits) {}
+            constexpr explicit xorshift(u64 seed = 0ull) : state(seed | alternating_bits) {}
+            constexpr explicit xorshift(const std::array<u8, sizeof(u64)>& seed) : state(std::bit_cast<u64>(seed) | alternating_bits) {}
 
 
             constexpr u64 operator()(void) {
@@ -57,7 +57,8 @@ namespace ve::random {
             constexpr static u64 max(void) { return max_value<u64>; }
         private:
 			// A seed with many zero bits would produce bad results. Zero wouldn't produce any results at all.
-			// XOR the seed with alternating 0s and 1s to make sure it is never zero'd out.
+			// OR the seed with alternating 0s and 1s to make sure it is never zero'd out.
+			// Yes, this significantly reduces the number of seeds, but if you want a good RNG you shouldn't be using this generator anyway.
 			constexpr static inline u64 alternating_bits = 0xAA'AA'AA'AA'AA'AA'AA'AA;
 
             u64 state;

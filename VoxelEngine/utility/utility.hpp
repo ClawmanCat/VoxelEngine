@@ -13,6 +13,7 @@
 #include <VoxelEngine/utility/bit.hpp>
 #include <VoxelEngine/utility/cache.hpp>
 #include <VoxelEngine/utility/color.hpp>
+#include <VoxelEngine/utility/compression.hpp>
 #include <VoxelEngine/utility/copy.hpp>
 #include <VoxelEngine/utility/cube.hpp>
 #include <VoxelEngine/utility/decompose.hpp>
@@ -76,5 +77,6 @@
 #include <VoxelEngine/utility/traits/value.hpp>
 #include <VoxelEngine/utility/tuple_foreach.hpp>
 #include <VoxelEngine/utility/type_registry.hpp>
+#include <VoxelEngine/utility/unit.hpp>
 #include <VoxelEngine/utility/uuid.hpp>
 #include <VoxelEngine/utility/version.hpp>

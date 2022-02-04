@@ -66,7 +66,7 @@ namespace ve {
         // Once we receive the remote's ID, create the connection.
         // This will occur after this method has exited, but the client is immovable, so taking its address shouldn't be an issue.
         connection->add_one_time_handler([connection, &c] (const connection::message_received_event& e) {
-            auto span      = make_message_unignored(*e.message);
+            auto span      = make_message_unignored(e.message);
             auto remote_id = serialize::from_bytes<instance_id>(span);
 
             c.set_server_connection(make_shared<remote_message_handler>(c, remote_id, connection->get_session()));
@@ -121,7 +121,7 @@ namespace ve {
             auto session = connection->get_session(e.session);
 
             session->add_one_time_handler([session, &s] (const connection::message_received_event& e) mutable {
-                auto span      = make_message_unignored(*e.message);
+                auto span      = make_message_unignored(e.message);
                 auto remote_id = serialize::from_bytes<instance_id>(span);
 
                 session->add_handler([remote_id, &s] (const connection::session_end_event& e) {
