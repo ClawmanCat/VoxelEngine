@@ -71,6 +71,7 @@
 #include <VoxelEngine/utility/traits/pick.hpp>
 #include <VoxelEngine/utility/traits/ratio.hpp>
 #include <VoxelEngine/utility/traits/reference_as.hpp>
+#include <VoxelEngine/utility/traits/remove_const_pointer.hpp>
 #include <VoxelEngine/utility/traits/sequence.hpp>
 #include <VoxelEngine/utility/traits/string_arg.hpp>
 #include <VoxelEngine/utility/traits/traits.hpp>

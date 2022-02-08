@@ -11,6 +11,7 @@ namespace ve {
     public:
         client(void) : instance(instance::CLIENT) {
             initialize_mtr();
+            get_validator().allow_by_default(change_result::ALLOWED);
         }
 
 

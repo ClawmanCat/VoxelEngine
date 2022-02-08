@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/ecs/change_validator.hpp>
 #include <VoxelEngine/ecs/view.hpp>
 #include <VoxelEngine/ecs/component_registry.hpp>
 #include <VoxelEngine/ecs/registry_helpers.hpp>
@@ -15,7 +16,6 @@
 namespace ve {
     class registry;
     class static_entity;
-    class system_remote_initializer;
 
 
     struct entity_created_event   { registry* owner; entt::entity entity; };
@@ -184,6 +184,25 @@ namespace ve {
         }
 
 
+        // Equivalent to set_component, except the change is checked by the change validator first.
+        // If the change is not allowed, no changes are made to the registry.
+        template <typename Component> requires (!std::is_reference_v<Component>)
+        std::pair<change_result, Component*> set_component_checked(instance_id remote, entt::entity entity, Component&& component) {
+            Component* value = try_get_component<Component>(entity);
+
+            auto result = validator.is_allowed(remote, *this, entity, value, &component);
+            if (result == change_result::ALLOWED) value = &set_component(entity, fwd(component));
+
+            return { result, value };
+        }
+
+
+        template <typename Component> requires (!std::is_reference_v<Component>)
+        std::pair<change_result, Component*> set_component_checked(instance_id remote, entt::entity entity, const Component& component) {
+            return set_component_checked(remote, entity, Component { component });
+        }
+
+
         template <typename Component> requires (!requires { typename Component::non_removable_tag; })
         Component remove_component(entt::entity entity) {
             Component& stored_component = get_component<Component>(entity);
@@ -193,6 +212,28 @@ namespace ve {
             storage.template remove<Component>(entity);
 
             return component;
+        }
+
+
+        // Equivalent to remove_component, except the change is checked by the change validator first.
+        // If the change is not allowed, no changes are made to the registry and the returned component is the old value of the component.
+        // If the change is allowed, the returned component is null.
+        template <typename Component>
+        std::pair<change_result, Component*> remove_component_checked(instance_id remote, entt::entity entity) {
+            Component* value = try_get_component<Component>(entity);
+            auto result = validator.template is_allowed<Component>(remote, *this, entity, value, nullptr);
+
+            // If the component is non-removable, just return forbidden or unobservable.
+            if constexpr (requires {typename Component::non_removable_tag; }) {
+                return { result == change_result::ALLOWED ? change_result::FORBIDDEN : result, value };
+            } else {
+                if (result == change_result::ALLOWED) {
+                    remove_component<Component>(entity);
+                    value = nullptr;
+                }
+            }
+
+            return { result, value };
         }
 
 
@@ -263,6 +304,7 @@ namespace ve {
         }
 
 
+        VE_GET_MREF(validator);
         // Note: acting upon the storage directly will cause events to not be fired, and should be avoided, as systems may depend on them.
         VE_GET_MREF(storage);
     private:
@@ -273,10 +315,13 @@ namespace ve {
                 autoregister_component<Component>();
 
                 // Don't need to check if the component exists since this is a new entity.
-                Component& stored_component = storage.template emplace(entity, fwd(component));
+                Component& stored_component = storage.template emplace<Component>(entity, fwd(component));
                 dispatch_event(component_created_event<Component> { this, entity, &stored_component });
             }(fwd(components)), ...);
         }
+
+
+        change_validator validator;
 
 
         // TODO: Better cache locality would probably help here, since a system is likely to iterate over many of the same type of static entity in order.
@@ -307,6 +352,16 @@ namespace ve {
         template <typename T> void remove_component(registry& r, entt::entity e) {
             if constexpr (!requires { typename T::non_removable_tag; }) r.template remove_component<T>(e);
             else VE_ASSERT(false, "Attempt to remove non-removable component");
+        }
+
+
+        template <typename T> std::pair<change_result, T*> set_component_checked(instance_id remote, registry& r, entt::entity e, T&& v) {
+            return r.set_component_checked(remote, e, fwd(v));
+        }
+
+
+        template <typename T> std::pair<change_result, T*> remove_component_checked(instance_id remote, registry& r, entt::entity e) {
+            return r.template remove_component_checked<T>(remote, e);
         }
     }
 }

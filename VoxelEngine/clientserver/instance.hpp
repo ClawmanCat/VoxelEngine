@@ -45,16 +45,14 @@ namespace ve {
 
     // Base class for client & server.
     // Can also be used as unified client / server instance for scenarios where multiplayer support is not required.
-    class instance :
-        public registry,
-        public arbitrary_storage
-    {
+    class instance : public registry, public arbitrary_storage {
     public:
         enum instance_type { CLIENT, SERVER, UNIFIED };
 
 
         instance(instance_type type = UNIFIED) : id(random_uuid()), type(type) {
             instance_registry::instance().add_instance(this);
+            get_validator().allow_by_default(change_result::ALLOWED);
         }
 
         virtual ~instance(void) {

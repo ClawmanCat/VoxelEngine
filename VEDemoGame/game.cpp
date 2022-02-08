@@ -5,6 +5,7 @@
 #include <VEDemoGame/entity/player.hpp>
 
 #include <VoxelEngine/engine.hpp>
+#include <VoxelEngine/utility/random.hpp>
 #include <VoxelEngine/clientserver/connect.hpp>
 
 
@@ -125,21 +126,34 @@ namespace demo_game {
 
 
     void game::setup_client_synchronization(void) {
-        // TODO: Ignore server changes to player position unless it becomes out of sync.
-
         // Run initializers for newly created entities.
         auto [init_id, init_system] = game::client->add_system(system_remote_initializer {});
         init_system.add_initializer(&player::remote_initializer);
         init_system.add_initializer(&howlee::remote_initializer);
 
+
         // Synchronize player motion with server.
-        auto [vis_id, vis_system] = game::client->add_system(system_entity_visibility { produce(true) });
+        auto [vis_id, vis_system] = game::client->add_system(system_entity_visibility { });
 
         game::client->add_system(system_synchronizer<
             ve::meta::pack<transform_component, motion_component>,  // Sync transform & motion,
-            std::remove_cvref_t<decltype(vis_system)>,              // using the vis system,
             ve::meta::pack<typename player::local_player_tag>       // but only for the player controlled by this client.
         > { vis_system });
+
+
+        // Discard changes to player position and velocity received from the server.
+        auto rule = [] (instance_id remote, const registry& r, entt::entity e, const auto* old_value, const auto* new_value) {
+            // Note: we have to allow the server to add the component when the player is created (!old_value).
+            return !old_value || !r.template has_component<player::local_player_tag>(e);
+        };
+
+        game::client->get_validator().template add_rule_for<transform_component>(rule);
+        game::client->get_validator().template add_rule_for<motion_component>(rule);
+
+
+        // Automatically deny any changes to invisibly entities.
+        // This is optional, since the server can already see the entire state of the client.
+        game::client->get_validator().set_visibility_system(&vis_system);
     }
 
 
@@ -175,7 +189,7 @@ namespace demo_game {
 
 
         // Allow clients to see all positionless entities and entities within 25 meters of them.
-        auto visibility_rule = [] (registry& owner, entt::entity entity, message_handler* connection) {
+        auto visibility_rule = [] (const registry& owner, entt::entity entity, const message_handler* connection) {
             const auto* entity_transform = owner.try_get_component<transform_component>(entity);
             const auto* player_transform = owner.try_get_component<transform_component>(player::server_players[connection->get_remote_id()]);
 
@@ -184,31 +198,31 @@ namespace demo_game {
             } else return true;
         };
 
-
-        auto [vis_id,  vis_system ] = game::server->add_system(system_entity_visibility { visibility_rule });
-        auto [sync_id, sync_system] = game::server->add_system(system_synchronizer<
-            synced_components,
-            std::remove_cvref_t<decltype(vis_system)>
-        > { vis_system });
+        auto [vis_id,  vis_system ] = game::server->add_system(system_entity_visibility<> { visibility_rule });
+        auto [sync_id, sync_system] = game::server->add_system(system_synchronizer<synced_components> { vis_system });
 
 
-        // Clients will determine position and velocity of their associated player, so don't sync these values.
-        // TODO: Instead of this, server should sync the values, but client should ignore it, unless the two significantly disagree.
-        auto rule = [] (instance_id remote, registry& owner, entt::entity entity, const auto& cmp) {
-            static hash_set<instance_id> initial_sync_completed;
+        // Allow clients to edit their position and velocity.
+        auto rule = [] (instance_id remote, const registry& r, entt::entity e, const auto* old_value, const auto* new_value) {
+            if (!old_value || !new_value) return false; // Adding or removing components is not allowed.
 
-            const auto& player = owner.template get_component<typename player::player_controller>(entity);
+            if (const auto* player_tag = r.template try_get_component<typename player::player_controller>(e); player_tag) {
+                return player_tag->controlled_by == remote;
+            }
 
-            if (player.controlled_by == remote) {
-                // If this is the remote controlling the player, send the value exactly once to initialize it.
-                auto [it, success] = initial_sync_completed.emplace(remote);
-                return success;
-            } else return true;
+            return false;
         };
 
-        using rule_requires = ve::meta::pack<typename player::player_controller>;
-        sync_system.add_per_entity_rule<decltype(rule), transform_component, rule_requires>(rule);
-        sync_system.add_per_entity_rule<decltype(rule), motion_component, rule_requires>(rule);
+        game::server->get_validator().template add_rule_for<transform_component>(rule);
+        game::server->get_validator().template add_rule_for<motion_component>(rule);
+
+
+        // Automatically deny any changes to invisibly entities.
+        // This is optional, since the default behaviour already disallows changes to anything other than the player itself.
+        game::server->get_validator().set_visibility_system(&vis_system);
+
+        // For synchronized components, inform the client if it tries to make an illegal change, rather than just ignoring it.
+        game::server->get_validator().set_default_for_synced_components(&sync_system, change_result::FORBIDDEN);
     }
 
 

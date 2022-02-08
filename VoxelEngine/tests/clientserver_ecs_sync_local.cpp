@@ -2,7 +2,7 @@
 #include <VoxelEngine/clientserver/client.hpp>
 #include <VoxelEngine/clientserver/server.hpp>
 #include <VoxelEngine/clientserver/connect.hpp>
-#include <VoxelEngine/ecs/system/system_set_visibility.hpp>
+#include <VoxelEngine/ecs/system/system_entity_visibility.hpp>
 #include <VoxelEngine/ecs/system/system_synchronizer.hpp>
 
 using namespace ve::defs;
@@ -25,8 +25,8 @@ test_result test_main(void) {
 
     using SyncedComponents = ve::meta::pack<test_component_1, test_component_2>;
 
-    auto [vis_id, visibility_system] = server.add_system(ve::system_set_visibility<>{});
-    auto [sync_id, sync_system] = server.add_system(ve::system_synchronizer<SyncedComponents> { &visibility_system });
+    auto [vis_id, visibility_system] = server.add_system(ve::system_entity_visibility { });
+    auto [sync_id, sync_system] = server.add_system(ve::system_synchronizer<SyncedComponents> { visibility_system });
 
 
     std::vector<entt::entity> entities;

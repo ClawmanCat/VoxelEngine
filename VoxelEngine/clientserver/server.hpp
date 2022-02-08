@@ -11,6 +11,7 @@ namespace ve {
     public:
         server(void) : instance(instance::SERVER) {
             initialize_mtr();
+            get_validator().allow_by_default(change_result::UNOBSERVABLE);
         }
 
 

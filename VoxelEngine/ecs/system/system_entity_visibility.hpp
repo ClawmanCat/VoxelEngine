@@ -15,8 +15,9 @@
 namespace ve {
     // TODO: It would be more optimal to have the ability to create a view over all entities with the same visibility state.
     // E.g. create a view of all visible entities, or all entities that are going invisible.
-    template <typename VisibilityRule> requires std::is_invocable_r_v<bool, VisibilityRule, registry&, entt::entity, message_handler*>
-    class system_entity_visibility : public system<system_entity_visibility<VisibilityRule>> {
+    template <typename VisibilityRule = fn<bool, const registry&, entt::entity, const message_handler*>> requires (
+        std::is_invocable_r_v<bool, VisibilityRule, const registry&, entt::entity, const message_handler*>
+    ) class system_entity_visibility : public system<system_entity_visibility<VisibilityRule>> {
     public:
         using system_entity_visibility_tag = void;
         using visibility_rule_t            = VisibilityRule;
@@ -33,7 +34,10 @@ namespace ve {
         constexpr static inline u8 CHANGED_BIT    = 0b10;
 
 
-        explicit system_entity_visibility(VisibilityRule rule, u16 priority = priority::LOWEST + 1) :
+        explicit system_entity_visibility(
+            VisibilityRule rule = [](const registry&, entt::entity, const message_handler*) { return true; },
+            u16 priority = priority::LOWEST + 1
+        ) :
             priority(priority),
             rule(std::move(rule))
         {}
@@ -146,4 +150,11 @@ namespace ve {
         event_handler_id_t entity_destroyed_handler, remote_disconnected_handler;
         std::vector<entt::entity> destroyed_entities;
     };
+
+
+    template <typename Rule>
+    system_entity_visibility(Rule) -> system_entity_visibility<Rule>;
+
+    template <typename Rule>
+    system_entity_visibility(Rule, u16) -> system_entity_visibility<Rule>;
 }

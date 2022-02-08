@@ -27,7 +27,8 @@ namespace ve {
         msg_add_entity,
         msg_del_entity,
         msg_set_component,
-        msg_del_component
+        msg_del_component,
+        msg_undo_set_component
     };
 
 

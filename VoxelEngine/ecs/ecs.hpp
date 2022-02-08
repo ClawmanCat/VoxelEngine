@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <VoxelEngine/ecs/change_validator.hpp>
 #include <VoxelEngine/ecs/component/function_component.hpp>
 #include <VoxelEngine/ecs/component/light_component.hpp>
 #include <VoxelEngine/ecs/component/mesh_component.hpp>

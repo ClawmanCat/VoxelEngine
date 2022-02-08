@@ -10,6 +10,7 @@
 #include <VoxelEngine/clientserver/core_messages/msg_compound.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_set_component.hpp>
 #include <VoxelEngine/clientserver/core_messages/msg_del_component.hpp>
+#include <VoxelEngine/utility/stack_polymorph.hpp>
 #include <VoxelEngine/utility/traits/function_traits.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
 #include <VoxelEngine/utility/io/serialize/binary_serializable.hpp>
@@ -18,23 +19,22 @@
 namespace ve {
     template <
         meta::pack_of_types Synchronized,
-        typename VisibilitySystem,
         meta::pack_of_types RequiredTags = meta::pack<>,
-        meta::pack_of_types ExcludedTags = meta::pack<>
+        meta::pack_of_types ExcludedTags = meta::pack<>,
+        typename VisibilitySystem = system_entity_visibility<>
     > requires (
         Synchronized::all([] <typename Component> { return serialize::is_serializable<Component>; }) &&
         Synchronized::all([] <typename Component> { return !requires { typename Component::non_synchronizable_tag; }; }) &&
         requires { typename VisibilitySystem::system_entity_visibility_tag; }
     ) class system_synchronizer : public system<
-        system_synchronizer<Synchronized, VisibilitySystem, RequiredTags, ExcludedTags>,
+        system_synchronizer<Synchronized, RequiredTags, ExcludedTags, VisibilitySystem>,
         meta::pack<create_empty_view_tag>
     > {
     private:
-        using vis_status = std::add_const_t<typename VisibilitySystem::visibility_status>;
-
-
         template <typename Component> struct sync_cache_component {
             std::vector<u8> data;
+
+
         };
 
         template <typename Component> struct sync_cache_up_to_date_component {};
@@ -43,6 +43,11 @@ namespace ve {
         struct bool_wrapper { bool value; };
 
     public:
+        using system_synchronizer_tag = void;
+        using synchronized_types      = Synchronized;
+        using vis_status              = std::add_const_t<typename VisibilitySystem::visibility_status>;
+
+
         explicit system_synchronizer(VisibilitySystem& visibility_system, nanoseconds default_sync_rate = nanoseconds{1s} / 30, u16 priority = priority::LOWEST) :
             priority(priority),
             visibility_system(&visibility_system),
