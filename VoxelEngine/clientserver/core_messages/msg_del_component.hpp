@@ -5,6 +5,7 @@
 #include <VoxelEngine/clientserver/client.hpp>
 #include <VoxelEngine/clientserver/server.hpp>
 #include <VoxelEngine/clientserver/core_messages/core_message.hpp>
+#include <VoxelEngine/clientserver/core_messages/msg_set_component.hpp>
 
 
 namespace ve {
@@ -17,7 +18,19 @@ namespace ve {
     template <typename Instance>
     inline void on_msg_del_component_received(Instance& instance, message_handler& handler, const del_component_message& msg) {
         const auto& component_data = component_registry::instance().get(msg.component_type);
-        component_data.remove_component(instance, msg.entity);
+
+        auto [allowed, value] = component_data.remove_component_checked(
+            handler.get_remote_id(),
+            instance,
+            msg.entity
+        );
+
+        if (allowed == change_result::FORBIDDEN) {
+            handler.send_message(
+                msg_undo_set_component.name,
+                undo_component_message { std::move(value), msg.component_type, msg.entity }
+            );
+        }
     }
 
 
