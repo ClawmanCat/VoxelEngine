@@ -5,14 +5,17 @@
 #pragma once
 
 #include <VoxelEngine/ecs/change_validator.hpp>
+#include <VoxelEngine/ecs/component/component_tags.hpp>
 #include <VoxelEngine/ecs/component/function_component.hpp>
 #include <VoxelEngine/ecs/component/light_component.hpp>
 #include <VoxelEngine/ecs/component/mesh_component.hpp>
 #include <VoxelEngine/ecs/component/motion_component.hpp>
 #include <VoxelEngine/ecs/component/named_component.hpp>
+#include <VoxelEngine/ecs/component/partially_synchronizable.hpp>
 #include <VoxelEngine/ecs/component/raii_component.hpp>
 #include <VoxelEngine/ecs/component/self_component.hpp>
 #include <VoxelEngine/ecs/component/transform_component.hpp>
+#include <VoxelEngine/ecs/component/voxel_component.hpp>
 #include <VoxelEngine/ecs/component_registry.hpp>
 #include <VoxelEngine/ecs/entity/static_component.hpp>
 #include <VoxelEngine/ecs/entity/static_entity.hpp>

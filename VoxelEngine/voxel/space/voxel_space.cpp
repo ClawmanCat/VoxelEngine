@@ -45,7 +45,7 @@ namespace ve::voxel {
             for (auto &loader : chunk_loaders) loader->update(this);
         }
 
-        update_meshes();
+        if (do_meshing) update_meshes();
         dispatch_event(space_update_event { this, dt });
     }
 
@@ -79,8 +79,8 @@ namespace ve::voxel {
                         locker->get_space()->dispatch_event(chunk_remeshed_event { locker->get_space().get(), chunkpos });
                     }
 
-                    locker = std::nullopt;
                     --(*locker->get_space()->ongoing_mesh_tasks);
+                    locker = std::nullopt;
                 });
             }
         };
@@ -224,11 +224,11 @@ namespace ve::voxel {
             }
 
 
-            dispatch_event(chunk_generated_event { this, where });
+            dispatch_event(chunk_generated_event { this, it->second.chunk.get(), where });
         }
 
 
-        dispatch_event(chunk_loaded_event { this, where, it->second.load_count });
+        dispatch_event(chunk_loaded_event { this, it->second.chunk.get(), where, it->second.load_count });
     }
 
 
@@ -250,7 +250,12 @@ namespace ve::voxel {
                 it = chunks.end();
             }
 
-            dispatch_event(chunk_unloaded_event { this, where, (it == chunks.end()) ? 0 : it->second.load_count });
+            dispatch_event(chunk_unloaded_event {
+                this,
+                it == chunks.end() ? nullptr : it->second.chunk.get(),
+                where,
+                it == chunks.end() ? 0 : it->second.load_count
+            });
         } else {
             VE_LOG_ERROR("Attempt to unload a chunk that was already unloaded. This may indicate an issue with the chunk loader.");
         }

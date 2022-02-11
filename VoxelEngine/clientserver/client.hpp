@@ -28,6 +28,12 @@ namespace ve {
         }
 
 
+        shared<message_handler> get_connection(instance_id remote) override {
+            if (server_connection->get_remote_id() == remote) return server_connection;
+            else throw std::runtime_error { "Attempt to get non-existent connection from client." };
+        }
+
+
         void set_server_connection(shared<message_handler>&& connection) {
             if (server_connection) {
                 dispatch_event(instance_disconnected_event { get_id(), server_connection->get_remote_id() });

@@ -14,11 +14,6 @@
 #include VE_GFX_HEADER(vertex/vertex_buffer.hpp)
 
 
-namespace ve {
-    struct voxel_component;
-}
-
-
 namespace ve::voxel {
     class chunk_loader;
     class chunk_generator;
@@ -89,11 +84,12 @@ namespace ve::voxel {
         void add_chunk_loader(shared<chunk_loader> loader);
         void remove_chunk_loader(const shared<chunk_loader>& loader);
 
+
+        void toggle_meshing(bool enabled) { do_meshing = enabled; }
+
         VE_GET_CREF(vertex_buffer);
+        VE_GET_CREF(chunks);
     private:
-        friend struct ve::voxel_component;
-
-
         struct per_chunk_data {
             unique<chunk> chunk;
 
@@ -113,6 +109,7 @@ namespace ve::voxel {
 
         shared<detail::buffer_t> vertex_buffer;
         unique<std::atomic_uint32_t> ongoing_mesh_tasks = make_unique<std::atomic_uint32_t>(0); // Use pointer to keep class movable.
+        bool do_meshing = true;
 
 
         void init(shared<chunk_generator>&& generator);

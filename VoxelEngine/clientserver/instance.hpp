@@ -86,6 +86,11 @@ namespace ve {
         }
 
 
+        virtual shared<message_handler> get_connection(instance_id remote) {
+            throw std::runtime_error { "Cannot get connection from unified instance." };
+        }
+
+
         VE_GET_MREF(mtr);
         VE_GET_CREF(id);
         VE_GET_VAL(type);

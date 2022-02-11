@@ -3,6 +3,7 @@
 #include <VEDemoGame/component/render_tag.hpp>
 #include <VEDemoGame/entity/howlee.hpp>
 #include <VEDemoGame/entity/player.hpp>
+#include <VEDemoGame/entity/world.hpp>
 
 #include <VoxelEngine/engine.hpp>
 #include <VoxelEngine/utility/random.hpp>
@@ -103,7 +104,7 @@ namespace demo_game {
                 ve::meta::pack<render_tag>
             > { pipeline }).second;
 
-            system.get_lighting().ambient_light = 25.0f * normalize_color(colors::LIGHT_GOLDENROD_YELLOW);
+            system.get_lighting().ambient_light = 0.25f * normalize_color(colors::LIGHT_GOLDENROD_YELLOW);
         });
     }
 
@@ -130,6 +131,7 @@ namespace demo_game {
         auto [init_id, init_system] = game::client->add_system(system_remote_initializer {});
         init_system.add_initializer(&player::remote_initializer);
         init_system.add_initializer(&howlee::remote_initializer);
+        init_system.add_initializer(&world::remote_initializer);
 
 
         // Synchronize player motion with server.
@@ -158,7 +160,7 @@ namespace demo_game {
 
 
     void game::setup_client_systems(void) {
-        // Client gets its own physics system to continue simulating movement when no message from the server is received,
+        // Client gets its own physics system to continue simulating movement between server messages,
         // and to move the player according to the provided user input.
         game::client->add_system(system_physics<> {});
 
@@ -183,13 +185,17 @@ namespace demo_game {
         using synced_components = ve::meta::pack<
             transform_component,
             motion_component,
+            voxel_component,
+            light_component,
             typename player::player_controller,
             typename howlee::entity_howlee_tag
         >;
 
 
-        // Allow clients to see all positionless entities and entities within 25 meters of them.
+        // Allow clients to see all positionless entities, all voxel spaces, and entities within 25 meters of them.
         auto visibility_rule = [] (const registry& owner, entt::entity entity, const message_handler* connection) {
+            if (owner.template has_component<voxel_component>(entity)) { return true; }
+
             const auto* entity_transform = owner.try_get_component<transform_component>(entity);
             const auto* player_transform = owner.try_get_component<transform_component>(player::server_players[connection->get_remote_id()]);
 
@@ -240,6 +246,10 @@ namespace demo_game {
                 h.transform.position = vec3f { x, 0, z };
             }
         }
+
+
+        // Create world.
+        game::server->store_static_entity(world { *game::server });
 
 
         // Create player entity when a client connects to the server.

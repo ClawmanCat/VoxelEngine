@@ -49,6 +49,11 @@ namespace ve {
 
 
         void init(registry& owner) {
+            VE_DEBUG_ASSERT(
+                dynamic_cast<class instance*>(&owner),
+                "Registry must be part of an instance in order to use a synchronization system."
+            );
+
             entity_destroyed_handler = owner.add_handler([&] (const entity_destroyed_event& e) {
                 destroyed_entities.push_back(e.entity);
             });
@@ -59,12 +64,16 @@ namespace ve {
 
             destroyed_entities.clear();
             storage.clear();
+
+            this->owner = static_cast<class instance*>(&owner);
         }
 
 
         void uninit(registry& owner) {
             owner.template remove_handler<entity_destroyed_event>(entity_destroyed_handler);
             owner.template remove_handler<instance_disconnected_event>(remote_disconnected_handler);
+
+            this->owner = nullptr;
         }
 
 
@@ -127,23 +136,30 @@ namespace ve {
         }
 
 
+        // Returns a view of the visibility status of every entity for the given remote. Note that this includes invisible entities.
+        // Entities and remotes that were added since the last call to update are not accessible this way.
         auto visibility_for_remote(instance_id remote) const {
             return view_from_storage(storage.at(remote));
         }
 
 
+        // Returns the visibility of the given entity for the given instance.
+        // Note that unlike the visibility view, this method is also able to evaluate entities that may have been added
+        // since the last call to update.
         bool is_visible(entt::entity entity, instance_id remote) const {
-            const auto& storage_for_conn = storage.at(remote);
-
-            if (storage_for_conn.contains(entity)) {
-                return storage_for_conn.get(entity) & VISIBILITY_BIT;
+            // TODO: Would it be better to always invoke the rule instead of checking this?
+            if (auto remote_it = storage.find(remote); remote_it != storage.end()) {
+                if (remote_it->second.contains(entity)) {
+                    return remote_it->second.get(entity) & VISIBILITY_BIT;
+                }
             }
 
-            return false;
+            return std::invoke(rule, static_cast<const registry&>(*owner), entity, owner->get_connection(remote).get());
         }
     private:
         u16 priority;
 
+        instance* owner = nullptr;
         VisibilityRule rule;
         hash_map<instance_id, storage_type<visibility_status>> storage;
 

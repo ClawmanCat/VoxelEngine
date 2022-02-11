@@ -19,12 +19,14 @@ namespace ve::voxel {
 
     struct chunk_generated_event {
         voxel_space* space;
+        chunk* chunk;
         tilepos chunkpos;
     };
 
 
     struct chunk_loaded_event {
         voxel_space* space;
+        chunk* chunk;
         tilepos chunkpos;
         std::size_t current_load_count;
     };
@@ -32,6 +34,7 @@ namespace ve::voxel {
 
     struct chunk_unloaded_event {
         voxel_space* space;
+        chunk* chunk;
         tilepos chunkpos;
         std::size_t current_load_count;
     };

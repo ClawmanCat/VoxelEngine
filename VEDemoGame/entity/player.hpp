@@ -62,5 +62,10 @@ namespace demo_game {
 
         ve::transform_component VE_COMPONENT(transform) = ve::transform_component { };
         ve::motion_component VE_COMPONENT(motion) = ve::motion_component { };
+
+        ve::light_component VE_COMPONENT(light) = ve::light_component {
+            .radiance    = ve::normalize_color(ve::colors::WHITE) * 10.0f,
+            .attenuation = 1.75f
+        };
     };
 }

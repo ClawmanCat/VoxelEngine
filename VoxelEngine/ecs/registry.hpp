@@ -6,11 +6,19 @@
 #include <VoxelEngine/ecs/component_registry.hpp>
 #include <VoxelEngine/ecs/registry_helpers.hpp>
 #include <VoxelEngine/ecs/system/system.hpp>
+#include <VoxelEngine/ecs/component/component_tags.hpp>
 #include <VoxelEngine/event/simple_event_dispatcher.hpp>
 #include <VoxelEngine/event/subscribe_only_view.hpp>
 #include <VoxelEngine/clientserver/instance_id.hpp>
 
 #include <entt/entt.hpp>
+
+
+// Ensure constant storage for types that require it.
+template <typename Component> requires ve::component_tags::has_constant_address_v<Component>
+struct entt::component_traits<Component> : entt::basic_component_traits {
+    static constexpr auto in_place_delete = true;
+};
 
 
 namespace ve {
@@ -31,6 +39,8 @@ namespace ve {
 
 
         registry(void) = default;
+        virtual ~registry(void) = default;
+
         ve_immovable(registry);
 
 
@@ -171,6 +181,11 @@ namespace ve {
                 return storage.template replace<Component>(entity, fwd(component));
             } else {
                 Component& stored_component = storage.template emplace<Component>(entity, fwd(component));
+
+                if constexpr (component_tags::has_added_callback_v<Component>) {
+                    stored_component.on_component_added(*this, entity);
+                }
+
                 dispatch_event(component_created_event<Component> { this, entity, &stored_component });
 
                 return stored_component;
@@ -203,9 +218,14 @@ namespace ve {
         }
 
 
-        template <typename Component> requires (!requires { typename Component::non_removable_tag; })
+        template <typename Component> requires component_tags::is_removable_v<Component>
         Component remove_component(entt::entity entity) {
             Component& stored_component = get_component<Component>(entity);
+
+            if constexpr (component_tags::has_removed_callback_v<Component>) {
+                stored_component.on_component_removed(*this, entity);
+            }
+
             dispatch_event(component_destroyed_event<Component> { this, entity, &stored_component });
 
             Component component = std::move(stored_component);
@@ -224,7 +244,7 @@ namespace ve {
             auto result = validator.template is_allowed<Component>(remote, *this, entity, value, nullptr);
 
             // If the component is non-removable, just return forbidden or unobservable.
-            if constexpr (requires {typename Component::non_removable_tag; }) {
+            if constexpr (!component_tags::is_removable_v<Component>) {
                 return { result == change_result::ALLOWED ? change_result::FORBIDDEN : result, value };
             } else {
                 if (result == change_result::ALLOWED) {
@@ -237,16 +257,20 @@ namespace ve {
         }
 
 
-        template <typename Component> requires (!requires { typename Component::non_removable_tag; })
+        template <typename Component> requires component_tags::is_removable_v<Component>
         void remove_all_components(auto& view) {
+            if constexpr (component_tags::has_removed_callback_v<Component>) {
+                for (auto entity : view) {
+                    const auto& stored_component = view.template get<Component>(entity);
+                    stored_component.on_component_removed(*this, entity);
+                }
+            }
+
             // Skip event handling if there are no handlers.
             if (has_handlers_for<component_destroyed_event<Component>>()) {
                 for (auto entity : view) {
-                    dispatch_event(component_destroyed_event<Component> {
-                        this,
-                        entity,
-                        &view.template get<Component>(entity)
-                    });
+                    const auto& stored_component = view.template get<Component>(entity);
+                    dispatch_event(component_destroyed_event<Component> { this, entity, &stored_component });
                 }
             }
 
@@ -254,18 +278,22 @@ namespace ve {
         }
 
 
-        template <typename Component> requires (!requires { typename Component::non_removable_tag; })
+        template <typename Component> requires component_tags::is_removable_v<Component>
         void remove_all_components(void) {
+            auto v = view<Component>();
+
+            if constexpr (component_tags::has_removed_callback_v<Component>) {
+                for (auto entity : v) {
+                    const auto& stored_component = v.template get<Component>(entity);
+                    stored_component.on_component_removed(*this, entity);
+                }
+            }
+
             // Skip event handling if there are no handlers.
             if (has_handlers_for<component_destroyed_event<Component>>()) {
-                auto v = view<Component>();
-
                 for (auto entity : v) {
-                    dispatch_event(component_destroyed_event<Component> {
-                        this,
-                        entity,
-                        &v.template get<Component>(entity)
-                    });
+                    const auto& stored_component = v.template get<Component>(entity);
+                    dispatch_event(component_destroyed_event<Component> { this, entity, &stored_component });
                 }
             }
 
@@ -316,6 +344,11 @@ namespace ve {
 
                 // Don't need to check if the component exists since this is a new entity.
                 Component& stored_component = storage.template emplace<Component>(entity, fwd(component));
+
+                if constexpr (component_tags::has_added_callback_v<Component>) {
+                    stored_component.on_component_added(*this, entity);
+                }
+
                 dispatch_event(component_created_event<Component> { this, entity, &stored_component });
             }(fwd(components)), ...);
         }
@@ -350,7 +383,7 @@ namespace ve {
 
 
         template <typename T> void remove_component(registry& r, entt::entity e) {
-            if constexpr (!requires { typename T::non_removable_tag; }) r.template remove_component<T>(e);
+            if constexpr (component_tags::is_removable_v<T>) r.template remove_component<T>(e);
             else VE_ASSERT(false, "Attempt to remove non-removable component");
         }
 

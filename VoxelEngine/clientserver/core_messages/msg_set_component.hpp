@@ -7,8 +7,6 @@
 #include <VoxelEngine/clientserver/server.hpp>
 #include <VoxelEngine/clientserver/core_messages/core_message.hpp>
 
-#include <magic_enum.hpp>
-
 
 namespace ve {
     template <bool Rebroadcast> struct set_component_message_tmpl {

@@ -46,7 +46,7 @@ namespace ve {
 
         // Called before the system is removed from the registry.
         void uninit(registry& storage) {
-            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, init)) {
+            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, uninit)) {
                 static_cast<Derived*>(this)->uninit(storage);
             }
         }

@@ -25,6 +25,12 @@ namespace ve {
         }
 
 
+        shared<message_handler> get_connection(instance_id remote) override {
+            if (auto it = client_connections.find(remote); it != client_connections.end()) return it->second;
+            else throw std::runtime_error { "Attempt to get non-existent connection from server." };
+        }
+
+
         void add_client_connection(shared<message_handler> connection) {
             client_connections.emplace(connection->get_remote_id(), connection);
             dispatch_event(instance_connected_event { get_id(), connection->get_remote_id() });
