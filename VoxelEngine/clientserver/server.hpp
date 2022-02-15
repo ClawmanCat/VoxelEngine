@@ -9,9 +9,9 @@
 namespace ve {
     class server : public instance {
     public:
-        server(void) : instance() {
+        server(void) : instance(instance::SERVER) {
             initialize_mtr();
-            get_validator().set_allow_by_default(false);
+            get_validator().allow_by_default(change_result::UNOBSERVABLE);
         }
 
 
@@ -25,6 +25,12 @@ namespace ve {
         }
 
 
+        shared<message_handler> get_connection(instance_id remote) override {
+            if (auto it = client_connections.find(remote); it != client_connections.end()) return it->second;
+            else throw std::runtime_error { "Attempt to get non-existent connection from server." };
+        }
+
+
         void add_client_connection(shared<message_handler> connection) {
             client_connections.emplace(connection->get_remote_id(), connection);
             dispatch_event(instance_connected_event { get_id(), connection->get_remote_id() });
@@ -33,9 +39,18 @@ namespace ve {
 
         void remove_client_connection(instance_id remote_id) {
             if (auto it = client_connections.find(remote_id); it != client_connections.end()) {
-                dispatch_event(instance_disconnected_event { get_id(), it->second->get_remote_id() });
+                dispatch_event(instance_disconnected_event { get_id(), remote_id });
                 client_connections.erase(it);
             }
+        }
+
+
+        void clear_client_connections(void) {
+            for (const auto& [id, connection] : client_connections) {
+                dispatch_event(instance_disconnected_event { get_id(), id });
+            }
+
+            client_connections.clear();
         }
 
 

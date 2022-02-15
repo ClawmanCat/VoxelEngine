@@ -13,6 +13,7 @@
 #include <VoxelEngine/utility/bit.hpp>
 #include <VoxelEngine/utility/cache.hpp>
 #include <VoxelEngine/utility/color.hpp>
+#include <VoxelEngine/utility/compression.hpp>
 #include <VoxelEngine/utility/copy.hpp>
 #include <VoxelEngine/utility/cube.hpp>
 #include <VoxelEngine/utility/decompose.hpp>
@@ -40,6 +41,7 @@
 #include <VoxelEngine/utility/raii.hpp>
 #include <VoxelEngine/utility/random.hpp>
 #include <VoxelEngine/utility/repeat.hpp>
+#include <VoxelEngine/utility/spatial_iterate.hpp>
 #include <VoxelEngine/utility/stack_polymorph.hpp>
 #include <VoxelEngine/utility/string.hpp>
 #include <VoxelEngine/utility/thread/assert_main_thread.hpp>
@@ -60,6 +62,7 @@
 #include <VoxelEngine/utility/traits/is_type.hpp>
 #include <VoxelEngine/utility/traits/maybe_const.hpp>
 #include <VoxelEngine/utility/traits/member_traits.hpp>
+#include <VoxelEngine/utility/traits/negate_trait.hpp>
 #include <VoxelEngine/utility/traits/nest.hpp>
 #include <VoxelEngine/utility/traits/null_type.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
@@ -68,10 +71,13 @@
 #include <VoxelEngine/utility/traits/pick.hpp>
 #include <VoxelEngine/utility/traits/ratio.hpp>
 #include <VoxelEngine/utility/traits/reference_as.hpp>
+#include <VoxelEngine/utility/traits/remove_const_pointer.hpp>
 #include <VoxelEngine/utility/traits/sequence.hpp>
 #include <VoxelEngine/utility/traits/string_arg.hpp>
 #include <VoxelEngine/utility/traits/traits.hpp>
 #include <VoxelEngine/utility/traits/value.hpp>
 #include <VoxelEngine/utility/tuple_foreach.hpp>
+#include <VoxelEngine/utility/type_registry.hpp>
+#include <VoxelEngine/utility/unit.hpp>
 #include <VoxelEngine/utility/uuid.hpp>
 #include <VoxelEngine/utility/version.hpp>

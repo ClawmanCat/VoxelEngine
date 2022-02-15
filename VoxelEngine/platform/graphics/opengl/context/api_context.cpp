@@ -1,8 +1,7 @@
 #include <VoxelEngine/platform/graphics/opengl/context/api_context.hpp>
-#include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
+#include <VoxelEngine/platform/graphics/opengl/utility/reset_texture_bindings.hpp>
 #include <VoxelEngine/utility/assert.hpp>
-#include <VoxelEngine/graphics/texture/missing_texture.hpp>
 
 
 namespace ve::gfx::opengl {
@@ -42,17 +41,10 @@ namespace ve::gfx::opengl {
             }
 
             // Pre-initialize each texture unit with an actual texture.
-            // Because our shaders use a sampler2d[MAX_TEXTURES], not doing this can cause issues,
-            // even though we never actually sample from any uninitialized samplers.
-            // Note: static so texture lifetime is extended to that of the program.
-            static auto tex = texture::create(texture_format_RGBA8, gfx::missing_texture::color_texture.size, 1);
-            tex->write(gfx::missing_texture::color_texture);
-
-            std::size_t max_texture_units = (std::size_t) gl_get<i32>(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
-            for (std::size_t i = 0; i < max_texture_units; ++i) {
-                glActiveTexture(GL_TEXTURE0 + i);
-                tex->bind();
-            }
+            // Shaders used by the engine may declare more sample uniforms than are actually used
+            // (e.g. requiring a sampler array of constant size and reading the index from the vertices.),
+            // which raises UB warnings if no value is bound to these samplers.
+            reset_texture_bindings();
 
             has_context = true;
             return result;

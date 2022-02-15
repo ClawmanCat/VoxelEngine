@@ -4,6 +4,7 @@
 #include <VoxelEngine/utility/tuple_foreach.hpp>
 #include <VoxelEngine/utility/traits/always_false.hpp>
 #include <VoxelEngine/utility/traits/member_traits.hpp>
+#include <VoxelEngine/utility/traits/is_std_array.hpp>
 
 #include <boost/pfr.hpp>
 
@@ -53,11 +54,20 @@ namespace ve {
 
     template <typename T> constexpr static bool has_custom_decomposer_v = requires { T::get_members(); };
 
+
+    // If this trait causes a compile error for your type add a nested typedef pfr_blacklist_tag to it.
+    // e.g. struct my_type { using pfr_blacklist_tag = void; };
+    // Note: std::array is not marked as decomposable since the very large sizes std::array will often have
+    // will crash most if not all compilers.
     template <typename T> constexpr static bool is_decomposable_v =
-        has_custom_decomposer_v<T> ||
-        is_tuple_indexable_v<T>    ||
-        std::is_aggregate_v<T>     ||
-        std::is_scalar_v<T>;
+        !requires { typename T::pfr_blacklist_tag; } &&
+        !meta::is_std_array_v<T> &&
+        (
+            has_custom_decomposer_v<T> ||
+            is_tuple_indexable_v<T>    ||
+            std::is_aggregate_v<T>     ||
+            std::is_scalar_v<T>
+        );
 
 
     namespace detail {
@@ -103,13 +113,13 @@ namespace ve {
                 return custom_decomposer<T>{};
             }
 
-            else if constexpr (is_tuple_indexable_v<T>) {
+            else if constexpr (is_tuple_indexable_v<T> && !meta::is_std_array_v<T>) {
                 return tuple_decomposer<T>{};
             }
 
             // TODO: This will currently fail on aggregates with base classes, as PFR doesn't support them and triggers a static assert.
             // We need to find some way to check if the aggregate has a base class, but this seems to be a non-trivial task.
-            else if constexpr (std::is_aggregate_v<T> || std::is_scalar_v<T>) {
+            else if constexpr ((std::is_aggregate_v<T> || std::is_scalar_v<T>) && !meta::is_std_array_v<T>) {
                 return pfr_decomposer<T>{};
             }
 

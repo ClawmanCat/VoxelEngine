@@ -28,6 +28,7 @@
 #include <VoxelEngine/platform/graphics/opengl/utility/debug.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/quad.hpp>
+#include <VoxelEngine/platform/graphics/opengl/utility/reset_texture_bindings.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/resource.hpp>
 #include <VoxelEngine/platform/graphics/opengl/vertex/layout.hpp>
 #include <VoxelEngine/platform/graphics/opengl/vertex/vertex_buffer.hpp>

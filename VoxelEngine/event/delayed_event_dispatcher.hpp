@@ -127,6 +127,8 @@ namespace ve {
             // Note: add will move the event, but it cannot be passed as Event&& due to type erasure.
             it->second->add(&event);
             handlers_with_events.insert(type);
+
+            has_events = true;
         }
         
         
@@ -143,15 +145,19 @@ namespace ve {
                 handlers[type]->invoke();
                 currently_dispatched = std::nullopt;
             }
+
+            has_events = false;
         }
 
 
         // Does this dispatcher have any handlers for the given event type?
         // This can be used as an optimisation before dispatching a large number of events of the same type.
-        // This method may not be called while the handler has pending actions, i.e. during handling of events that themselves add or remove handlers.
+        // Note: if this method returns false, event dispatching can be safely skipped, but this method returning true does not guarantee there are handlers.
         template <typename Event> bool has_handlers_for(void) {
             std::lock_guard lock { mtx };
-            VE_DEBUG_ASSERT(pending_actions.empty(), "has_handlers_for may not be called while the event handler has pending actions.");
+
+            // Cannot check, assume there are handlers.
+            if (!pending_actions.empty()) return true;
 
             if (auto it = handlers.find(ctti::type_id<Event>()); it != handlers.end()) {
                 return !it->second.empty();
@@ -162,7 +168,14 @@ namespace ve {
 
 
         bool has_pending_actions(void) const {
+            std::lock_guard lock { mtx };
             return !pending_actions.empty();
+        }
+
+
+        bool has_pending_events(void) const {
+            std::lock_guard lock { mtx };
+            return has_events;
         }
     private:
         struct handler_data_base {
@@ -188,8 +201,9 @@ namespace ve {
             }
             
             void invoke(void) override {
-                while (!events.empty()) {
-                    auto event = take(events);
+                // Note: handlers may dispatch additional events, so we can't use iterators here.
+                for (std::size_t i = 0; i < events.size(); ++i) {
+                    auto event = std::move(events[i]);
 
                     for (auto& [p, handlers_for_p] : handlers | views::reverse) {
                         for (auto& [id, handler] : handlers_for_p) {
@@ -207,6 +221,8 @@ namespace ve {
                         pending_actions.clear();
                     }
                 }
+
+                events.clear();
             }
             
             void erase(handler_id id) override {
@@ -244,9 +260,10 @@ namespace ve {
         hash_map<ctti::type_index, unique<handler_data_base>> handlers;
         hash_set<ctti::type_index> handlers_with_events;
         handler_id next_id = 0;
-        lock_t mtx;
+        mutable lock_t mtx;
 
         std::optional<ctti::type_index> currently_dispatched;
         std::vector<std::function<void(void)>> pending_actions;
+        bool has_events = false;
     };
 }

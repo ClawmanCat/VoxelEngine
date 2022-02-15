@@ -5,8 +5,10 @@
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
+#include <VoxelEngine/platform/graphics/opengl/utility/reset_texture_bindings.hpp>
 
 #include <gl/glew.h>
+#include <magic_enum.hpp>
 
 
 namespace ve::gfx::opengl {
@@ -159,11 +161,13 @@ namespace ve::gfx::opengl {
         void rebuild_attachments(void) {
             glBindFramebuffer(GL_FRAMEBUFFER, id);
 
-            for (auto [old_attachment, attachment_template] : views::zip(attachments, attachment_templates)) {
+            for (auto& [name, old_attachment] : attachments) {
+                const auto& attachment_template = *ranges::find(attachment_templates, name, &framebuffer_attachment::name);
+
                 auto new_attachment = texture::create(
-                    old_attachment.second->get_format(),
+                    *attachment_template.format,
                     prev_size,
-                    old_attachment.second->get_mipmap_levels(),
+                    1,
                     texture_filter::NEAREST,
                     attachment_template.tex_type
                 );
@@ -180,8 +184,20 @@ namespace ve::gfx::opengl {
                     0
                 );
 
-                std::swap(old_attachment.second, new_attachment);
+                std::swap(old_attachment, new_attachment);
             }
+
+
+            // Reset the currently bound textures to the default texture, since if the attachment texture is not compatible
+            // with whatever sampler is used in the shader (e.g. its a depth texture), it will raise an UB warning,
+            // even if we rebind it before actually using the sampler.
+            reset_texture_bindings((GLint) attachments.size());
+
+
+            if (false) VE_DEBUG_ASSERT(
+                glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE,
+                "Failed to rebuild attachments for framebuffer: code", glCheckFramebufferStatus(GL_FRAMEBUFFER)
+            );
         }
     };
 }

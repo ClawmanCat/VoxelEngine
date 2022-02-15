@@ -42,9 +42,10 @@ namespace ve::voxel {
         }
 
 
-        void set_data(const tilepos& where, const tile_data& td) {
+        // Returns the old data of the voxel.
+        tile_data set_data(const tilepos& where, const tile_data& td) {
             VE_CRTP_CHECK(Derived, set_data);
-            static_cast<Derived*>(this)->set_data(where, td);
+            return static_cast<Derived*>(this)->set_data(where, td);
         }
 
 
@@ -58,11 +59,17 @@ namespace ve::voxel {
         }
 
 
-        void set_state(const tilepos& where, const tile_state& state) {
-            set_data(
+        // Returns the old state of the voxel.
+        tile_state set_state(const tilepos& where, const tile_state& state) {
+            auto prev_data = set_data(
                 where,
                 voxel_settings::get_tile_registry().get_state(state.tile, state.meta)
             );
+
+            return tile_state {
+                .tile = voxel_settings::get_tile_registry().get_tile_for_state(prev_data),
+                .meta = voxel_settings::get_tile_registry().get_effective_metastate(prev_data)
+            };
         }
     };
 }

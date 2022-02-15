@@ -1,31 +1,29 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/ecs/system/system.hpp>
-#include <VoxelEngine/ecs/registry_helpers.hpp>
-#include <VoxelEngine/ecs/component_registry.hpp>
 #include <VoxelEngine/ecs/change_validator.hpp>
-#include <VoxelEngine/ecs/empty_storage.hpp>
+#include <VoxelEngine/ecs/view.hpp>
+#include <VoxelEngine/ecs/component_registry.hpp>
+#include <VoxelEngine/ecs/registry_helpers.hpp>
+#include <VoxelEngine/ecs/system/system.hpp>
+#include <VoxelEngine/ecs/component/component_tags.hpp>
 #include <VoxelEngine/event/simple_event_dispatcher.hpp>
 #include <VoxelEngine/event/subscribe_only_view.hpp>
+#include <VoxelEngine/clientserver/instance_id.hpp>
 
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
-#include <VoxelEngine/utility/assert.hpp>
-#include <ctti/nameof.hpp>
+
+// Ensure constant storage for types that require it.
+template <typename Component> requires ve::component_tags::has_constant_address_v<Component>
+struct entt::component_traits<Component> : entt::basic_component_traits {
+    static constexpr auto in_place_delete = true;
+};
 
 
 namespace ve {
     class registry;
     class static_entity;
-
-
-    template <typename T>
-    using component_ref_or_void = std::add_lvalue_reference_t<std::conditional_t<std::is_empty_v<T>, void, T>>;
-
-
-    template <typename Derived> struct registry_access_for_visibility_provider;
-    template <typename Derived> struct registry_access_for_static_entity;
 
 
     struct entity_created_event   { registry* owner; entt::entity entity; };
@@ -41,6 +39,8 @@ namespace ve {
 
 
         registry(void) = default;
+        virtual ~registry(void) = default;
+
         ve_immovable(registry);
 
 
@@ -65,6 +65,7 @@ namespace ve {
             systems_by_priority[priority].emplace(next_system_id, it->second.get());
 
 
+            // Note: init occurs after insertion to assure address remains constant until uninit is called.
             it->second->init(*this);
             return { next_system_id++, ((unique<detail::system_data<System>>&) it->second)->system };
         }
@@ -74,6 +75,7 @@ namespace ve {
             auto it = systems.find(system);
             if (it == systems.end()) return;
 
+            // Note: uninit is called before removal to assure address remains constant during the system's time in the registry.
             it->second->uninit(*this);
 
             systems_by_priority[it->second->priority].erase(system);
@@ -117,41 +119,73 @@ namespace ve {
 
         void destroy_entity(entt::entity entity) {
             dispatch_event(entity_destroyed_event { this, entity });
-            return storage.destroy(entity);
+
+            if (auto it = static_entities.find(entity); it != static_entities.end()) {
+                static_entities.erase(it);
+            }
+
+            storage.destroy(entity);
         }
 
 
+        template <typename Component> entt::entity entity_for_component(const Component& cmp) const {
+            return entt::to_entity(storage, cmp);
+        }
+
+
+        // Component Methods
         template <typename Component> Component* try_get_component(entt::entity entity) {
-            if constexpr (std::is_empty_v<Component>) return &empty_storage_for<Component>();
-            else return storage.template try_get<Component>(entity);
+            return storage.template try_get<Component>(entity);
         }
 
         template <typename Component> const Component* try_get_component(entt::entity entity) const {
-            if constexpr (std::is_empty_v<Component>) return &empty_storage_for<Component>();
-            else return storage.template try_get<Component>(entity);
+            return storage.template try_get<Component>(entity);
+        }
+
+
+        template <typename... Components> std::tuple<Components*...> try_get_components(entt::entity entity) {
+            return std::tuple(try_get_component<Components>(entity)...);
+        }
+
+        template <typename... Components> std::tuple<const Components*...> try_get_components(entt::entity entity) const {
+            return std::tuple(try_get_component<Components>(entity)...);
         }
 
 
         template <typename Component> Component& get_component(entt::entity entity) {
-            if constexpr (std::is_empty_v<Component>) return empty_storage_for<Component>();
-            else return storage.template get<Component>(entity);
+            return storage.template get<Component>(entity);
         }
 
         template <typename Component> const Component& get_component(entt::entity entity) const {
-            if constexpr (std::is_empty_v<Component>) return empty_storage_for<Component>();
-            else return storage.template get<Component>(entity);
+            return storage.template get<Component>(entity);
+        }
+
+
+        template <typename... Components> std::tuple<Components&...> get_components(entt::entity entity) {
+            return std::forward_as_tuple(get_component<Components>(entity)...);
+        }
+
+        template <typename... Components> std::tuple<const Components&...> get_components(entt::entity entity) const {
+            return std::forward_as_tuple(get_component<Components>(entity)...);
         }
 
 
         template <typename Component> requires (!std::is_reference_v<Component>)
         Component& set_component(entt::entity entity, Component&& component) {
-            VE_REGISTER_COMPONENT_T(Component);
+            // This is the only component method that requires registration, since if a component type is never set,
+            // it could never be present in the registry, and thus could never require registration.
+            autoregister_component<Component>();
 
 
             if (has_component<Component>(entity)) {
-                return ve_impl_component_access(Component, storage.template replace<Component>, entity, fwd(component));
+                return storage.template replace<Component>(entity, fwd(component));
             } else {
-                Component& stored_component = ve_impl_component_access(Component, storage.template emplace<Component>, entity, fwd(component));
+                Component& stored_component = storage.template emplace<Component>(entity, fwd(component));
+
+                if constexpr (component_tags::has_added_callback_v<Component>) {
+                    stored_component.on_component_added(*this, entity);
+                }
+
                 dispatch_event(component_created_event<Component> { this, entity, &stored_component });
 
                 return stored_component;
@@ -165,9 +199,33 @@ namespace ve {
         }
 
 
-        template <typename Component> requires (!requires { typename Component::non_removable_tag; })
+        // Equivalent to set_component, except the change is checked by the change validator first.
+        // If the change is not allowed, no changes are made to the registry.
+        template <typename Component> requires (!std::is_reference_v<Component>)
+        std::pair<change_result, Component*> set_component_checked(instance_id remote, entt::entity entity, Component&& component) {
+            Component* value = try_get_component<Component>(entity);
+
+            auto result = validator.is_allowed(remote, *this, entity, value, &component);
+            if (result == change_result::ALLOWED) value = &set_component(entity, fwd(component));
+
+            return { result, value };
+        }
+
+
+        template <typename Component> requires (!std::is_reference_v<Component>)
+        std::pair<change_result, Component*> set_component_checked(instance_id remote, entt::entity entity, const Component& component) {
+            return set_component_checked(remote, entity, Component { component });
+        }
+
+
+        template <typename Component> requires component_tags::is_removable_v<Component>
         Component remove_component(entt::entity entity) {
             Component& stored_component = get_component<Component>(entity);
+
+            if constexpr (component_tags::has_removed_callback_v<Component>) {
+                stored_component.on_component_removed(*this, entity);
+            }
+
             dispatch_event(component_destroyed_event<Component> { this, entity, &stored_component });
 
             Component component = std::move(stored_component);
@@ -177,14 +235,65 @@ namespace ve {
         }
 
 
-        template <typename Component> requires (!requires { typename Component::non_removable_tag; })
+        // Equivalent to remove_component, except the change is checked by the change validator first.
+        // If the change is not allowed, no changes are made to the registry and the returned component is the old value of the component.
+        // If the change is allowed, the returned component is null.
+        template <typename Component>
+        std::pair<change_result, Component*> remove_component_checked(instance_id remote, entt::entity entity) {
+            Component* value = try_get_component<Component>(entity);
+            auto result = validator.template is_allowed<Component>(remote, *this, entity, value, nullptr);
+
+            // If the component is non-removable, just return forbidden or unobservable.
+            if constexpr (!component_tags::is_removable_v<Component>) {
+                return { result == change_result::ALLOWED ? change_result::FORBIDDEN : result, value };
+            } else {
+                if (result == change_result::ALLOWED) {
+                    remove_component<Component>(entity);
+                    value = nullptr;
+                }
+            }
+
+            return { result, value };
+        }
+
+
+        template <typename Component> requires component_tags::is_removable_v<Component>
+        void remove_all_components(auto& view) {
+            if constexpr (component_tags::has_removed_callback_v<Component>) {
+                for (auto entity : view) {
+                    const auto& stored_component = view.template get<Component>(entity);
+                    stored_component.on_component_removed(*this, entity);
+                }
+            }
+
+            // Skip event handling if there are no handlers.
+            if (has_handlers_for<component_destroyed_event<Component>>()) {
+                for (auto entity : view) {
+                    const auto& stored_component = view.template get<Component>(entity);
+                    dispatch_event(component_destroyed_event<Component> { this, entity, &stored_component });
+                }
+            }
+
+            storage.template remove<Component>(view.begin(), view.end());
+        }
+
+
+        template <typename Component> requires component_tags::is_removable_v<Component>
         void remove_all_components(void) {
             auto v = view<Component>();
 
-            // Skip event handling if there are no handlers.
-            if (has_pending_actions() || has_handlers_for<component_destroyed_event<Component>>()) {
+            if constexpr (component_tags::has_removed_callback_v<Component>) {
                 for (auto entity : v) {
-                    dispatch_event(component_destroyed_event<Component> { this, entity, &v.template get<Component>(entity) });
+                    const auto& stored_component = v.template get<Component>(entity);
+                    stored_component.on_component_removed(*this, entity);
+                }
+            }
+
+            // Skip event handling if there are no handlers.
+            if (has_handlers_for<component_destroyed_event<Component>>()) {
+                for (auto entity : v) {
+                    const auto& stored_component = v.template get<Component>(entity);
+                    dispatch_event(component_destroyed_event<Component> { this, entity, &stored_component });
                 }
             }
 
@@ -193,61 +302,59 @@ namespace ve {
 
 
         template <typename Component> bool has_component(entt::entity entity) const {
-            return storage.template has<Component>(entity);
+            return storage.template all_of<Component>(entity);
+        }
+
+        template <typename... Components> bool has_all(entt::entity entity) const {
+            return storage.template all_of<Components...>(entity);
+        }
+
+        template <typename... Components> bool has_any(entt::entity entity) const {
+            return storage.template any_of<Components...>(entity);
         }
 
 
         // Views
         template <typename... Components> auto view(void) {
-            return construct_view<meta::pack<Components...>, meta::pack<>>(storage);
+            return storage.template view<Components...>();
         }
 
         template <typename... Components> auto view(void) const {
-            return construct_view<meta::pack<Components...>, meta::pack<>>(storage);
+            return storage.template view<Components...>();
         }
 
-        template <meta::pack_of_types Required, meta::pack_of_types Excluded> auto view_except(void) {
-            return construct_view<Required, Excluded>(storage);
+        template <meta::pack_of_types Required, meta::pack_of_types Excluded = meta::pack<>> auto view_pack(void) {
+            return view_from_registry<Required, Excluded>(storage);
         }
 
-        template <meta::pack_of_types Required, meta::pack_of_types Excluded> auto view_except(void) const {
-            return construct_view<Required, Excluded>(storage);
-        }
-
-
-        // Visibility Management
-        bool is_visible(instance_id remote, entt::entity entity) const {
-            return visibility_provider.system
-                ? visibility_provider.invoke(visibility_provider.system, remote, entity)
-                : visible_by_default;
+        template <meta::pack_of_types Required, meta::pack_of_types Excluded = meta::pack<>> auto view_pack(void) const {
+            return view_from_registry<Required, Excluded>(storage);
         }
 
 
-        // Controls the default visibility when there is no visibility management system.
-        bool get_default_visibility(void) const { return visible_by_default; }
-        void set_default_visibility(bool enabled) { visible_by_default = enabled; }
-
-
+        VE_GET_MREF(validator);
         // Note: acting upon the storage directly will cause events to not be fired, and should be avoided, as systems may depend on them.
         VE_GET_MREF(storage);
-        VE_GET_MREF(validator);
     private:
         template <typename... Components> void create_entity_common(entt::entity entity, Components&&... components) {
-            set_component(entity, detail::common_component { });
             dispatch_event(entity_created_event { this, entity });
 
             ([&] <typename Component> (Component&& component) {
-                VE_REGISTER_COMPONENT_T(Component);
+                autoregister_component<Component>();
 
                 // Don't need to check if the component exists since this is a new entity.
-                Component& stored_component = ve_impl_component_access(Component, storage.template emplace, entity, fwd(component));
+                Component& stored_component = storage.template emplace<Component>(entity, fwd(component));
+
+                if constexpr (component_tags::has_added_callback_v<Component>) {
+                    stored_component.on_component_added(*this, entity);
+                }
+
                 dispatch_event(component_created_event<Component> { this, entity, &stored_component });
             }(fwd(components)), ...);
         }
 
 
-        template <typename Derived> friend struct registry_access_for_visibility_provider;
-        template <typename Derived> friend struct registry_access_for_static_entity;
+        change_validator validator;
 
 
         // TODO: Better cache locality would probably help here, since a system is likely to iterate over many of the same type of static entity in order.
@@ -260,91 +367,34 @@ namespace ve {
         vec_map<u16, hash_map<system_id, detail::system_data_base*>> systems_by_priority;
 
         system_id next_system_id = 0;
-
-
-        change_validator validator;
-
-        bool visible_by_default = true;
-        struct {
-            const void* system = nullptr;
-            fn<bool, const void*, instance_id, entt::entity> invoke;
-        } visibility_provider;
     };
 
 
-    template <typename Derived> struct registry_access_for_visibility_provider {
-    private:
-        void ve_impl_assert_friend(void) {
-            // Must be in a function to prevent type incompleteness.
-            static_assert(requires { typename Derived::visibility_provider_tag; });
-        }
-
-    protected:
-        void set_visibility_provider(registry& registry) {
-            if (registry.visibility_provider.system) {
-                throw std::runtime_error { "Registry may have at most one active visibility provider." };
-            }
-
-            registry.visibility_provider.system = this;
-            registry.visibility_provider.invoke = [](const void* self, instance_id remote, entt::entity entity) {
-                return static_cast<const Derived*>(self)->is_visible(entity, remote);
-            };
-        }
-
-        void clear_visibility_provider(registry& registry) {
-            registry.visibility_provider.system = nullptr;
-        }
-    };
-
-
-    template <typename Derived> struct registry_access_for_static_entity {
-    private:
-        void ve_impl_assert_friend(void) {
-            // Must be in a function to prevent type incompleteness.
-            static_assert(requires { typename Derived::static_entity_tag; });
-        }
-
-    protected:
-        void on_static_entity_destroyed(registry& registry, entt::entity entity) {
-            registry.static_entities.erase(entity);
-        }
-    };
-
-
-    // Implementations for methods forward declared in component_registry.hpp.
-    namespace detail {
-        // Attempts to set the component to the value stored in the provided buffer.
-        // If the provided remote is not allowed to perform this action, no changes to the registry are made.
-        template <typename T> inline change_result set_component(instance_id remote, registry& r, entt::entity e, std::span<const u8> data) {
-            if (!r.is_visible(remote, e)) return change_result::UNOBSERVABLE;
-
-            const T* old_value = r.template try_get_component<T>(e);
-            T new_value = serialize::from_bytes<T>(data);
-
-            if (!r.get_validator().is_allowed(remote, r, e, old_value, &new_value)) return change_result::DENIED;
-
-            r.set_component(e, std::move(new_value));
-            return change_result::ALLOWED;
+    // Wrappers around registry functions. Unlike the registry member methods, these can be forward declared.
+    namespace registry_callbacks {
+        template <typename T> void set_component(registry& r, entt::entity e, T&& v) {
+            r.set_component(e, fwd(v));
         }
 
 
-        // Attempts to remote the component from the registry.
-        // If the provided remote is not allowed to perform this action, no changes to the registry are made.
-        template <typename T> inline change_result remove_component(instance_id remote, registry& r, entt::entity e) {
-            if (!r.is_visible(remote, e)) return change_result::UNOBSERVABLE;
-
-            const T* old_value = r.template try_get_component<T>(e);
-
-            if (!r.get_validator().is_allowed(remote, r, e, old_value, (const T*) nullptr)) return change_result::DENIED;
-
-            r.template remove_component<T>(e);
-            return change_result::ALLOWED;
+        template <typename T> T& get_component(registry& r, entt::entity e) {
+            return r.template get_component<T>(e);
         }
 
 
-        // Serializes and returns the given component from the registry.
-        template <typename T> inline std::vector<u8> get_component(registry& r, entt::entity e) {
-            return serialize::to_bytes(r.template get_component<T>(e));
+        template <typename T> void remove_component(registry& r, entt::entity e) {
+            if constexpr (component_tags::is_removable_v<T>) r.template remove_component<T>(e);
+            else VE_ASSERT(false, "Attempt to remove non-removable component");
+        }
+
+
+        template <typename T> std::pair<change_result, T*> set_component_checked(instance_id remote, registry& r, entt::entity e, T&& v) {
+            return r.set_component_checked(remote, e, fwd(v));
+        }
+
+
+        template <typename T> std::pair<change_result, T*> remove_component_checked(instance_id remote, registry& r, entt::entity e) {
+            return r.template remove_component_checked<T>(remote, e);
         }
     }
 }

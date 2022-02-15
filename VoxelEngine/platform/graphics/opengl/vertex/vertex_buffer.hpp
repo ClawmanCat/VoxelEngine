@@ -105,13 +105,10 @@ namespace ve::gfx::opengl {
         ve_shared_only(unindexed_vertex_buffer) :
             vertex_buffer(ctti::type_id<Vertex>()),
             vbo(GL_ARRAY_BUFFER)
-        {
-            glCreateVertexArrays(1, &vao);
-            VE_ASSERT(vao, "Failed to create OpenGL vertex array object.");
-        }
+        {}
 
         ~unindexed_vertex_buffer(void) {
-            glDeleteVertexArrays(1, &vao);
+            if (vao) glDeleteVertexArrays(1, &vao);
         }
 
 
@@ -129,7 +126,9 @@ namespace ve::gfx::opengl {
 
             auto uniform_raii = detail::raii_bind_uniforms(*this, ctx);
 
+            create_vao();
             glBindVertexArray(vao);
+
             vbo.bind();
 
             // TODO: Cache vertex layout using VAO.
@@ -155,9 +154,17 @@ namespace ve::gfx::opengl {
             vbo.shrink(count);
         }
 
+        VE_GET_VAL(vao);
     protected:
-        GLuint vao;
+        mutable GLuint vao = 0;
         buffer<Vertex, detail::vbo_overallocate_factor> vbo;
+
+        void create_vao(void) const {
+            if (!vao) [[unlikely]] {
+                glCreateVertexArrays(1, &vao);
+                VE_ASSERT(vao, "Failed to create OpenGL vertex array object.");
+            }
+        }
     };
 
 
@@ -169,9 +176,6 @@ namespace ve::gfx::opengl {
             ebo(GL_ELEMENT_ARRAY_BUFFER)
         {
             vertex_buffer::index_type = ctti::type_id<Index>();
-
-            glCreateVertexArrays(1, &vao);
-            VE_ASSERT(vao, "Failed to create OpenGL vertex array object.");
         }
 
         ~indexed_vertex_buffer(void) {
@@ -193,7 +197,9 @@ namespace ve::gfx::opengl {
 
             auto uniform_raii = detail::raii_bind_uniforms(*this, ctx);
 
-            glBindVertexArray(vao);
+            create_vao();
+            glBindVertexArray(get_vao());
+
             vbo.bind();
             ebo.bind();
 
@@ -226,7 +232,6 @@ namespace ve::gfx::opengl {
             ebo.shrink(count);
         }
     private:
-        GLuint vao;
         buffer<Index, detail::vbo_overallocate_factor> ebo;
 
 

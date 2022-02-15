@@ -4,6 +4,8 @@
 #include <VoxelEngine/voxel/settings.hpp>
 #include <VoxelEngine/voxel/chunk/chunk.hpp>
 #include <VoxelEngine/voxel/tile_provider.hpp>
+#include <VoxelEngine/event/simple_event_dispatcher.hpp>
+#include <VoxelEngine/event/subscribe_only_view.hpp>
 #include <VoxelEngine/utility/priority.hpp>
 #include <VoxelEngine/utility/traits/evaluate_if_valid.hpp>
 #include <VoxelEngine/utility/traits/null_type.hpp>
@@ -38,12 +40,16 @@ namespace ve::voxel {
     };
 
 
-    class voxel_space : public tile_provider<voxel_space>, public std::enable_shared_from_this<voxel_space> {
+    class voxel_space :
+        public tile_provider<voxel_space>,
+        public subscribe_only_view<simple_event_dispatcher<false>>,
+        public std::enable_shared_from_this<voxel_space>
+    {
     public:
         // RAII object that keeps the chunk and the space that contains it alive and locked while it exists.
         class chunk_locker {
         public:
-            chunk_locker(shared<voxel_space> space, std::vector<tilepos> where);
+            chunk_locker(shared<voxel_space> space, hash_set<tilepos> where);
             ~chunk_locker(void);
 
             ve_swap_move_only(chunk_locker, space, loader);
@@ -56,7 +62,7 @@ namespace ve::voxel {
         };
 
 
-        ve_shared_only(voxel_space, unique<chunk_generator>&& generator) :
+        ve_shared_only(voxel_space, shared<chunk_generator> generator) :
             vertex_buffer(detail::buffer_t::create())
         {
             // chunk_generator is incomplete here, so this must be done in the CPP file.
@@ -64,19 +70,25 @@ namespace ve::voxel {
         }
 
         virtual ~voxel_space(void) = default;
-        ve_rt_move_only(voxel_space);
+        ve_immovable(voxel_space);
 
 
         virtual void update(nanoseconds dt);
 
         const tile_data& get_data(const tilepos& where) const;
-        void set_data(const tilepos& where, const tile_data& td);
+        tile_data set_data(const tilepos& where, const tile_data& td);
+
+        const chunk* get_chunk(const tilepos& where) const;
         bool is_loaded(const tilepos& chunkpos) const;
 
         void add_chunk_loader(shared<chunk_loader> loader);
         void remove_chunk_loader(const shared<chunk_loader>& loader);
 
+
+        void toggle_meshing(bool enabled) { do_meshing = enabled; }
+
         VE_GET_CREF(vertex_buffer);
+        VE_GET_CREF(chunks);
     private:
         struct per_chunk_data {
             unique<chunk> chunk;
@@ -97,9 +109,10 @@ namespace ve::voxel {
 
         shared<detail::buffer_t> vertex_buffer;
         unique<std::atomic_uint32_t> ongoing_mesh_tasks = make_unique<std::atomic_uint32_t>(0); // Use pointer to keep class movable.
+        bool do_meshing = true;
 
 
-        void init(unique<chunk_generator>&& generator);
+        void init(shared<chunk_generator>&& generator);
         void update_meshes(void);
 
         // TODO: Use access facade?

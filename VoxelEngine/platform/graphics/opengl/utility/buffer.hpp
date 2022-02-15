@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/assert.hpp>
 #include <VoxelEngine/utility/traits/ratio.hpp>
+#include <VoxelEngine/utility/thread/assert_main_thread.hpp>
 
 #include <gl/glew.h>
 
@@ -15,6 +16,7 @@ namespace ve::gfx::opengl {
         explicit buffer(GLenum type) : gl_type(type) {}
 
         ~buffer(void) {
+            assert_main_thread();
             if (id) glDeleteBuffers(1, &id);
         }
 
@@ -23,6 +25,7 @@ namespace ve::gfx::opengl {
 
 
         void bind(void) const {
+            assert_main_thread();
             glBindBuffer(gl_type, id);
         }
 
@@ -30,6 +33,7 @@ namespace ve::gfx::opengl {
         void write(const T* data, std::size_t count, std::size_t where = 0) {
             VE_PROFILE_FN();
 
+            assert_main_thread();
             VE_ASSERT(gl_type != GL_INVALID_ENUM, "Cannot write to uninitialized buffer.");
             VE_ASSERT(where <= size, "Write beyond end of buffer would leave uninitialized data.");
 
@@ -44,6 +48,8 @@ namespace ve::gfx::opengl {
 
 
         void reserve(std::size_t count) {
+            assert_main_thread();
+
             VE_ASSERT(gl_type != GL_INVALID_ENUM, "Cannot reserve space for uninitialized buffer.");
             if (count <= capacity) return;
 

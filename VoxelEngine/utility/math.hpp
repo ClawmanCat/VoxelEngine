@@ -15,6 +15,13 @@ namespace ve {
 
 
         template<typename T>
+        constexpr inline T half_pi = std::numbers::pi_v<T> / T(2);
+
+        constexpr inline float f32_half_pi = half_pi<f32>;
+        constexpr inline float f64_half_pi = half_pi<f64>;
+
+
+        template<typename T>
         constexpr inline T e = std::numbers::e_v<T>;
 
         constexpr inline float f32_e = e<f32>;

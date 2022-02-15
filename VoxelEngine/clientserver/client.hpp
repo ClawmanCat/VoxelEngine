@@ -9,9 +9,9 @@
 namespace ve {
     class client : public instance {
     public:
-        client(void) : instance() {
+        client(void) : instance(instance::CLIENT) {
             initialize_mtr();
-            get_validator().set_allow_by_default(true);
+            get_validator().allow_by_default(change_result::ALLOWED);
         }
 
 
@@ -25,6 +25,12 @@ namespace ve {
             if (server_connection) result.push_back(server_connection);
 
             return result;
+        }
+
+
+        shared<message_handler> get_connection(instance_id remote) override {
+            if (server_connection->get_remote_id() == remote) return server_connection;
+            else throw std::runtime_error { "Attempt to get non-existent connection from client." };
         }
 
 

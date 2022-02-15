@@ -17,6 +17,7 @@
 #include <VoxelEngine/utility/traits/is_type.hpp>
 #include <VoxelEngine/utility/traits/maybe_const.hpp>
 #include <VoxelEngine/utility/traits/member_traits.hpp>
+#include <VoxelEngine/utility/traits/negate_trait.hpp>
 #include <VoxelEngine/utility/traits/nest.hpp>
 #include <VoxelEngine/utility/traits/null_type.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
@@ -25,6 +26,7 @@
 #include <VoxelEngine/utility/traits/pick.hpp>
 #include <VoxelEngine/utility/traits/ratio.hpp>
 #include <VoxelEngine/utility/traits/reference_as.hpp>
+#include <VoxelEngine/utility/traits/remove_const_pointer.hpp>
 #include <VoxelEngine/utility/traits/sequence.hpp>
 #include <VoxelEngine/utility/traits/string_arg.hpp>
 #include <VoxelEngine/utility/traits/value.hpp>

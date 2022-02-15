@@ -17,7 +17,10 @@ namespace ve::serialize {
         (std::is_const_v<T> && is_serializable<std::remove_const_t<T>>)    ||
         (!requires { typename binary_serializer<T>::non_overloaded_tag; }) ||
         std::is_trivial_v<T>                                               ||
-        detail::supports_container_serialization_v<T>                      ||
+        (
+            detail::supports_container_serialization_v<T> &&
+            ve_eval_if_valid(is_serializable<typename T::value_type>)
+        )                                                                  ||
         (
             is_decomposable_v<T> &&
             ve_eval_if_valid(meta::create_pack::from_decomposable<T>::all(

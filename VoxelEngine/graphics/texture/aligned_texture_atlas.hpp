@@ -7,6 +7,9 @@
 namespace ve::gfx {
     class aligned_texture_atlas : public texture_atlas<aligned_texture_atlas> {
     public:
+        constexpr static float epsilon = 1e-6;
+
+
         explicit aligned_texture_atlas(std::string name = "textures", const vec2ui& size = vec2ui { 8192 }, u32 alignment = 32) :
             name(std::move(name)),
             atlas_size(size),
@@ -36,17 +39,24 @@ namespace ve::gfx {
         }
 
 
-        subtexture store(const image_rgba8& img) {
-            auto block_size = unaligned_to_blockpos(img.size);
+        void remove(const subtexture& st) {
+            mark_storage<false>(
+                unaligned_to_blockpos(vec2ui { st.uv * vec2f { atlas_size } }),
+                unaligned_to_blockpos(vec2ui { st.wh * vec2f { atlas_size } })
+            );
+        }
+
+
+        subtexture prepare_storage(const vec2ui& size) {
+            auto block_size = unaligned_to_blockpos(size);
             auto location   = find_storage(block_size);
 
             mark_storage<true>(location, block_size);
-            texture->write(img, location * atlas_alignment);
 
             auto st = subtexture {
                 .parent  = texture,
                 .uv      = vec2f { location * atlas_alignment } / vec2f { atlas_size },
-                .wh      = vec2f { img.size } / vec2f { atlas_size },
+                .wh      = vec2f { size } / vec2f { atlas_size },
                 .binding = 0
             };
 
@@ -54,11 +64,16 @@ namespace ve::gfx {
         }
 
 
-        void remove(const subtexture& st) {
-            mark_storage<false>(
-                unaligned_to_blockpos(vec2ui { st.uv * vec2f { atlas_size } }),
-                unaligned_to_blockpos(vec2ui { st.wh * vec2f { atlas_size } })
+        void store_at(const image_rgba8& img, subtexture& where) {
+            VE_DEBUG_ASSERT(
+                vec2ui { (where.wh * vec2f { atlas_size }) + vec2f { epsilon } } == img.size,
+                "Image dimensions do not match dimensions of pre-allocated texture storage."
             );
+
+            auto block_size = unaligned_to_blockpos(img.size);
+            auto location   = vec2ui { (where.uv * vec2f { atlas_size } / vec2f { (f32) atlas_alignment }) + vec2f { epsilon } };
+
+            texture->write(img, location * atlas_alignment);
         }
 
 

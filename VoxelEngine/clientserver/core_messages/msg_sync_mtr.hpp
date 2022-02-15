@@ -24,7 +24,7 @@ namespace ve {
     template <typename Instance>
     inline void on_msg_sync_mtr_received(Instance& instance, message_handler& handler, const mtr_sync_message& msg) {
         if (!handler.get_remote_mtr().contains(msg.name)) {
-            VE_LOG_DEBUG(cat("Registering new MTR type ", msg.name, " on ", instance.get_name(), " for remote ", handler.get_remote_id(), "."));
+            VE_LOG_DEBUG(cat("Registering new MTR type ", msg.name, " on ", instance.get_name(), " for remote ", handler.get_remote_id(), " with ID ", msg.id, "."));
             mtr_friend_access{}.register_type(handler.get_remote_mtr(), msg.name, msg.type_hash, msg.id);
         } else {
             const message_type& type = handler.get_remote_mtr().get_type(msg.name);

@@ -3,76 +3,81 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/ecs/change_validator.hpp>
 #include <VoxelEngine/clientserver/instance_id.hpp>
-#include <VoxelEngine/utility/traits/null_type.hpp>
+#include <VoxelEngine/utility/type_registry.hpp>
+#include <VoxelEngine/utility/traits/value.hpp>
 #include <VoxelEngine/utility/io/serialize/binary_serializable.hpp>
-
-#include <ctti/type_id.hpp>
-#include <entt/entt.hpp>
 
 
 namespace ve {
     class registry;
 
 
-    // Implemented in registry.hpp
-    namespace detail {
-        template <typename T> change_result   set_component(instance_id, registry&, entt::entity, std::span<const u8>);
-        template <typename T> change_result   remove_component(instance_id, registry&, entt::entity);
-        template <typename T> std::vector<u8> get_component(registry&, entt::entity);
+    namespace registry_callbacks {
+        template <typename T> void set_component   (registry& r, entt::entity e, T&& v);
+        template <typename T> T&   get_component   (registry& r, entt::entity e);
+        template <typename T> void remove_component(registry& r, entt::entity e);
+        template <typename T> std::pair<change_result, T*> set_component_checked   (instance_id remote, registry& r, entt::entity e, T&& v);
+        template <typename T> std::pair<change_result, T*> remove_component_checked(instance_id remote, registry& r, entt::entity e);
     }
 
 
-    // Maps components to type IDs and provides methods of setting and removing said components from the registry.
-    // Note that only serializable components are stored here, since they are the only ones that can be reconstructed from serialized data.
-    class component_registry {
-    public:
-        struct per_component_data {
-            fn<change_result, instance_id, registry&, entt::entity, std::span<const u8>> set_component;
-            fn<change_result, instance_id, registry&, entt::entity> remove_component;
-            fn<std::vector<u8>, registry&, entt::entity> get_component;
-        };
+    struct component_registry_data {
+        template <typename T> explicit component_registry_data(meta::type_wrapper<T>) {
+            name = ctti::nameof<T>().cppstring();
 
+            set_component = [] (registry& r, entt::entity e, std::span<const u8> v) {
+                registry_callbacks::set_component<T>(r, e, serialize::from_bytes<T>(v));
+            };
 
-        static component_registry& instance(void);
+            get_component = [] (registry& r, entt::entity e) {
+                return serialize::to_bytes(registry_callbacks::get_component<T>(r, e));
+            };
 
+            remove_component = [] (registry& r, entt::entity e) {
+                registry_callbacks::remove_component<T>(r, e);
+            };
 
-        template <typename T> void register_component(void) {
-            components.emplace(
-                type_hash<T>(),
-                per_component_data {
-                    .set_component    = detail::set_component<T>,
-                    .remove_component = detail::remove_component<T>,
-                    .get_component    = detail::get_component<T>
+            set_component_checked = [] (instance_id remote, registry& r, entt::entity e, std::span<const u8> v) {
+                auto result = registry_callbacks::set_component_checked<T>(remote, r, e, serialize::from_bytes<T>(v));
+
+                if (result.first == change_result::FORBIDDEN) {
+                    return std::pair { result.first, serialize::to_bytes(*result.second) };
+                } else {
+                    return std::pair { result.first, std::vector<u8>{} };
                 }
-            );
+            };
+
+            remove_component_checked = [] (instance_id remote, registry& r, entt::entity e) {
+                auto result = registry_callbacks::remove_component_checked<T>(remote, r, e);
+
+                if (result.first == change_result::FORBIDDEN) {
+                    return std::pair { result.first, serialize::to_bytes(*result.second) };
+                } else {
+                    return std::pair { result.first, std::vector<u8>{} };
+                }
+            };
         }
 
+        std::string name;
+        fn<void, registry&, entt::entity, std::span<const u8>> set_component;
+        fn<std::vector<u8>, registry&, entt::entity> get_component;
+        fn<void, registry&, entt::entity> remove_component;
 
-        const per_component_data& get_component_data(u64 type) const {
-            return components.at(type);
-        }
-    private:
-        hash_map<u64, per_component_data> components;
+        // Note: _checked methods only return the old value of the component if the change result is forbidden.
+        // This is because this is the only situation where the old value has to be sent back to the remote.
+        fn<std::pair<change_result, std::vector<u8>>, instance_id, registry&, entt::entity, std::span<const u8>> set_component_checked;
+        fn<std::pair<change_result, std::vector<u8>>, instance_id, registry&, entt::entity> remove_component_checked;
     };
 
 
-    namespace detail {
-        template <typename Component> requires (!std::is_reference_v<Component>)
-        struct component_registry_helper {
-            const static inline meta::null_type value = [] {
-                constexpr static bool tracked =
-                    serialize::is_serializable<Component> &&
-                    !requires { typename Component::non_syncable_tag; };
+    class component_registry : public type_registry<
+        component_registry_data,
+        /* Skip if: */ [] <typename T> (meta::type_wrapper<T>) { return !serialize::is_serializable<T>; }
+    > {
+    public:
+        static component_registry& instance(void);
+    };
 
-                if constexpr (tracked) {
-                    component_registry::instance().template register_component<Component>();
-                }
 
-                return meta::null_type { };
-            } ();
-        };
-    }
-
-    #define VE_REGISTER_COMPONENT_T(T) \
-    [[maybe_unused]] const auto BOOST_PP_CAT(ve_impl_hidden_var_, __LINE__) = ve::detail::component_registry_helper<T>::value;
+    ve_impl_make_autoregister_helper(autoregister_component, component_registry::instance());
 }

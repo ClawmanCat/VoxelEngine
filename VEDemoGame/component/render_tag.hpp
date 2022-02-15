@@ -1,9 +1,7 @@
 #pragma once
 
-#include <VoxelEngine/core/core.hpp>
-
 
 namespace demo_game {
-    struct render_tag_simple { };
-    struct render_tag_pbr    { };
+    struct simple_render_tag {};
+    struct pbr_render_tag {};
 }

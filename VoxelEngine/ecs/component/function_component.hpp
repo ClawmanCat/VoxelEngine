@@ -12,6 +12,9 @@ namespace ve {
 
 
     template <typename Ret, typename... Args> struct function_component {
+        using non_synchronizable_tag = void;
+
+
         fn<Ret, Args...> value = nullptr;
 
 

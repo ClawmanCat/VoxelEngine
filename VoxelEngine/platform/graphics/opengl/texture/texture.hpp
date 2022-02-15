@@ -2,6 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/io/image.hpp>
+#include <VoxelEngine/utility/thread/assert_main_thread.hpp>
 #include <VoxelEngine/platform/graphics/opengl/context/api_context.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
 
@@ -29,6 +30,8 @@ namespace ve::gfx::opengl {
             mipmap_levels(mipmap_levels),
             filter(filter)
         {
+            assert_main_thread();
+
             glGenTextures(1, &id);
             VE_ASSERT(id, "Failed to create OpenGL texture.");
 
@@ -56,6 +59,7 @@ namespace ve::gfx::opengl {
 
 
         ~texture(void) {
+            assert_main_thread();
             if (id) glDeleteTextures(1, &id);
         }
 
@@ -64,12 +68,16 @@ namespace ve::gfx::opengl {
 
 
         void set_parameter(GLenum name, GLint value) {
+            assert_main_thread();
+
             glBindTexture(type, id);
             glTexParameteri(type, name, value);
         }
 
 
         void write(const image_rgba8& img, const vec2ui& where = vec2ui { 0 }) {
+            assert_main_thread();
+
             VE_ASSERT(type == GL_TEXTURE_2D, "Currently, texture::write only supports 2D images.");
             VE_ASSERT(format == texture_format_RGBA8, "Currently, texture::write only supports RGBA8 images.");
 
@@ -90,6 +98,8 @@ namespace ve::gfx::opengl {
 
 
         image_rgba8 read(void) const {
+            assert_main_thread();
+
             VE_ASSERT(type == GL_TEXTURE_2D, "Currently, texture::read only supports 2D images.");
             VE_ASSERT(format == texture_format_RGBA8, "Currently, texture::read only supports RGBA8 images.");
 
@@ -105,6 +115,7 @@ namespace ve::gfx::opengl {
 
 
         void bind(void) const {
+            assert_main_thread();
             glBindTexture(type, id);
         }
 

@@ -8,7 +8,7 @@
 #include <boost/pfr.hpp>
 #include <ctti/type_id.hpp>
 #include <glm/gtc/matrix_access.hpp>
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
 #include <sstream>
 
@@ -29,6 +29,22 @@ namespace ve {
             result[offset + i] = chars[(value >> j) & 0x0F];
         }
         
+        if (prepend_zero_x) result[1] = 'x';
+        return result;
+    }
+
+
+    inline std::string to_hex_string(std::span<const u8> value, bool prepend_zero_x = true) {
+        constexpr char chars[] = "0123456789ABCDEF";
+
+        std::size_t offset = 2 * prepend_zero_x;
+        std::string result(2 * value.size() + offset, '0');
+
+        for (std::size_t i = 0; i < value.size(); ++i) {
+            result[2 * i + 0 + offset] = chars[(value[i] & 0xF0) >> 4];
+            result[2 * i + 1 + offset] = chars[(value[i] & 0x0F) >> 0];
+        }
+
         if (prepend_zero_x) result[1] = 'x';
         return result;
     }

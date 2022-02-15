@@ -35,7 +35,7 @@ namespace ve::gfx {
             const image_rgba8* img = src.require();
             raii_function release_img { no_op, [&] { src.relinquish(img); } };
 
-            return load_to_common_texture(views::single(std::pair { name, img }))[0];
+            return load_to_common_texture(views::single(std::pair { name, img }), lock)[0];
         }
 
 
@@ -53,7 +53,7 @@ namespace ve::gfx {
             } };
 
             acquired = sources | views::indirect | views::transform(&texture_source::require) | ranges::to<std::vector>;
-            return load_to_common_texture(views::zip(names, acquired));
+            return load_to_common_texture(views::zip(names, acquired), lock);
         }
 
 
@@ -96,6 +96,18 @@ namespace ve::gfx {
     private:
         shared<Atlas> atlas;
         hash_map<std::string, subtexture> subtextures;
+
+
+        // Note on thread safety:
+        // Due to the requirement of this class being threadsafe, the addition of subtextures to the atlas must occur as a single transaction,
+        // or it would be possible for the same texture to be inserted multiple times.
+        // The issue with this is that we can't do a locked wait for the main thread (required to do graphics API calls), since the main
+        // thread may itself also access the texture manager and thus try to acquire the mutex.
+        // The solution is to reserve storage in the atlas, but not fill it yet until the main thread gets around to it.
+        // This means that subtextures returned by this class' method might not yet be valid, which isn't really an issue, since it takes the
+        // main thread to do anything graphics related anyway.
+        // Worst case scenario a broken texture is observed for a single frame until the main thread patches it.
+        // TODO: This is not ideal and a better implementation should be found later.
         mutable std::shared_mutex mtx;
 
 
@@ -164,21 +176,28 @@ namespace ve::gfx {
         }
 
 
-        // Loads the given images to a common atlas texture.
+        // Loads the given images to a common atlas texture. Images should be a range of pairs [name : stringlike, img : image_rgba8*]
         // Does not perform checks for whether or not images already exist.
-        // Note: calling method is responsible for acquiring lock.
-        std::vector<subtexture> load_to_common_texture(const auto& images) {
-            std::vector<subtexture> result;
+        // Note: calling method is responsible for acquiring lock. Method will release it while waiting to prevent deadlock.
+        std::vector<subtexture> load_to_common_texture(const auto& images, auto& lock) {
+            std::vector<subtexture> result = atlas->prepare_storage_for_all(
+                images | views::values | views::indirect | views::transform(&image_rgba8::size) | ranges::to<std::vector>
+            );
+
+            for (const auto& [name, tex] : views::zip(images | views::keys, result)) {
+                subtextures.emplace(std::string { name }, tex);
+            }
+
+            lock.unlock();
+
 
             // Actual graphics API actions are performed on the main thread since some APIs (notably OpenGL)
             // don't support calls from different threads, even if they are not ran in parallel.
             thread_pool::instance().invoke_on_main_or_run([&] {
-                result = atlas->store_all(images | views::values | ranges::to<std::vector>);
-
-                for (const auto& [name, tex] : views::zip(images | views::keys, result)) {
-                    subtextures.emplace(std::string { name }, tex);
-                }
+                std::unique_lock lock { mtx };
+                atlas->store_all_at(images | views::values | ranges::to<std::vector>, result);
             });
+
 
             return result;
         }

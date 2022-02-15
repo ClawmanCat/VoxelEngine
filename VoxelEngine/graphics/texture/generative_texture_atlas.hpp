@@ -35,36 +35,28 @@ namespace ve::gfx {
         }
 
 
-        subtexture store(const image_rgba8& img) {
-            // Attempt inserting into an existing atlas.
-            for (auto& [i, atlas] : atlases | views::enumerate) {
-                try {
-                    return set_bindings(atlas->store(img), (u8) i);
-                } catch (const atlas_full_error &e) {}
-            }
+        subtexture prepare_storage(const vec2ui& size) {
+            return invoke_until_success([&] (auto& atlas, u8 i) {
+                auto st = atlas->prepare_storage(size);
+                st.binding = i;
 
-            // Insert into a new atlas. If the insert still fails, the texture is just too big.
-            atlases.push_back(constructor());
-            return set_bindings(atlases.back()->store(img), u8(atlases.size() - 1));
+                return st;
+            });
         }
 
 
-        void remove(const subtexture& st) {
-            return atlases.at(st.binding)->remove(st);
+        void store_at(const image_rgba8& img, subtexture& where) {
+            atlases.at(where.binding)->store_at(img, where);
         }
 
 
-        std::vector<subtexture> store_all(const std::vector<const image_rgba8*>& images) {
-            // Attempt inserting into an existing atlas.
-            for (auto [i, atlas] : atlases | views::enumerate) {
-                try {
-                    return set_bindings(atlas->store_all(images), (u8) i);
-                } catch (const atlas_full_error &e) {}
-            }
+        std::vector<subtexture> prepare_storage_for_all(const std::vector<vec2ui>& sizes) {
+            return invoke_until_success([&] (auto& atlas, u8 i) {
+                auto sts = atlas->prepare_storage_for_all(sizes);
+                for (auto& st : sts) st.binding = i;
 
-            // Insert into a new atlas. If the insert still fails, the textures are just too big.
-            atlases.push_back(constructor());
-            return set_bindings(atlases.back()->store_all(images), u8(atlases.size() - 1));
+                return sts;
+            });
         }
 
 
@@ -75,14 +67,20 @@ namespace ve::gfx {
         std::function<unique<Atlas>(void)> constructor;
 
 
-        static std::vector<subtexture> set_bindings(std::vector<subtexture> src, u8 binding) {
-            for (auto& st : src) st.binding = binding;
-            return src;
-        }
+        // Invokes the provided function as fn(atlas, index) for every atlas until it succeeds without throwing.
+        auto invoke_until_success(auto fn) {
+            for (auto [i, atlas] : atlases | views::enumerate) {
+                try {
+                    return std::invoke(fn, atlas, (u8) i);
+                } catch (const atlas_full_error &e) {}
+            }
 
-        static subtexture set_bindings(subtexture src, u8 binding) {
-            src.binding = binding;
-            return src;
+            if (atlases.size() >= max_value<u8>) {
+                throw atlas_full_error { "Generative atlas cannot generate more atlases: u8 max value exceeded." };
+            }
+
+            auto& atlas = atlases.emplace_back(constructor());
+            return std::invoke(fn, atlas, (u8) (atlases.size() - 1));
         }
     };
 

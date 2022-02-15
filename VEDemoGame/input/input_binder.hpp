@@ -8,6 +8,7 @@ namespace demo_game {
     static inline ve::input_binder controls { };
 
 
+    // Initializes the controls object at program startup.
     static inline ve::meta::null_type initialize_controls = [] {
         using motion_t = ve::motion_input::key_t::motion_type_t;
 

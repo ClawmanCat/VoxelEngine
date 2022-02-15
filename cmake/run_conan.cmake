@@ -34,7 +34,7 @@ function(run_conan profile)
 
     # Add remotes from file.
     function(conan_add_remote name url)
-        conan_command(remote add ${name} ${url})
+        conan_command(remote add ${name} ${url} --force)
     endfunction()
 
     parse_kv_file("${CMAKE_SOURCE_DIR}/dependencies/conanremotes.txt" conan_add_remote)

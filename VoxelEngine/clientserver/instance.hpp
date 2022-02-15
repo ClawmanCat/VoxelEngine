@@ -10,7 +10,7 @@
 #include <VoxelEngine/event/subscribe_only_view.hpp>
 #include <VoxelEngine/utility/arbitrary_storage.hpp>
 
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
 
 namespace ve {
@@ -23,6 +23,7 @@ namespace ve {
     class instance_registry {
     public:
         static instance_registry& instance(void);
+        ~instance_registry(void);
 
 
         void update_all(nanoseconds dt);
@@ -44,17 +45,18 @@ namespace ve {
 
     // Base class for client & server.
     // Can also be used as unified client / server instance for scenarios where multiplayer support is not required.
-    class instance :
-        public registry,
-        public arbitrary_storage
-    {
+    class instance : public registry, public arbitrary_storage {
     public:
-        instance(void) : id(random_uuid()) {
+        enum instance_type { CLIENT, SERVER, UNIFIED };
+
+
+        instance(instance_type type = UNIFIED) : id(random_uuid()), type(type) {
             instance_registry::instance().add_instance(this);
+            get_validator().allow_by_default(change_result::ALLOWED);
         }
 
         virtual ~instance(void) {
-            instance_registry::instance().remove_instance(this);
+            if (registry_alive) instance_registry::instance().remove_instance(this);
         }
 
         ve_immovable(instance);
@@ -63,6 +65,7 @@ namespace ve {
         void update(nanoseconds dt) {
             VE_PROFILE_FN();
 
+            last_dt = dt;
             dispatch_event(instance_pre_tick_event { dt, tick_count });
 
             registry::update(dt);
@@ -83,17 +86,33 @@ namespace ve {
         }
 
 
+        virtual shared<message_handler> get_connection(instance_id remote) {
+            throw std::runtime_error { "Cannot get connection from unified instance." };
+        }
+
+
         VE_GET_MREF(mtr);
         VE_GET_CREF(id);
+        VE_GET_VAL(type);
         VE_GET_VAL(tick_count);
+        VE_GET_VAL(last_dt);
     protected:
         // Prevent overriding the main update method so we can force the dispatching of the events to occur
         // before and after all other update calls.
         virtual void update(nanoseconds dt, overridable_function_tag) {}
 
     private:
+        // Instances are typically declared as globals or static class members, so we can't control if it's the instance
+        // or the registry that's destroyed first. So just set a flag in the instance if the registry is gone.
+        // TODO: Find a cleaner way to do this.
+        friend class instance_registry;
+        bool registry_alive = true;
+
         message_type_registry mtr;
         instance_id id;
+        instance_type type;
+
         u64 tick_count = 0;
+        nanoseconds last_dt = 1ns;
     };
 }
