@@ -2,15 +2,24 @@
 
 #include <VoxelEngine/core/core.hpp>
 
-#include <array>
-
 
 namespace ve {
-    enum class priority : i16 {
-        LOWEST  = -10'000,
-        LOW     = -1'000,
-        NORMAL  = +0,
-        HIGH    = +1'000,
-        HIGHEST = +10'000
+    // Note: any u16 is a valid priority,
+    // these names exist purely to simplify ordering when only a few priority levels are needed.
+    namespace priority {
+        constexpr inline u16 LOWEST  = -10'000;
+        constexpr inline u16 LOW     = -1'000;
+        constexpr inline u16 NORMAL  = +0;
+        constexpr inline u16 HIGH    = +1'000;
+        constexpr inline u16 HIGHEST = +10'000;
+    }
+
+
+    constexpr inline std::array priorities = {
+        priority::LOWEST,
+        priority::LOW,
+        priority::NORMAL,
+        priority::HIGH,
+        priority::HIGHEST
     };
 }

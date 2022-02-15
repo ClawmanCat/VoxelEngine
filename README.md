@@ -6,16 +6,19 @@ A game engine for voxel games, written in C++.
 On Windows, MSVC is required to compile the dependencies, since many libraries incorrectly assume 
 either `Windows = MSVC` or `Clang = Linux / OSX`. This is handled automatically by the Conan profile, 
 but you must have MSVC installed.  
-For the engine itself, any compiler (With C++20 support) should work in theory, but only Clang has been tested currently,
+For the engine itself, any compiler (With C++20 support) should work in theory, but only Clang (14.0.0) has been tested currently,
 and other compilers may lack the required C++20 features.  
 To install the dependencies, you will need Conan (`pip install conan`). 
 It is recommended to use Ninja as the generator, as other generators have not been tested.
+Call CMake with `-DVE_GRAPHICS_API=[opengl|vulkan]` to select the graphics API.  
+You must have the Vulkan SDK installed before building the engine. 
+The build system will automatically find your SDK install using the designated environment variables.
 
 To build the project (with Ninja):
 ```
 mkdir out
 cd out
-cmake -DCMAKE_BUILD_TYPE=[DEBUG|RELEASE] -G Ninja -DCMAKE_C_COMPILER=[clang++|clang-cl] -DCMAKE_CXX_COMPILER=[clang++|clang-cl] ../
+cmake -DCMAKE_BUILD_TYPE=[DEBUG|RELEASE] -G Ninja -DVE_GRAPHICS_API=opengl -DCMAKE_C_COMPILER=[clang++|clang-cl] -DCMAKE_CXX_COMPILER=[clang++|clang-cl] ../
 cmake --build ./[debug|release] --target all
 ```
 (or use an IDE like a normal person.)

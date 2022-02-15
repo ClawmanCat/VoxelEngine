@@ -1,62 +1,84 @@
-# Takes list of dependencies as variadic argument.
-macro(create_target target_name target_type major minor patch)
+# Creates a target in the current directory with the given name and type (EXECUTABLE, INTERFACE, etc.).
+# A list of targets can be provided as variadic parameters to pass a list of dependencies for the target.
+function(create_target name type major minor patch)
+    create_target_filtered(${name} ${type} ${major} ${minor} ${patch} "__NONEXISTENT_FILENAME__" ${ARGN})
+endfunction()
+
+
+# Equivalent to the above function, but a regex filter can be provided to prevent
+# the inclusion of certain source files from the target
+function(create_target_filtered name type major minor patch filter)
+    include(utility)
+
+
     # Get source files for target.
-    file(GLOB_RECURSE sources CONFIGURE DEPENDS LIST_DIRECTORIES false "*.hpp" "*.cpp")
-    list(FILTER sources EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}\\/tests\\/[0-z_]+\\.[ch]pp")
+    file(GLOB_RECURSE sources CONFIGURE DEPENDS LIST_DIRECTORIES false "*.cpp" "*.hpp")
+    list(FILTER sources EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}\\/tests\\/.*")
+    list(FILTER sources EXCLUDE REGEX ${filter})
+
 
     # Create target of correct type and add sources.
-    if (${target_type} STREQUAL "EXECUTABLE")
-        add_executable(${target_name} ${sources})
-    elseif (${target_type} STREQUAL "INTERFACE")
-        add_library(${target_name} ${target_type})
+    if (${type} STREQUAL "EXECUTABLE")
+        add_executable(${name} ${sources})
+    elseif (${type} STREQUAL "INTERFACE")
+        add_library(${name} ${type})
         target_sources(${sources})
     else ()
-        add_library(${target_name} ${target_type} ${sources})
+        add_library(${name} ${type} ${sources})
     endif()
+
 
     # Add dependencies.
-    target_link_libraries(${target_name} ${ARGN})
-    # Mute warnings from dependencies.
-    foreach(dependency IN ITEMS ${ARGN})
-        if (${dependency} MATCHES "[PUBLIC|PRIVATE]")
-            continue()
+    target_link_libraries_system(${name} ${ARGN})
+
+
+    # Specifying the linker language manually is required for header only libraries,
+    # since the language cannot be deduced from the file extension.
+    set_target_properties(${name} PROPERTIES LINKER_LANGUAGE CXX)
+
+
+    # Add preprocessor definitions for the target version.
+    string(TOUPPER ${name} name_capitalized)
+    target_compile_definitions(${name} PUBLIC "${name_capitalized}_VERSION_MAJOR=${major}")
+    target_compile_definitions(${name} PUBLIC "${name_capitalized}_VERSION_MINOR=${minor}")
+    target_compile_definitions(${name} PUBLIC "${name_capitalized}_VERSION_PATCH=${patch}")
+
+
+    # A target may contain a test folder. Each cpp file in such a folder should be turned into a new target.
+    # (But only if ENABLE_TESTING is set.)
+    if (${ENABLE_TESTING})
+        # Tests cannot have nested tests. Only add tests if the current target is itself not a test.
+        # (Note: test names are guaranteed to start with test_)
+        if (NOT ${name} MATCHES "test_.+" AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+            # Get test files for target.
+            file(GLOB_RECURSE tests CONFIGURE_DEPENDS LIST_DIRECTORIES false "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
+
+
+            # Create a test for each source file.
+            foreach(test IN ITEMS ${tests})
+                get_filename_component(test_name ${test} NAME_WE)
+                message(STATUS "Creating test ${test_name}.")
+
+                # Create executable
+                add_executable(test_${test_name} ${test})
+                add_test(
+                    NAME ${test_name}
+                    COMMAND test_${test_name}
+                    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+                )
+
+                # Add dependencies.
+                target_link_libraries(test_${test_name} PUBLIC ${name})
+
+                # Prevent linker language errors on header only libraries.
+                set_target_properties(test_${test_name} PROPERTIES LINKER_LANGUAGE CXX)
+
+                if (${name}_AdditionalTestDependencies)
+                    foreach(test_dependency IN ITEMS ${${name}_AdditionalTestDependencies})
+                        target_link_libraries(test_${test_name} PUBLIC ${test_dependency})
+                    endforeach()
+                endif()
+            endforeach()
         endif()
-
-        get_target_property(dependency_includes ${dependency} INCLUDE_DIRECTORIES)
-        target_include_directories(${target_name} SYSTEM ${dependency_includes})
-    endforeach()
-    # Prevent linker language errors on header only libraries.
-    set_target_properties(${target_name} PROPERTIES LINKER_LANGUAGE CXX)
-
-    # Set version as preprocessor definitions.
-    string(TOUPPER ${target_name} name_capitalized)
-    target_compile_definitions(${target_name} PUBLIC "${name_capitalized}_VERSION_MAJOR=${major}")
-    target_compile_definitions(${target_name} PUBLIC "${name_capitalized}_VERSION_MINOR=${minor}")
-    target_compile_definitions(${target_name} PUBLIC "${name_capitalized}_VERSION_PATCH=${patch}")
-
-    # Add tests if there is a test folder for this target and testing is enabled.
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests" AND ${ENABLE_TESTING})
-        set(STOP_UNUSED_VAR_WARNING ${ENABLE_TESTING})
-
-        include(CTest)
-        enable_testing()
-
-        # Get test files for target.
-        file(GLOB_RECURSE tests CONFIGURE_DEPENDS LIST_DIRECTORIES false "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
-
-        # Create a test for each source file.
-        foreach(test IN ITEMS ${tests})
-            get_filename_component(test_name ${test} NAME_WE)
-
-            add_executable("test_${test_name}" ${test})
-            add_test(NAME "test_${test_name}" COMMAND "test_${test_name}")
-
-            target_include_directories("test_${test_name}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tests")
-            set_target_properties("test_${test_name}" PROPERTIES LINKER_LANGUAGE CXX)
-
-            # Make the test have the target as a dependency.
-            target_link_libraries("test_${test_name}" PUBLIC ${target_name})
-            target_compile_definitions("test_${test_name}" PUBLIC ${name_capitalized}_TESTING)
-        endforeach()
     endif()
-endmacro()
+endfunction()

@@ -1,81 +1,92 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/event/delayed_event_dispatcher.hpp>
+#include <VoxelEngine/event/simple_event_dispatcher.hpp>
+#include <VoxelEngine/event/subscribe_only_view.hpp>
+#include <VoxelEngine/graphics/presentation/window.hpp>
 #include <VoxelEngine/input/keyboard.hpp>
 #include <VoxelEngine/input/mouse.hpp>
-#include <VoxelEngine/input/input_event.hpp>
+#include <VoxelEngine/input/window.hpp>
 
-
-#define ve_register_input_event(type, event_name, ...)                  \
-ve::input_manager::instance()                                           \
-    .get_dispatcher()                                                   \
-    .add_handler<type>(                                                 \
-        (ve::event_handler) [](const ve::event& ve_impl_event_var) {    \
-            const type& event_name = (const type&) ve_impl_event_var;   \
-            __VA_ARGS__;                                                \
-        }                                                               \
-    );
+#include <SDL_keyboard.h>
+#include <SDL_mouse.h>
+#include <SDL_events.h>
 
 
 namespace ve {
-    class input_manager {
+    // TODO: Support joystick and controller input events.
+    // TODO: Handle double clicking.
+    class input_manager : public subscribe_only_view<simple_event_dispatcher<false>> {
     public:
-        // Represents a point in the past from which the mouse state can be obtained.
-        enum class recorded_time {
-            CURRENT, PREVIOUS,
-            MOUSE_LAST_STOPPED, MOUSE_LAST_MOVING,
-            WHEEL_LAST_STOPPED, WHEEL_LAST_MOVING
+        using custom_event_handler = std::function<void(const SDL_Event&)>;
+
+        struct custom_handler_handle {
+            SDL_EventType type;
+            typename std::list<custom_event_handler>::const_iterator it;
         };
-        
-        
-        [[nodiscard]] static input_manager& instance(void);
-        
-        [[nodiscard]] bool is_pressed(SDL_KeyCode key) const;
-        [[nodiscard]] bool is_pressed(mouse_button button) const;
-        
-        [[nodiscard]] const key_state& get_state(SDL_Keycode key) const;
-        [[nodiscard]] const mouse_state& get_state(recorded_time when = recorded_time::CURRENT) const;
-        
-        [[nodiscard]] bool is_mouse_moving(void) const;
-        [[nodiscard]] vec2i tick_mouse_delta(void) const;       // Mouse motion during the last tick.
-        [[nodiscard]] vec2i total_mouse_delta(void) const;      // Mouse motion since the mouse began moving.
-    
-        [[nodiscard]] bool is_wheel_moving(void) const;
-        [[nodiscard]] i32 tick_wheel_delta(void) const;         // Wheel motion during the last tick.
-        [[nodiscard]] i32 total_wheel_delta(void) const;        // Wheel motion since the mouse began moving.
-        
-        void set_mouse_capture(bool enabled);
-        
-        VE_GET_MREF(dispatcher);
-    private:
-        struct mouse_state_history {
-            mouse_state last_stopped_state, last_moving_state;
-            u64 last_stopped_tick = 0, last_moving_tick = 0;
-        };
-        
-        
-        noncancellable_delayed_event_dispatcher dispatcher;
-        
-        // Mutable since getting the state may require creating it first.
-        mutable hash_map<SDL_Keycode, key_state> keyboard_state;
-        
-        mouse_state mouse_current_state, mouse_last_state;
-        mouse_state_history mouse_history;
-        mouse_state_history mousewheel_history;
-        
-        small_flat_map<u32, vec2ui> window_sizes;
-        small_flat_map<u32, vec2ui> window_positions;
-    
-    
-        friend class engine;
-    
-        input_manager(void) = default;
-        
+
+
+        static input_manager& instance(void);
+
+
         void update(u64 tick);
-        
-        template <bool is_down> void handle_keyboard_change(SDL_Event& e, u64 tick);
-        template <bool is_wheel> void handle_mouse_motion(u64 tick);
-        void handle_mouse_buttons(u64 tick);
+
+
+        // Provide some way of adding external handlers, since the input manager will clear the event queue,
+        // even for unhandled events.
+        custom_handler_handle add_custom_handler(SDL_EventType type, custom_event_handler&& handler);
+        void remove_custom_handler(custom_handler_handle handle);
+
+
+        // Provide some way to create fake events. This is required e.g. for handling window_create events,
+        // as SDL provides no event for this.
+        template <typename Event> void trigger_event(const Event& event) {
+            dispatch_event(event);
+        }
+
+
+        const key_state& get_key_state(SDL_Keycode key) const;
+        bool is_key_pressed(SDL_Keycode key) const;
+
+        const mouse_button_state& get_mouse_button_state(mouse_button button) const;
+        bool is_mouse_button_pressed(mouse_button button) const;
+
+        keymods get_current_keymods(void) const;
+
+        void set_mouse_capture(bool enabled);
+        bool has_mouse_capture(void) const;
+
+        VE_GET_CREF(current_mouse_move);
+        VE_GET_CREF(current_mouse_drag);
+        VE_GET_CREF(current_mouse_wheel_move);
+        VE_GET_CREF(current_mouse_state);
+        VE_GET_CREF(prev_mouse_state);
+    private:
+        // Mutable since get_key_state should work, even on keys that haven't had any events yet.
+        mutable hash_map<SDL_Keycode, key_state> keyboard_state;
+
+        struct ongoing_mouse_event { mouse_state begin_state; };
+        std::optional<ongoing_mouse_event> current_mouse_move;
+        std::optional<ongoing_mouse_event> current_mouse_wheel_move;
+        std::array<std::optional<ongoing_mouse_event>, magic_enum::enum_count<mouse_button>()> current_mouse_drag;
+
+        mouse_state current_mouse_state, prev_mouse_state;
+
+        struct per_window_data { vec2ui size; gfx::window::window_location location; };
+        vec_map<SDL_Window*, per_window_data> window_data;
+
+
+        hash_map<std::underlying_type_t<SDL_EventType>, std::list<custom_event_handler>> custom_handlers;
+
+
+        key_state& get_mutable_key_state(SDL_Keycode key) const;
+        mouse_button_state& get_mutable_mouse_button_state(mouse_button button);
+
+        void handle_key_event         (SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now);
+        void handle_mouse_button_event(SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now);
+        void handle_mouse_move_event  (SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now);
+        void handle_mouse_wheel_event (SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now);
+        void handle_window_event      (SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now);
+
     };
 }

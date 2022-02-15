@@ -1,25 +1,33 @@
 [generators]
 cmake
 
+
 [requires]
-boost/1.75.0
+boost/1.77.0
 abseil/20200923.3
 magic_enum/0.6.6
-sdl2/2.0.12@bincrafters/stable
-glm/0.9.9.8
-glew/2.1.0
-ctti/0.0.1@manu343726/testing
-lodepng/cci.20200615
 ctre/3.3.2
-entt/3.6.0
-tl-optional/1.0.0
-tl-expected/1.0.0
+xxhash/0.8.0
+zlib/1.2.11
+entt/0.0.2@clawmancat/stable
+fastnoise2/1.0.0@clawmancat/stable
+optick/1.0.0@clawmancat/stable
 range-v3/0.11.0
+glm/0.9.9.8
+stb/20200203
+ctti/0.0.1@clawmancat/stable
+sdl2/2.0.12@clawmancat/stable
+spirv-cross/20210115
+shaderc/2021.1
+vulkan-sdk/1.0.0@clawmancat/stable
+glew/2.2.0
+
 
 [options]
 boost:header_only=True
 sdl2:iconv=False
 glew:shared=True
+
 
 [imports]
 bin, *.dll -> ./bin
@@ -27,4 +35,4 @@ lib, *.dll -> ./bin
 bin, *.dylib -> ./bin
 lib, *.dylib -> ./bin
 bin, *.so -> ./bin
-lib, *.so -> ./lib
+lib, *.so -> ./bin

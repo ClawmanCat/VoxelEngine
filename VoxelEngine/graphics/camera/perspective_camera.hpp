@@ -1,171 +1,124 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/container/cached.hpp>
-#include <VoxelEngine/utility/functional.hpp>
-#include <VoxelEngine/utility/math.hpp>
+#include <VoxelEngine/graphics/camera/camera.hpp>
 #include <VoxelEngine/utility/direction.hpp>
-
-#include <boost/preprocessor.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/rotate_vector.hpp>
-
-#include <cmath>
+#include <VoxelEngine/utility/cache.hpp>
+#include <VoxelEngine/utility/invalidatable_transform.hpp>
 
 
-#define VE_IMPL_INVALIDATE(Rep, Data, Elem) Elem.invalidate();
+#define ve_impl_cam_mutator(name, ...) \
+ve_impl_matrix_mutator(name, [](auto& mat) { mat.invalidate(); }, __VA_ARGS__)
 
-#define VE_GET_SET_CACHED_TF(fn_name, member, tf, ...)              \
-[[nodiscard]] auto get_##fn_name(void) const { return member; }     \
-                                                                    \
-void set_##fn_name(auto&& val) {                                    \
-    member = tf(std::forward<decltype(val)>(val));                  \
-                                                                    \
-    BOOST_PP_SEQ_FOR_EACH(                                          \
-        VE_IMPL_INVALIDATE,                                         \
-        _,                                                          \
-        BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)                       \
-    );                                                              \
-}
-
-#define VE_GET_SET_CACHED(fn_name, member, ...)                     \
-VE_GET_SET_CACHED_TF(                                               \
-    fn_name,                                                        \
-    member,                                                         \
-    [](auto&& elem) -> decltype(auto) {                             \
-        return std::forward<decltype(elem)>(elem);                  \
-    },                                                              \
-    __VA_ARGS__                                                     \
-)
+#define ve_impl_cam_mutator_tf(name, field, op, ...) \
+ve_impl_matrix_mutator_tf(name, [](auto& mat) { mat.invalidate(); }, field, op, __VA_ARGS__)
 
 
-namespace ve::graphics {
-    class perspective_camera {
+namespace ve::gfx {
+    class perspective_camera : public camera<perspective_camera> {
     public:
-        perspective_camera(
-            float fov = radians(90.0f),
+        explicit perspective_camera(
+            float fov          = glm::radians(90.0f),
             float aspect_ratio = 1.0f,
-            float near = 0.001f,
-            vec3f position = { 0, 0, 0 },
-            vec3f rotation = { 0, 0, 0 },
-            vec3f scaling  = { 1, 1, 1 }
+            float near         = 0.01f,
+            vec3f position     = vec3f { 0 },
+            quatf rotation     = glm::identity<quatf>(),
+            vec3f scaling      = vec3f { 1 }
         ) :
-            fov(fov),
-            aspect_ratio(aspect_ratio),
-            near(near),
+            projection(&perspective_camera::update_projection, this),
+            view_projection(&perspective_camera::update_view_projection, this),
             position(position),
             rotation(rotation),
             scaling(scaling),
-            forwards(this, &perspective_camera::calculate_forwards),
-            right(this, &perspective_camera::calculate_right),
-            up(this, &perspective_camera::calculate_up),
-            perspective(this, &perspective_camera::calculate_perspective),
-            camera(this, &perspective_camera::calculate_camera)
+            fov(fov),
+            aspect_ratio(aspect_ratio),
+            near_plane(near)
         {}
-        
-        
-        
-        void look_at(const vec3f& where) {
-            auto delta = glm::normalize(where - position);
-    
-            set_pitch(asin(delta.y));
-            set_yaw(atan2(delta.x, delta.z));
+
+
+        ve_impl_cam_mutator(position,     view_projection);
+        ve_impl_cam_mutator(scaling,      view_projection);
+        ve_impl_cam_mutator(fov,          view_projection, projection);
+        ve_impl_cam_mutator(aspect_ratio, view_projection, projection);
+        ve_impl_cam_mutator(near_plane,   view_projection, projection);
+
+        ve_impl_cam_mutator_tf(move,   position, +=, view_projection);
+        ve_impl_cam_mutator_tf(scale,  scaling,  *=, view_projection);
+
+
+        void set_rotation(const quatf& quat) {
+            rotation = glm::normalize(quat);
+            view_projection.invalidate();
         }
-        
-        void move(const vec3f& delta) {
-            position += delta;
-            camera.invalidate();
+
+        void rotate(const quatf& quat) {
+            rotation = glm::normalize(rotation * quat);
+            view_projection.invalidate();
         }
-        
-        void rotate(const vec3f& delta) {
-            rotation = ve_vec_transform(x, fmodf(x, tau_f))(rotation + delta);
-            camera.invalidate();
-            forwards.invalidate();
-            right.invalidate();
-            up.invalidate();
+
+        void rotate(const vec3f& axis, float angle) {
+            rotate(glm::angleAxis(angle, axis));
         }
-        
-        void zoom(const vec3f& delta) {
-            scaling *= delta;
-            camera.invalidate();
+
+
+        quatf get_rotation(void) const {
+            return rotation;
         }
-    
-    
-        void set_aspect_ratio_for_size(const vec2ui& size) {
-            aspect_ratio = ((float) size.x) / size.y;
-            
-            camera.invalidate();
-            perspective.invalidate();
+
+        vec3f get_euler_angles(void) const {
+            return glm::eulerAngles(rotation);
         }
-        
-        
-        VE_GET_SET_CACHED(position, position, camera);
-        VE_GET_SET_CACHED(scale,    scaling,  camera);
-    
-        VE_GET_SET_CACHED(x, position[0], camera);
-        VE_GET_SET_CACHED(y, position[1], camera);
-        VE_GET_SET_CACHED(z, position[2], camera);
-        
-        VE_GET_SET_CACHED_TF(rotation, rotation, ve_vec_transform(x, fmodf(x, tau_f)), camera, forwards, right, up);
-        
-        VE_GET_SET_CACHED_TF(pitch, rotation[0], ve_tf_field(x, fmodf(x, tau_f)), camera, forwards, up);
-        VE_GET_SET_CACHED_TF(yaw,   rotation[1], ve_tf_field(x, fmodf(x, tau_f)), camera, forwards, right);
-        VE_GET_SET_CACHED_TF(roll,  rotation[2], ve_tf_field(x, fmodf(x, tau_f)), camera, right, up);
-    
-        VE_GET_SET_CACHED(fov,          fov,          camera, perspective);
-        VE_GET_SET_CACHED(aspect_ratio, aspect_ratio, camera, perspective);
-        VE_GET_SET_CACHED(near,         near,         camera, perspective);
-        
-        [[nodiscard]] vec3f get_forwards (void) const { return +(*forwards); }
-        [[nodiscard]] vec3f get_backwards(void) const { return -(*forwards); }
-        [[nodiscard]] vec3f get_right    (void) const { return +(*right);    }
-        [[nodiscard]] vec3f get_left     (void) const { return -(*right);    }
-        [[nodiscard]] vec3f get_up       (void) const { return +(*up);       }
-        [[nodiscard]] vec3f get_down     (void) const { return -(*up);       }
-        
-        [[nodiscard]] mat4f get_matrix(void) const { return camera; }
+
+
+        mat4f get_projection_matrix(void) const { return projection; }
+        mat4f get_view_projection_matrix(void) const { return view_projection; }
+
+
+        vec3f forward(void)  const { return vec3f { direction::FORWARD } * rotation;  }
+        vec3f backward(void) const { return vec3f { direction::BACKWARD } * rotation; }
+        vec3f up(void)       const { return vec3f { direction::UP } * rotation;       }
+        vec3f down(void)     const { return vec3f { direction::DOWN } * rotation;     }
+        vec3f left(void)     const { return vec3f { direction::LEFT } * rotation;     }
+        vec3f right(void)    const { return vec3f { direction::RIGHT } * rotation;    }
+
+
+        std::string get_uniform_name(void) const {
+            return "camera";
+        }
+
+
+        camera_uniform get_uniform_value(void) const {
+            return camera_uniform {
+                .matrix   = view_projection,
+                .position = position,
+                .near     = near_plane
+            };
+        }
     private:
-        mat4f calculate_perspective(void) const {
-            return glm::infinitePerspective(fov, aspect_ratio, near);
+        member_cache<const perspective_camera, mat4f> projection;
+        member_cache<const perspective_camera, mat4f> view_projection;
+
+        vec3f position;
+        quatf rotation;
+        vec3f scaling;
+
+        float fov;
+        float aspect_ratio;
+        float near_plane;
+
+
+        mat4f update_projection(void) const {
+            return glm::infinitePerspective(fov, aspect_ratio, near_plane);
         }
-    
-    
-        mat4f calculate_camera(void) const {
-            mat4f mat = glm::lookAt(position, position + *forwards, { 0, 1, 0 });
-            mat = glm::rotate(mat, get_roll(), *forwards);
-        
-            return (*perspective) * mat;
+
+
+        mat4f update_view_projection(void) const {
+            mat4f view = glm::identity<mat4f>();
+            view  = glm::scale(view, scaling);
+            view *= glm::mat4_cast(rotation);
+            view  = glm::translate(view, -position);
+
+            return (*projection) * view;
         }
-    
-    
-        vec3f calculate_forwards(void) const {
-            return glm::normalize(vec3f {
-                cos(get_pitch()) * sin(get_yaw()),
-                sin(get_pitch()),
-                cos(get_pitch()) * cos(get_yaw())
-            });
-        }
-    
-    
-        vec3f calculate_right(void) const {
-            return glm::rotate(
-                glm::normalize(glm::cross(*forwards, (vec3f) direction_vector(direction::UP))),
-                get_roll(),
-                *forwards
-            );
-        }
-    
-    
-        vec3f calculate_up(void) const {
-            return glm::normalize(glm::cross(*right, *forwards));
-        }
-        
-        
-        float fov, aspect_ratio, near;
-    
-        // Rotation is Yaw, Pitch, Roll.
-        vec3f position, rotation, scaling;
-        member_cache<vec3f, perspective_camera> forwards, right, up;
-        member_cache<mat4f, perspective_camera> perspective, camera;
     };
 }

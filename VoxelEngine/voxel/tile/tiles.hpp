@@ -2,13 +2,17 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/voxel/tile/tile.hpp>
-#include <VoxelEngine/voxel/tile/tile_registry.hpp>
-#include <VoxelEngine/utility/traits/null_type.hpp>
 
 
-namespace ve::tiles {
-    // A tile used to indicate the absence of a real tile.
-    const extern tile* TILE_VOID;
-    // A tile used to indicate that the tile is not loaded.
-    const extern tile* TILE_UNKNOWN;
+namespace ve::voxel::tiles {
+    // Indicates the tile is empty.
+    extern const tile* TILE_AIR;
+    // Indicates the tile data cannot be retrieved, e.g. when attempting to fetch an unloaded tile.
+    extern const tile* TILE_UNKNOWN;
+
+
+    namespace detail {
+        inline std::vector<unique<tile>> tile_storage = { };
+        extern const tile* create(const tile::arguments& args);
+    }
 }

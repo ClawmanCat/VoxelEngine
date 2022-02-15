@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adapted from: https://github.com/abseil/abseil-cpp/issues/666#issuecomment-616587875 -->
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+    <Type Name="absl::lts_2020_09_23::flat_hash_map&lt;*&gt;">
+        <DisplayString Condition="size_ == 0">empty</DisplayString>
+        <DisplayString>{{ size={size_} }}</DisplayString>
+        <Expand>
+            <Item Name="[size]" ExcludeView="simple">size_</Item>
+            <Item Name="[capacity]" ExcludeView="simple">capacity_</Item>
+            <ArrayItems>
+                <Size>size_</Size>
+                <ValuePointer>slots_</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+
+    <Type Name="absl::lts_2020_09_23::container_internal::map_slot_type&lt;*&gt;">
+        <DisplayString>{value.first}: {value.second}</DisplayString>
+        <Expand>
+            <Item Name="[key]" ExcludeView="simple">value.first</Item>
+            <Item Name="[value]" ExcludeView="simple">value.second</Item>
+        </Expand>
+    </Type>
+</AutoVisualizer>

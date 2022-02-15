@@ -1,7 +1,17 @@
 out/
-out_vs/
+
+tools/*
+!tools/README.md
+
 .idea/
 .vs/
 .vscode/
 
+old/
+OLD/
+wip/
+WIP/
 cmake.lock
+diff.txt
+
+!.gitignore

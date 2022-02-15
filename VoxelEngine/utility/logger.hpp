@@ -1,26 +1,22 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/traits/streamable.hpp>
 
-#include <string>
-#include <string_view>
 #include <ostream>
 #include <mutex>
 #include <utility>
 
 
 #ifdef VE_DEBUG
-    #define VE_LOG_DEBUG(...) ve::loggers::ve_logger.debug(__VA_ARGS__)
-    #define VE_LOG_INFO(...)  ve::loggers::ve_logger.info (__VA_ARGS__)
+    #define VE_LOG_DEBUG(...) ve::loggers::get_ve_logger().debug(__VA_ARGS__)
 #else
     #define VE_LOG_DEBUG(...) /* Not Enabled. */
-    #define VE_LOG_INFO(...)  /* Not Enabled. */
 #endif
 
-#define VE_LOG_WARN(...)  ve::loggers::ve_logger.warn (__VA_ARGS__)
-#define VE_LOG_ERROR(...) ve::loggers::ve_logger.error(__VA_ARGS__)
-#define VE_LOG_FATAL(...) ve::loggers::ve_logger.fatal(__VA_ARGS__)
+#define VE_LOG_INFO(...)  ve::loggers::get_ve_logger().info (__VA_ARGS__)
+#define VE_LOG_WARN(...)  ve::loggers::get_ve_logger().warn (__VA_ARGS__)
+#define VE_LOG_ERROR(...) ve::loggers::get_ve_logger().error(__VA_ARGS__)
+#define VE_LOG_FATAL(...) ve::loggers::get_ve_logger().fatal(__VA_ARGS__)
 
 
 namespace ve {
@@ -28,10 +24,11 @@ namespace ve {
     public:
         enum class level { DEBUG, INFO, WARNING, ERROR, FATAL };
         
-        logger(universal<std::string> auto&& name, level logger_level, meta::streamable auto&... targets) :
-            name(std::forward<std::string>(name)),
+        template <typename... Streams> requires (std::is_base_of_v<std::ostream, Streams> && ...)
+        logger(std::string name, level logger_level, Streams&... targets) :
+            name(std::move(name)),
             logger_level(logger_level),
-            targets{ std::ref(targets)... }
+            targets { std::ref(targets)... }
         {}
     
         void message(std::string_view msg, level msg_level = level::INFO, bool show_info = true);
@@ -57,11 +54,9 @@ namespace ve {
     
     
     namespace loggers {
-        namespace detail {
-            extern logger& get_ve_logger(void);
-        }
-        
         // Default logger used by the engine.
-        inline logger& ve_logger = detail::get_ve_logger();
+        extern logger& get_ve_logger(void);
+        // Logger used for debug callbacks from the graphics API.
+        extern logger& get_gfxapi_logger(void);
     }
 }

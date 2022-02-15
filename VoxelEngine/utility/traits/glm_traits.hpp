@@ -1,69 +1,45 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/constexpr_string_ops.hpp>
-
-#include <cstddef>
 
 
 namespace ve::meta {
     template <typename T> struct glm_traits {
-        using self_type = T;
-        using data_type = T;
-        
-        constexpr static std::size_t columns = 1;
-        constexpr static std::size_t rows    = 1;
-        constexpr static std::size_t size    = 1;
-        
-        constexpr static bool is_tensor = false;
-        constexpr static bool is_vector = false;
-        constexpr static bool is_matrix = false;
+        constexpr static inline bool is_scalar = std::is_scalar_v<T>;
+        constexpr static inline bool is_vector = false;
+        constexpr static inline bool is_matrix = false;
+        constexpr static inline bool is_glm    = false;
+
+        constexpr static inline std::size_t num_rows = 1;
+        constexpr static inline std::size_t num_cols = 1;
+
+        using value_type = T;
     };
-    
-    
-    template <typename T, std::size_t N> struct glm_traits<vec<N, T>> {
-        using self_type = vec<N, T>;
-        using data_type = T;
-        
-        constexpr static std::size_t columns = 1;
-        constexpr static std::size_t rows    = N;
-        constexpr static std::size_t size    = N;
-        
-        constexpr static bool is_tensor = true;
-        constexpr static bool is_vector = true;
-        constexpr static bool is_matrix = false;
+
+
+    template <typename T, std::size_t R> struct glm_traits<vec<R, T>> {
+        constexpr static inline bool is_scalar = false;
+        constexpr static inline bool is_vector = true;
+        constexpr static inline bool is_matrix = false;
+        constexpr static inline bool is_glm    = true;
+
+        constexpr static inline std::size_t num_rows = R;
+        constexpr static inline std::size_t num_cols = 1;
+
+        using value_type = T;
     };
-    
-    
-    template <typename T, std::size_t C, std::size_t R> struct glm_traits<mat<C, R, T>> {
-        using self_type = mat<C, R, T>;
-        using data_type = T;
-        
-        constexpr static std::size_t columns = C;
-        constexpr static std::size_t rows    = R;
-        constexpr static std::size_t size    = C * R;
-    
-        constexpr static bool is_tensor = true;
-        constexpr static bool is_vector = false;
-        constexpr static bool is_matrix = true;
-        
-        
-        // Checks if a string of the form 'AxB' (or just 'A' if A == B) matches the shape of the matrix.
-        consteval static bool is_shape(const char* shape) {
-            auto digit_char = [](u8 digit) constexpr { return '0' + digit; };
-            
-            char buffer[3] = { '0', 'x', '0' };
-            
-            buffer[0] = digit_char((u8) columns);
-            buffer[2] = digit_char((u8) rows);
-            if (constexpr_strlen(shape) == 1) buffer[1] = '\0';
-            
-            return constexpr_strcmp(shape, buffer);
-        }
+
+
+
+    template <typename T, std::size_t R, std::size_t C> struct glm_traits<mat<C, R, T>> {
+        constexpr static inline bool is_scalar = false;
+        constexpr static inline bool is_vector = false;
+        constexpr static inline bool is_matrix = true;
+        constexpr static inline bool is_glm    = true;
+
+        constexpr static inline std::size_t num_rows = R;
+        constexpr static inline std::size_t num_cols = C;
+
+        using value_type = T;
     };
-    
-    
-    template <typename T> concept vector = glm_traits<T>::is_vector;
-    template <typename T> concept matrix = glm_traits<T>::is_matrix;
-    template <typename T> concept tensor = glm_traits<T>::is_tensor;
 }

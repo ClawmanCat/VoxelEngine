@@ -1,373 +1,388 @@
 #include <VoxelEngine/input/input_manager.hpp>
-#include <VoxelEngine/utility/traits/pick.hpp>
-#include <VoxelEngine/utility/utility.hpp>
+#include <VoxelEngine/graphics/presentation/window_registry.hpp>
 
 
-#define VE_IMPL_EVENT_MAP(from, to) \
-case from: dispatcher.dispatch_event(set_event_window(e, to { })); break
+// Initialization of aggregate with members in base class.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
 
 
+// TODO: Refactor this file. There is a lot of code duplication for different event types.
 namespace ve {
-    template <typename Event>
-    static Event set_event_window(SDL_Event& sdl_event, Event&& e) {
-        auto* window = *graphics::window_registry::instance().get_window(sdl_event.window.windowID);
-        e.window = window;
-        
-        return std::forward<Event>(e);
-    }
-    
-    
-    
-    
     input_manager& input_manager::instance(void) {
         static input_manager i { };
         return i;
     }
-    
-    
-    
-    
-    bool input_manager::is_pressed(SDL_KeyCode key) const {
-        auto it = keyboard_state.find(key);
-        return it != keyboard_state.end() && it->second.down;
-    }
-    
-    
-    
-    
-    bool input_manager::is_pressed(mouse_button button) const {
-        return mouse_current_state.buttons[(u32) button].down;
-    }
-    
-    
-    
-    
-    const key_state& input_manager::get_state(SDL_Keycode key) const {
-        auto it = keyboard_state.find(key);
-        if (it != keyboard_state.end()) return it->second;
-    
-        auto [new_it, success] = keyboard_state.insert({ key, key_state {
-            .key       = key,
-            .down      = false,
-            .mods      = SDL_Keymod::KMOD_NONE,
-            .last_down = { },
-            .last_up   = { }
-        }});
-        
-        return new_it->second;
-    }
-    
-    
-    
-    
-    const mouse_state& input_manager::get_state(recorded_time when) const {
-        switch (when) {
-            case recorded_time::CURRENT:            return mouse_current_state;
-            case recorded_time::PREVIOUS:           return mouse_last_state;
-            case recorded_time::MOUSE_LAST_MOVING:  return mouse_history.last_moving_state;
-            case recorded_time::MOUSE_LAST_STOPPED: return mouse_history.last_stopped_state;
-            case recorded_time::WHEEL_LAST_MOVING:  return mousewheel_history.last_moving_state;
-            case recorded_time::WHEEL_LAST_STOPPED: return mousewheel_history.last_stopped_state;
-            default: VE_UNREACHABLE;
+
+
+    void input_manager::update(u64 tick) {
+        // Current state will be updated from event handlers.
+        prev_mouse_state = current_mouse_state;
+
+
+        auto now = steady_clock::now();
+        SDL_Event event;
+
+        while (SDL_PollEvent(&event)) {
+            // SDL sometimes sends events for windows that have already closed. In this case, SDL_GetWindowFromID returns null.
+            auto window_of = [] (const auto& sub_event) {
+                auto* sdl_window = SDL_GetWindowFromID(sub_event.windowID);
+                return sdl_window ? gfx::window_registry::instance().get_window(sdl_window) : nullptr;
+            };
+
+
+            switch (event.type) {
+                case SDL_KEYDOWN:
+                case SDL_KEYUP:
+                    if (auto* window = window_of(event.key); window) {
+                        handle_key_event(event, window, tick, now);
+                    }
+
+                    break;
+                case SDL_MOUSEBUTTONDOWN:
+                case SDL_MOUSEBUTTONUP:
+                    if (auto* window = window_of(event.button); window) {
+                        handle_mouse_button_event(event, window, tick, now);
+                    }
+
+                    break;
+                case SDL_MOUSEMOTION:
+                    if (auto* window = window_of(event.motion); window) {
+                        handle_mouse_move_event(event, window, tick, now);
+                    }
+
+                    break;
+                case SDL_MOUSEWHEEL:
+                    if (auto* window = window_of(event.wheel); window) {
+                        handle_mouse_wheel_event(event, window, tick, now);
+                    }
+
+                    break;
+                case SDL_WINDOWEVENT:
+                    if (auto* window = window_of(event.window); window) {
+                        handle_window_event(event, window, tick, now);
+                    }
+
+                    break;
+                case SDL_QUIT:
+                    dispatch_event(exit_requested_event { });
+                    break;
+                default:
+                    VE_DEBUG_ONLY(
+                        // Only log unhandled event types once.
+                        static hash_set<u32> notified_event_types;
+
+                        if (notified_event_types.insert(event.type).second) {
+                            VE_LOG_DEBUG(cat("Unhandled SDL event type: ", event.type));
+                        }
+                    );
+
+                    break;
+            }
+
+
+            if (auto it = custom_handlers.find((SDL_EventType) event.type); it != custom_handlers.end()) {
+                for (auto& handler : it->second) handler(event);
+            }
+        }
+
+
+        // Note: key_hold events are dispatched manually, since they have no corresponding SDL event.
+        if (auto* keyboard_window_ptr = SDL_GetKeyboardFocus(); keyboard_window_ptr) {
+            auto* keyboard_window = gfx::window_registry::instance().get_window(keyboard_window_ptr);
+
+            for (const auto& [key, state] : keyboard_state) {
+                if (state.is_down) dispatch_event(key_hold_event { keyboard_window, state });
+            }
+        }
+
+
+        // Note: same for mouse_[move|wheel|drag]_end events.
+        // TODO: What is the behaviour here when moving between two windows during an event?
+        // TODO: What is the behaviour when a move|wheel|drag is ended outside any SDL window?
+        // (If these events don't already end under such conditions, they should probably be forced to do so manually.)
+        if (auto* mouse_window_ptr = SDL_GetMouseFocus(); mouse_window_ptr) {
+            auto* mouse_window = gfx::window_registry::instance().get_window(mouse_window_ptr);
+
+            if (current_mouse_state.position == prev_mouse_state.position) {
+                if (current_mouse_move) {
+                    dispatch_event(mouse_move_end_event { mouse_window, current_mouse_move->begin_state, current_mouse_state });
+                    current_mouse_move = std::nullopt;
+                }
+            }
+
+            if (current_mouse_state.wheel_position == prev_mouse_state.wheel_position) {
+                if (current_mouse_wheel_move) {
+                    dispatch_event(mouse_wheel_move_end_event { mouse_window, current_mouse_wheel_move->begin_state, current_mouse_state });
+                    current_mouse_wheel_move = std::nullopt;
+                }
+            }
+
+            // Drag ends on click release, not on mouse movement end.
+            for (mouse_button button : magic_enum::enum_values<mouse_button>()) {
+                auto& current_drag = current_mouse_drag[(u32) button];
+
+                if (current_drag && !current_mouse_state.buttons[(u32) button].is_down) {
+                    dispatch_event(mouse_drag_end_event { mouse_window, button, current_drag->begin_state, current_mouse_state });
+                    current_drag = std::nullopt;
+                }
+            }
         }
     }
-    
-    
-    
-    
-    bool input_manager::is_mouse_moving(void) const {
-        return mouse_current_state.position != mouse_last_state.position;
+
+
+    input_manager::custom_handler_handle input_manager::add_custom_handler(SDL_EventType type, custom_event_handler&& handler) {
+        auto& handlers_for_t = custom_handlers[type];
+
+        auto it = handlers_for_t.emplace(handlers_for_t.end(), std::move(handler));
+        return { type, it };
     }
-    
-    
-    
-    
-    vec2i input_manager::tick_mouse_delta(void) const {
-        return mouse_current_state.position - mouse_last_state.position;
+
+
+    void input_manager::remove_custom_handler(custom_handler_handle handle) {
+        if (auto it = custom_handlers.find(handle.type); it != custom_handlers.end()) {
+            it->second.erase(handle.it);
+            if (it->second.empty()) custom_handlers.erase(it);
+        }
     }
-    
-    
-    
-    
-    vec2i input_manager::total_mouse_delta(void) const {
-        return mouse_current_state.position - mouse_history.last_stopped_state.position;
+
+
+    const key_state& input_manager::get_key_state(SDL_Keycode key) const {
+        return get_mutable_key_state(key);
     }
-    
-    
-    
-    
-    bool input_manager::is_wheel_moving(void) const {
-        return mouse_current_state.wheel_position != mouse_last_state.wheel_position;
+
+
+    key_state& input_manager::get_mutable_key_state(SDL_Keycode key) const {
+        if (auto it = keyboard_state.find(key); it != keyboard_state.end()) [[likely]] {
+            return it->second;
+        }
+
+        auto [it, success] = keyboard_state.emplace(
+            key,
+            key_state {
+                .key              = key,
+                .mods             = SDL_Keymod::KMOD_NONE,
+                .last_change      = steady_clock::time_point { },
+                .last_change_tick = 0,
+                .is_down          = (bool) SDL_GetKeyboardState(nullptr)[SDL_GetScancodeFromKey(key)]
+            }
+        );
+
+        return it->second;
     }
-    
-    
-    
-    
-    i32 input_manager::tick_wheel_delta(void) const {
-        return mouse_current_state.wheel_position - mouse_last_state.wheel_position;
+
+
+    bool input_manager::is_key_pressed(SDL_Keycode key) const {
+        return get_key_state(key).is_down;
     }
-    
-    
-    
-    
-    i32 input_manager::total_wheel_delta(void) const {
-        return mouse_current_state.wheel_position - mousewheel_history.last_stopped_state.wheel_position;
+
+
+    const mouse_button_state& input_manager::get_mouse_button_state(mouse_button button) const {
+        return current_mouse_state.buttons[(u32) button];
     }
-    
-    
-    
-    
-    
+
+
+    mouse_button_state& input_manager::get_mutable_mouse_button_state(mouse_button button) {
+        return current_mouse_state.buttons[(u32) button];
+    }
+
+
+    bool input_manager::is_mouse_button_pressed(mouse_button button) const {
+        return get_mouse_button_state(button).is_down;
+    }
+
+
+    keymods input_manager::get_current_keymods(void) const {
+        #define ve_impl_kmod(key, mod) if (is_key_pressed(key)) mods |= mod
+
+
+        // Note: SDL provides no proper way to distinguish AltGr from LCtrl + RAlt, so this mod is never set here.
+        keymods mods = KMOD_NONE;
+        ve_impl_kmod(SDLK_LCTRL,        KMOD_LCTRL);
+        ve_impl_kmod(SDLK_RCTRL,        KMOD_RCTRL);
+        ve_impl_kmod(SDLK_LSHIFT,       KMOD_LSHIFT);
+        ve_impl_kmod(SDLK_RSHIFT,       KMOD_RSHIFT);
+        ve_impl_kmod(SDLK_LALT,         KMOD_LALT);
+        ve_impl_kmod(SDLK_RALT,         KMOD_RALT);
+        ve_impl_kmod(SDLK_LGUI,         KMOD_LGUI);
+        ve_impl_kmod(SDLK_RGUI,         KMOD_RGUI);
+        ve_impl_kmod(SDLK_CAPSLOCK,     KMOD_CAPS);
+        ve_impl_kmod(SDLK_NUMLOCKCLEAR, KMOD_NUM);
+
+
+        return mods;
+    }
+
+
     void input_manager::set_mouse_capture(bool enabled) {
         SDL_SetRelativeMouseMode((SDL_bool) enabled);
     }
-    
-    
-    
-    
-    void input_manager::update(u64 tick) {
-        dispatcher.dispatch_event(input_processing_begin_event { });
-        dispatcher.dispatch_all();
-        
-        
-        mouse_last_state = mouse_current_state;
-        
-        SDL_Event e;
-        while (SDL_PollEvent(&e)) {
-            switch (e.type) {
-                case SDL_KEYDOWN: {
-                    handle_keyboard_change<true>(e, tick);
-                    break;
+
+
+    bool input_manager::has_mouse_capture(void) const {
+        return (bool) SDL_GetRelativeMouseMode();
+    }
+
+
+    void input_manager::handle_key_event(SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now) {
+        auto& old_state = get_mutable_key_state(event.key.keysym.sym);
+
+        key_state new_state = old_state;
+        new_state.is_down   = (event.type == SDL_KEYDOWN);
+
+
+        if (new_state.is_down != old_state.is_down) {
+            new_state.last_change      = now;
+            new_state.last_change_tick = tick;
+
+            if (new_state.is_down) new_state.mods = event.key.keysym.mod;
+        }
+
+
+        if (new_state.is_down) {
+            if (!old_state.is_down) {
+                // Unpressed to pressed, this was a keydown event.
+                dispatch_event(key_down_event { window, old_state, new_state });
+            } else {
+                // Still pressed, this is a key typed event.
+                dispatch_event(key_type_event { window, new_state });
+            }
+        } else if (old_state.is_down) {
+            // Pressed to unpressed, this was a keyup event.
+            dispatch_event(key_up_event { window, old_state, new_state });
+        }
+
+
+        old_state = new_state;
+    }
+
+
+    void input_manager::handle_mouse_button_event(SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now) {
+        auto& old_state = get_mutable_mouse_button_state(button_from_sdl(event.button.button));
+
+        mouse_button_state new_state = old_state;
+        new_state.is_down = (event.type == SDL_MOUSEBUTTONDOWN);
+
+
+        if (new_state.is_down != old_state.is_down) {
+            new_state.last_change      = now;
+            new_state.last_change_tick = tick;
+
+            if (new_state.is_down) new_state.mods = get_current_keymods();
+        }
+
+
+        if (new_state.is_down) {
+            if (!old_state.is_down) {
+                // Unpressed to pressed, this was a button press event.
+                dispatch_event(button_press_event { window, old_state, new_state });
+            } else {
+                // Still pressed, this is a button hold event.
+                dispatch_event(button_hold_event { window, new_state });
+            }
+        } else {
+            // Pressed to unpressed, this way a button release event.
+            dispatch_event(button_release_event { window, old_state, new_state });
+        }
+
+
+        old_state = new_state;
+    }
+
+
+    void input_manager::handle_mouse_move_event(SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now) {
+        if (!current_mouse_move) {
+            // Begin new mouse movement tracker.
+            current_mouse_move = ongoing_mouse_event { current_mouse_state };
+            dispatch_event(mouse_move_start_event { window, current_mouse_state });
+        }
+
+        for (mouse_button button : magic_enum::enum_values<mouse_button>()) {
+            auto& current_drag = current_mouse_drag[(u32) button];
+
+            if (current_mouse_state.buttons[(u32) button].is_down) {
+                if (!current_drag) {
+                    // Begin new mouse drag tracker.
+                    current_drag = ongoing_mouse_event { current_mouse_state };
+                    dispatch_event(mouse_drag_start_event { window, button, current_mouse_state });
                 }
-                
-                case SDL_KEYUP: {
-                    handle_keyboard_change<false>(e, tick);
-                    break;
-                }
-                
-                case SDL_MOUSEBUTTONDOWN: {
-                    // Mouse events are only fired after processing all SDL events,
-                    // so all events will have the same mouse state.
-                    mouse_button btn = button_from_sdl(e.button.button);
-                    
-                    mouse_button_state& state = mouse_current_state.buttons[(u32) btn];
-                    state.down      = true;
-                    state.last_down = { tick, steady_clock::now() };
-                    
-                    break;
-                }
-                
-                case SDL_MOUSEBUTTONUP: {
-                    // Mouse events are only fired after processing all SDL events,
-                    // so all events will have the same mouse state.
-                    mouse_button btn = button_from_sdl(e.button.button);
-    
-                    mouse_button_state& state = mouse_current_state.buttons[(u32) btn];
-                    state.down    = false;
-                    state.last_up = { tick, steady_clock::now() };
-    
-                    break;
-                }
-                
-                case SDL_MOUSEMOTION: {
-                    // Mouse events are only fired after processing all SDL events,
-                    // so all events will have the same mouse state.
-                    mouse_current_state.position += vec2i { e.motion.xrel, e.motion.yrel };
-                    
-                    break;
-                }
-                
-                case SDL_MOUSEWHEEL: {
-                    // Mouse events are only fired after processing all SDL events,
-                    // so all events will have the same mouse state.
-                    mouse_current_state.wheel_position += e.wheel.y;
-                    
-                    break;
-                }
-                
-                case SDL_WINDOWEVENT: {
-                    switch (e.window.event) {
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_MAXIMIZED,    window_maximized_event);
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_MINIMIZED,    window_minimized_event);
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_RESTORED,     window_restored_event);
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_HIDDEN,       window_hidden_event);
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_SHOWN,        window_shown_event);
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_EXPOSED,      window_exposed_event);
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_FOCUS_GAINED, window_gain_keyboard_focus_event);
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_FOCUS_LOST,   window_lose_keyboard_focus_event);
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_ENTER,        window_gain_mouse_focus_event);
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_LEAVE,        window_lose_mouse_focus_event);
-                        VE_IMPL_EVENT_MAP(SDL_WINDOWEVENT_CLOSE,        window_closed_event);
-                        
-                        case SDL_WINDOWEVENT_RESIZED: {
-                            auto& old_size = window_sizes[e.window.windowID];
-                            auto  new_size = vec2ui { e.window.data1, e.window.data2 };
-                            
-                            dispatcher.dispatch_event(set_event_window(
-                                e,
-                                window_resize_event {
-                                    .old_size = std::exchange(old_size, new_size),
-                                    .new_size = new_size
-                                }
-                            ));
-                            
-                            break;
-                        }
-                        
-                        case SDL_WINDOWEVENT_MOVED: {
-                            auto& old_pos = window_positions[e.window.windowID];
-                            auto  new_pos = vec2ui { e.window.data1, e.window.data2 };
-                            
-                            dispatcher.dispatch_event(set_event_window(
-                                e,
-                                window_move_event {
-                                    .old_position = std::exchange(old_pos, new_pos),
-                                    .new_position = new_pos
-                                }
-                            ));
-                            
-                            break;
-                        }
+            }
+        }
+
+
+        current_mouse_state.position += vec2i { event.motion.xrel, event.motion.yrel };
+        current_mouse_state.mods = get_current_keymods();
+
+        dispatch_event(mouse_moved_event { window, current_mouse_move->begin_state, prev_mouse_state, current_mouse_state });
+
+        for (mouse_button button : magic_enum::enum_values<mouse_button>()) {
+            if (current_mouse_state.buttons[(u32) button].is_down) {
+                auto& current_drag = current_mouse_drag[(u32) button];
+                dispatch_event(mouse_drag_event { window, button, current_drag->begin_state, prev_mouse_state, current_mouse_state });
+            }
+        }
+    }
+
+
+    void input_manager::handle_mouse_wheel_event(SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now) {
+        if (!current_mouse_wheel_move) {
+            // Begin new mouse wheel movement tracker.
+            current_mouse_wheel_move = ongoing_mouse_event { current_mouse_state };
+            dispatch_event(mouse_wheel_move_start_event { window, current_mouse_state });
+        }
+
+        current_mouse_state.wheel_position += event.wheel.y;
+        current_mouse_state.mods = get_current_keymods();
+
+        dispatch_event(mouse_wheel_moved_event { window, current_mouse_wheel_move->begin_state, prev_mouse_state, current_mouse_state });
+    }
+
+
+    void input_manager::handle_window_event(SDL_Event& event, gfx::window* window, u64 tick, steady_clock::time_point now) {
+        // Note: window_opened_event, first_window_opened_event and last_window_closed event are not handled here,
+        // since they don't have an associated SDL event. They are triggered from the window registry with trigger_event.
+        auto  new_state = per_window_data { .size = window->get_window_size(), .location = window->get_location() };
+        // Set to current value if we don't have information about the old size.
+        auto& old_state = window_data.try_emplace(window->get_handle(), new_state).first->second;
+
+
+        switch (event.window.event) {
+            case SDL_WINDOWEVENT_CLOSE:        return dispatch_event(window_closed_event { window });
+            case SDL_WINDOWEVENT_MAXIMIZED:    return dispatch_event(window_maximized_event { window });
+            case SDL_WINDOWEVENT_MINIMIZED:    return dispatch_event(window_minimized_event { window });
+            case SDL_WINDOWEVENT_RESTORED:     return dispatch_event(window_restored_event { window });
+            case SDL_WINDOWEVENT_HIDDEN:       return dispatch_event(window_hidden_event { window });
+            case SDL_WINDOWEVENT_SHOWN:        return dispatch_event(window_shown_event { window });
+            case SDL_WINDOWEVENT_EXPOSED:      return dispatch_event(window_exposed_event { window });
+            case SDL_WINDOWEVENT_FOCUS_GAINED: return dispatch_event(window_gain_keyboard_focus_event { window });
+            case SDL_WINDOWEVENT_FOCUS_LOST:   return dispatch_event(window_lose_keyboard_focus_event { window });
+            case SDL_WINDOWEVENT_ENTER:        return dispatch_event(window_gain_mouse_focus_event { window });
+            case SDL_WINDOWEVENT_LEAVE:        return dispatch_event(window_lose_mouse_focus_event { window });
+
+            case SDL_WINDOWEVENT_SIZE_CHANGED:
+                dispatch_event(window_resized_event { window, old_state.size, new_state.size });
+                old_state.size = new_state.size;
+                return;
+
+            case SDL_WINDOWEVENT_MOVED:
+                dispatch_event(window_moved_event { window, old_state.location, new_state.location });
+                old_state.location = new_state.location;
+                return;
+
+            default:
+                VE_DEBUG_ONLY(
+                    // Only log unhandled event types once.
+                    static hash_set<u32> notified_event_types;
+
+                    if (notified_event_types.insert(event.type).second) {
+                        VE_LOG_DEBUG(cat("Unhandled SDL event type: ", event.type));
                     }
-                    
-                    break;
-                }
-                
-                case SDL_QUIT: {
-                    dispatcher.dispatch_event(last_window_closed_event { });
-                    break;
-                }
-            }
-        }
-        
-    
-        // Dispatch remaining keyboard events.
-        for (const auto& [key, state] : keyboard_state) {
-            if (state.down) dispatcher.dispatch_event(set_event_window(e, key_hold_event { .state = state }));
-        }
-        
-        
-        // Dispatch mouse events.
-        handle_mouse_buttons(tick);
-        
-        handle_mouse_motion<false>(tick);
-        handle_mouse_motion<true>(tick);
-        
-        
-        // Actually call the event handlers.
-        // This ensures all handlers will see the same, final state if they poll the input manager.
-        dispatcher.dispatch_all();
-        
-        dispatcher.dispatch_event(input_processing_end_event { });
-        dispatcher.dispatch_all();
-    }
-    
-    
-    
-    
-    template <bool is_down>
-    void input_manager::handle_keyboard_change(SDL_Event& e, u64 tick) {
-        using event_type = std::conditional_t<is_down, key_down_event, key_up_event>;
-        auto  time_field = meta::pick<is_down>(&key_state::last_down, &key_state::last_up);
-    
-        // Check if this is actually a key down or a key typed event.
-        if (!is_down || e.key.repeat == 0) {
-            key_state& stored_state = keyboard_state[e.key.keysym.sym];
-            key_state  old_state    = stored_state;
-        
-            stored_state.down        = is_down;
-            stored_state.mods        = e.key.keysym.mod;
-            stored_state.*time_field = { tick, steady_clock::now() };
-        
-        
-            dispatcher.dispatch_event(set_event_window(e, event_type {
-                .old_state = old_state,
-                .new_state = stored_state
-            }));
-        } else {
-            dispatcher.dispatch_event(set_event_window(e, key_typed_event {
-                .state = keyboard_state[e.key.keysym.sym]
-            }));
-        }
-    }
-    
-    template void input_manager::handle_keyboard_change<true>(SDL_Event& e, u64 tick);
-    template void input_manager::handle_keyboard_change<false>(SDL_Event& e, u64 tick);
-    
-    
-    
-    
-    template <bool is_wheel>
-    void input_manager::handle_mouse_motion(u64 tick) {
-        using move_start_event = std::conditional_t<is_wheel, mousewheel_move_start_event, mouse_move_start_event>;
-        using move_end_event   = std::conditional_t<is_wheel, mousewheel_move_end_event, mouse_move_end_event>;
-        using move_hold_event  = std::conditional_t<is_wheel, mousewheel_moved_event, mouse_moved_event>;
-        
-        auto position = meta::pick<is_wheel>(&mouse_state::wheel_position, &mouse_state::position);
-        auto history  = is_wheel ? mousewheel_history : mouse_history;
-        
-        
-        const bool moved_this_tick = mouse_current_state.*position != mouse_last_state.*position;
-        const bool moved_prev_tick = history.last_stopped_tick < history.last_moving_tick;
-    
-    
-        if (!moved_prev_tick && moved_this_tick) {
-            dispatcher.dispatch_event(move_start_event {
-                .old_state = mouse_last_state,
-                .new_state = mouse_current_state
-            });
-        } else if (moved_prev_tick && !moved_this_tick) {
-            dispatcher.dispatch_event(move_end_event {
-                .begin_state = mouse_history.last_stopped_state,
-                .old_state   = mouse_last_state,
-                .new_state   = mouse_current_state
-            });
-        }
-    
-    
-        if (moved_this_tick) {
-            dispatcher.dispatch_event(move_hold_event {
-                .begin_state = mouse_history.last_stopped_state,
-                .old_state   = mouse_last_state,
-                .new_state   = mouse_current_state
-            });
-        
-            history.last_moving_tick  = tick;
-            history.last_moving_state = mouse_current_state;
-        } else {
-            history.last_stopped_tick  = tick;
-            history.last_stopped_state = mouse_current_state;
-        }
-    }
-    
-    template void input_manager::handle_mouse_motion<true>(u64);
-    template void input_manager::handle_mouse_motion<false>(u64);
-    
-    
-    
-    
-    void input_manager::handle_mouse_buttons(u64 tick) {
-        for (const auto& [last, current] : views::zip(mouse_last_state.buttons, mouse_current_state.buttons)) {
-            if (!last.down && current.down) {
-                dispatcher.dispatch_event(mouse_down_event {
-                    .old_state = mouse_last_state,
-                    .new_state = mouse_current_state,
-                    .button    = current.button
-                });
-            } else if (last.down && !current.down) {
-                dispatcher.dispatch_event(mouse_up_event {
-                    .old_state = mouse_last_state,
-                    .new_state = mouse_current_state,
-                    .button    = current.button
-                });
-            }
-        
-            if (current.down) {
-                dispatcher.dispatch_event(mouse_hold_event {
-                    .state  = mouse_current_state,
-                    .button = current.button
-                });
-            }
+                );
+
+                return;
         }
     }
 }
+
+
+#pragma clang diagnostic pop

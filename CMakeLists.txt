@@ -1,74 +1,98 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.19)
 project("VoxelEngine")
 
 
-# For testing purposes, it is often useful to control what flags get passed to the compiler,
-# rather than relying on the current CMake profile.
-option(CLEAR_FLAGS "Clear compiler flags for the current profile." OFF)
-
-if (${CLEAR_FLAGS})
-    set(CMAKE_CXX_FLAGS_DEBUG "")
-    set(CMAKE_CXX_FLAGS_RELEASE "")
-endif()
+# Prevent concurrent CMake runs.
+file(LOCK ${CMAKE_SOURCE_DIR}/cmake.lock)
 
 
-# This flag is used in ./cmake/create_target.cmake to generate test targets if it is enabled.
-option(ENABLE_TESTING "Enable VoxelEngine tests." OFF)
+# Allow loading of scripts from cmake folder.
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
+# Allow including from the root directory.
+include_directories(${CMAKE_SOURCE_DIR})
 
-# Prevent running CMake concurrently.
-file(LOCK ${CMAKE_SOURCE_DIR} DIRECTORY GUARD FILE)
-
-# C++20 features are required.
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Store builds in out folder.
+set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/out")
 
 # Output to out directory.
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out/${CMAKE_BUILD_TYPE}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out/${CMAKE_BUILD_TYPE}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out/${CMAKE_BUILD_TYPE}/bin)
 
-# Allow including from the root directory.
-include_directories(${CMAKE_SOURCE_DIR})
 
-# Allow loading of scripts from cmake folder.
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+# Force C++20. (Note this must be done manually with MSVC, see cmake/profiles/msvc.cmake)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Store builds in out folder.
-set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/out")
 
-# Make sure symbols are exported on Windows.
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+# Set required preprocessor definitions.
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+add_compile_definitions(SDL_MAIN_HANDLED)
+# Boost Asio includes Windows.h. While it defines WIN32_LEAN_AND_MEAN, wingdi still defines macros like "ERROR".
+add_compile_definitions(NOGDI)
+# Not supported on Windows with Clang as of 14/07/2021
+add_compile_definitions(BOOST_ASIO_DISABLE_STD_COROUTINE)
+add_compile_definitions(_SILENCE_CLANG_COROUTINE_MESSAGE)
+# Optional dependencies for Boost Asio, but we're using the header-only version of Boost.
+add_compile_definitions(BOOST_DATE_TIME_NO_LIB)
+add_compile_definitions(BOOST_REGEX_NO_LIB)
+add_compile_definitions(BOOST_SYSTEM_NO_LIB)
 
-# Load compiler settings profile.
-include(clang_profile)
+
+# Install Dependencies
+include(run_conan)
+
+select_conan_profile(conan_profile)
+message(STATUS ${conan_profile})
+run_conan(${conan_profile})
+
+# Enable compiler-specific warnings
+include(compiler_profile)
 set_compiler_profile()
 
-# Run Conan
-include(run_conan)
-run_conan()
 
-# Preprocessor Definitions
-add_compile_definitions(_CRT_SECURE_NO_WARNINGS SDL_MAIN_HANDLED)
+# Make sure symbols are exported on Windows.
+# (This prevents requiring specifying dllexport / dllimport everywhere.)
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 
 # Copy required directories to binary folder.
 add_custom_target(
-        COPY_OUT_DIRS ALL
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/out_dirs
-            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    COPY_OUT_DIRS ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/out_dirs
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
 
 # Copy shared libraries from conan folder to binary folder.
-add_custom_target(
+if (EXISTS ${CMAKE_SOURCE_DIR}/out/conan/bin)
+    add_custom_target(
         COPY_SHARED_LIBS ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/out/conan/bin
             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-)
+    )
+endif()
 
-# Add targets.
+
+# Enable testing (Each subproject will add its own tests.)
+if (${ENABLE_TESTING})
+    message(STATUS "Test generation is enabled.")
+    enable_testing()
+endif()
+
+
+# Define header with overloaded settings from game to be included in the engine.
+# TODO: This whole setup is kinda sketchy. Find a better way to manage engine settings externally.
+# Maybe use a separate project?
+# Note: values set here are used in VoxelEngine/CMakeLists.txt
+set(GAME_PRE_INCLUDE_HEADER VEDemoGame/preinclude.hpp)
+set(GAME_TARGET_NAME VEDemoGame)
+
+
+# Add subprojects.
 add_subdirectory(VoxelEngine)
 add_subdirectory(VEDemoGame)
-add_subdirectory(VEDemoPlugin)
 add_subdirectory(VELauncher)
+add_subdirectory(VEDemoPlugin)

@@ -2,23 +2,24 @@
 
 #include <VoxelEngine/core/core.hpp>
 
-#include <type_traits>
-
 
 namespace ve::meta {
-    template <typename T> struct reference_as {
-        template <typename X> using type = std::remove_reference_t<X>;
+    template <typename T, typename As>
+    struct reference_as {
+        using type = std::remove_reference_t<T>;
     };
-    
-    template <typename T> struct reference_as<T&> {
-        template <typename X> using type = std::add_lvalue_reference_t<std::remove_reference_t<X>>;
+
+    template <typename T, typename As>
+    struct reference_as<As&> {
+        using type = std::add_lvalue_reference_t<std::remove_reference_t<T>>;
     };
-    
-    template <typename T> struct reference_as<T&&> {
-        template <typename X> using type = std::add_rvalue_reference_t<std::remove_reference_t<X>>;
+
+    template <typename T, typename As>
+    struct reference_as<As&&> {
+        using type = std::add_rvalue_reference_t<std::remove_reference_t<T>>;
     };
-    
-    
-    template <typename MaybeRef, typename T>
-    using reference_as_t = typename reference_as<MaybeRef>::template type<T>;
+
+
+    template <typename T, typename As>
+    using reference_as_t = typename reference_as<T, As>::type;
 }

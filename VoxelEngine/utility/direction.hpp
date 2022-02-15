@@ -1,72 +1,49 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/bit.hpp>
-
-#include <array>
 
 
 namespace ve {
-    enum class direction : u8 {
-        NONE  = 0,
-        NORTH = (1 << 0),
-        SOUTH = (1 << 1),
-        UP    = (1 << 2),
-        DOWN  = (1 << 3),
-        EAST  = (1 << 4),
-        WEST  = (1 << 5)
+    namespace direction {
+        constexpr inline vec3i BACKWARD = vec3i { +0, +0, +1 };
+        constexpr inline vec3i FORWARD  = vec3i { +0, +0, -1 };
+        constexpr inline vec3i UP       = vec3i { +0, +1, +0 };
+        constexpr inline vec3i DOWN     = vec3i { +0, -1, +0 };
+        constexpr inline vec3i RIGHT    = vec3i { +1, +0, +0 };
+        constexpr inline vec3i LEFT     = vec3i { -1, +0, +0 };
+
+        constexpr inline vec3i NORTH = FORWARD;
+        constexpr inline vec3i SOUTH = BACKWARD;
+        constexpr inline vec3i EAST  = RIGHT;
+        constexpr inline vec3i WEST  = LEFT;
+    }
+
+
+    constexpr inline std::array directions {
+        direction::BACKWARD,
+        direction::FORWARD,
+        direction::UP,
+        direction::DOWN,
+        direction::RIGHT,
+        direction::LEFT
     };
-    
-    VE_BITWISE_ENUM(direction);
-    
-    constexpr inline std::size_t num_directions = 6;
-    
-    
-    // Allow foreach direction constructs.
-    constexpr inline direction begin(direction) { return direction::NORTH; }
-    constexpr inline direction end(direction)   { return direction(((u8) direction::WEST) << 1);  }
-    
-    constexpr inline void operator++(direction& d) { d = direction(((u8) d) << 1); }
-    constexpr inline void operator--(direction& d) { d = direction(((u8) d) >> 1); }
-    constexpr inline direction operator* (direction d) { return d; }
-    
-    
-    // Convert a direction to a normalized vector pointing in that direction.
-    constexpr inline vec3i direction_vector(direction dir) {
-        vec3i result { 0 };
-        
-        result.x -= bool(dir & direction::WEST);
-        result.x += bool(dir & direction::EAST);
-        result.y -= bool(dir & direction::DOWN);
-        result.y += bool(dir & direction::UP);
-        result.z -= bool(dir & direction::SOUTH);
-        result.z += bool(dir & direction::NORTH);
-        
-        return result;
+
+    using direction_t = u8; // Indexes into the above array.
+
+
+    constexpr inline direction_t opposing_direction(direction_t dir) {
+        // Every 2n and 2n + 1 index is an opposing direction pair, so just flip the last bit to get the opposing direction.
+        return dir ^ 1;
     }
-    
-    
-    // Get the direction opposite of the given direction.
-    constexpr inline direction opposing(direction dir) {
-        constexpr std::array opposing_directions {
-            direction::SOUTH, direction::NORTH,
-            direction::DOWN,  direction::UP,
-            direction::WEST,  direction::EAST
-        };
-        
-        return opposing_directions[least_significant_bit((u8) dir)];
-    }
-    
-    
-    // Gets the direction one would travel in to get from a to b,
-    // assuming a and b only differ their coordinate on one axis.
-    inline direction heading(const vec3i& from, const vec3i& to) {
-        vec3i difference = to - from;
-        
-        return direction(
-            (bool(difference.z) << (0 + (difference.z < 0))) +
-            (bool(difference.y) << (2 + (difference.y < 0))) +
-            (bool(difference.x) << (4 + (difference.z < 0)))
+
+
+    constexpr inline direction_t direction_from_vector(const vec3i& vec) {
+        // LSB contains the direction of the set axis (1 for -1 or 0 for 1),
+        // other two bits store whether the non-zero axis was in the Y or X direction.
+        return direction_t(
+            bool(vec.x + vec.y + vec.z - 1) |
+            (bool(vec.y) << 1) |
+            (bool(vec.x) << 2)
         );
     }
 }

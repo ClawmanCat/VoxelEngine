@@ -1,0 +1,40 @@
+This is an overview of shader pipelines that use these shaders.
+
+
+1. Simple Texture Shader:
+Does not perform any lighting. Simply performs the camera projection and applies the texture.
+This shader uses the vertex format "texture_vertex_3d".
+
+Stages:
+=> Vertex Shader:   simple.vert.glsl
+=> Fragment Shader: simple.frag.glsl
+
+
+2. Single-pass PBR Shader
+Performs PBR-lighting calculations using a normal and a material (combined roughness, metalness and ao) texture.
+This shader does not perform any shadow calculations. Luminosity is based only on proximity to light sources.
+This shader uses the vertex format "material_vertex_3d".
+
+Stages:
+=> Vertex Shader:   pbr_single_pass.vert.glsl
+=> Fragment Shader: pbr_single_pass.frag.glsl
+
+
+3. Multi-pass PBR Shader
+Performs PBR-lighting calculations using a normal and a material (combined roughness, metalness and ao) texture.
+This shader performs shadow mapping and uses the vertex format "material_vertex_3d".
+Note: Shadow mapping is not yet implemented.
+
+Stages:
+=> Vertex Shader:        pbr_multi_pass.vert.glsl
+=> Fragment Shader:      pbr_multi_pass_geometry.frag.glsl
+
+For each light:
+    => Vertex Shader:    pbr_multi_pass_shadow_map.vert.glsl
+    => Geometry Shader:  pbr_multi_pass_shadow_map.geo.glsl
+    => Fragment Shader:  pbr_multi_pass_shadow_map.frag.glsl
+
+=> GBuffer Input Shader: pbr_multi_pass.g_input.glsl
+=> Fragment Shader:      pbr_multi_pass_lighting.frag.glsl
+=> GBuffer Input Shader: pbr_multi_pass.g_input.glsl
+=> Fragment Shader:      pbr_multi_pass_postprocessing.frag.glsl

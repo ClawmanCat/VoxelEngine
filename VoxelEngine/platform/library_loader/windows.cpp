@@ -1,56 +1,64 @@
-#include <VoxelEngine/platform/library_loader/windows.hpp>
+#include <VoxelEngine/platform/library_loader/library_loader.hpp>
+#include <VoxelEngine/utility/string.hpp>
 
 
-#if defined(VE_WINDOWS)
+#ifdef VE_WINDOWS
     #include <Windows.h>
-    #include <libloaderapi.h>
     
     
     namespace ve {
-        expected<library_handle> load_library(const char* path) {
-            auto handle = LoadLibraryA(path);
+        native_library_handle load_library(const fs::path& path) {
+            // Backslashes in the path will get escaped, so the final string will contain 4 backslashes for every directory.
+            // LoadLibraryA does not like this. Fortunately, we can just use forward slashes instead.
+            std::string path_string = replace_substring(path.string(), "\\\\", "/");
             
-            if (handle) return handle;
-            else return make_unexpected(detail::get_library_error());
+            auto result = (void*) LoadLibraryA((LPCSTR) path_string.c_str());
+            if (!result) throw std::runtime_error(cat("Failed to load library (", path.filename(), "): ", get_last_error()));
+            
+            return result;
         }
         
         
-        void unload_library(library_handle handle) {
+        void unload_library(native_library_handle handle) {
             FreeLibrary((HMODULE) handle);
         }
         
         
-        expected<void*> detail::get_library_function_impl(library_handle handle, const char* method) {
-            auto ptr = GetProcAddress((HMODULE) handle, method);
+        void* load_library_symbol(native_library_handle handle, const char* symbol) {
+            auto result = (void*) GetProcAddress((HMODULE) handle, (LPCSTR) symbol);
+            if (!result) throw std::runtime_error(cat("Failed to load symbol ", symbol, " from library: ", get_last_error()));
             
-            if (ptr) return ptr;
-            else return make_unexpected(detail::get_library_error());
+            return result;
         }
-        
-        
-        std::string detail::get_library_error(void) {
-            LPVOID message_ptr;
+    
+    
+        bool is_library_file(const fs::path& path) {
+            return path.extension() == ".dll";
+        }
+    
+    
+        std::string get_last_error(void) {
             DWORD error_code = GetLastError();
-            
-            FormatMessage(
-                FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                FORMAT_MESSAGE_FROM_SYSTEM     |
-                FORMAT_MESSAGE_IGNORE_INSERTS,
+            LPTSTR error_msg = nullptr;
+    
+            FormatMessageA(
+                FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
                 nullptr,
                 error_code,
                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPTSTR) &message_ptr,
+                (LPTSTR) &error_msg,
                 0,
                 nullptr
             );
             
-            std::string result {
-                (const char*) message_ptr,
-                (const char*) message_ptr + lstrlen((LPCTSTR) message_ptr)
-            };
-            
-            LocalFree(message_ptr);
-            return result;
+            if (error_msg) {
+                std::string result_msg { (const char*) error_msg };
+                LocalFree(error_msg);
+                
+                return result_msg;
+            } else {
+                return "No further information available.";
+            }
         }
     }
 #endif

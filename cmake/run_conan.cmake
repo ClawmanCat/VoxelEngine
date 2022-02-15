@@ -1,47 +1,66 @@
-macro(run_conan)
-    include(cmake_conan)
-
-    # Read remote list.
-    file(READ "${CMAKE_SOURCE_DIR}/dependencies/remotes.txt" remotes)
-    string(REPLACE "\n" "${Esc};" remotes ${remotes})
-
-    # Parse name / URL pairs and add remotes.
-    foreach(remote IN ITEMS ${remotes})
-        separate_arguments(remote)
-
-        list(GET remote 0 name)
-        list(GET remote 1 url)
-
-        conan_add_remote(NAME ${name} URL ${url})
-    endforeach()
-
-    # Use a profile if we're in Windows, since we need to set the compiler and pick between MD and MDd.
-    string(TOLOWER ${CMAKE_BUILD_TYPE} config)
-    if(WIN32)
-        set(profile windows_${config}.conanprofile)
-    endif()
-
-    # conan_cmake_run from cmake_conan.cmake does not seem to work,
-    # so just use it to add the remotes and call Conan manually.
+# Runs a Conan command with the given name and variadic arguments.
+function(conan_command name)
     execute_process(
-            COMMAND conan install
-            -b missing
-            -g cmake
-            -if ./out/conan/
-            -pr ./dependencies/${profile}
-            ./dependencies/
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND conan ${name}
+        ${ARGN}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+endfunction()
+
+
+function(select_conan_profile return_var)
+    include(utility)
+
+
+    get_platform_name(os)
+    string(TOLOWER ${CMAKE_BUILD_TYPE} configuration)
+
+
+    set(target_profile "${CMAKE_SOURCE_DIR}/dependencies/profiles/${os}_${configuration}.conanprofile")
+
+    if (EXISTS ${target_profile})
+        set(${return_var} ${target_profile} PARENT_SCOPE)
+    else()
+        set(${return_var} "default.conanprofile" PARENT_SCOPE)
+    endif()
+endfunction()
+
+
+# Runs Conan to set up the dependencies for the project, as specified in the conanfile.txt,
+# using the given Conan profile and using the remote list in conanremotes.txt.
+function(run_conan profile)
+    include(utility)
+
+
+    # Add remotes from file.
+    function(conan_add_remote name url)
+        conan_command(remote add ${name} ${url} --force)
+    endfunction()
+
+    parse_kv_file("${CMAKE_SOURCE_DIR}/dependencies/conanremotes.txt" conan_add_remote)
+
+
+    # Install dependencies.
+    conan_command(
+        install
+        -b missing
+        -g cmake
+        -if ./out/conan/
+        -pr ${profile}
+        ./dependencies/
     )
 
     include("${CMAKE_SOURCE_DIR}/out/conan/conanbuildinfo.cmake")
 
-    # On Windows, we have to trick Conan into thinking we're using MSVC so it doesn't use GCC-style arguments.
+
+    # Conan will assume it needs to use GCC-style command line arguments when using Clang on Windows,
+    # even when Clang-CL is used, which requires MSVC-style arguments instead.
+    # Just disabling the compiler check fixes this issue.
     if (WIN32)
         set(CONAN_DISABLE_CHECK_COMPILER ON)
     endif()
 
-    set(CONAN_SYSTEM_INCLUDES ON)
 
-
+    # Make installed dependencies available in CMake.
     conan_basic_setup(TARGETS)
-endmacro()
+endfunction()

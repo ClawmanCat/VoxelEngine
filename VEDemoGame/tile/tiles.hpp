@@ -1,12 +1,31 @@
 #pragma once
 
-#include <VEDemoGame/core/core.hpp>
+#include <VoxelEngine/voxel/voxel.hpp>
 
 
-namespace demo_game {
-    // Meyers Singleton is used here to prevent initialization order fiasco w.r.t. tiles.
-    extern ve::simple_tile_storage& get_tile_store(void);
-    
-    extern const ve::tile* tile_grass;
-    extern const ve::tile* tile_stone;
+namespace demo_game::tiles {
+    inline const ve::voxel::tile* store_and_register(const ve::voxel::tile::arguments& args) {
+        static std::vector<ve::unique<ve::voxel::tile>> storage { };
+
+        auto& ptr = storage.emplace_back(ve::make_unique<ve::voxel::tile>(args));
+        ve::voxel::voxel_settings::get_tile_registry().register_tile(ptr.get());
+
+        return ptr.get();
+    }
+
+
+    inline const ve::voxel::tile* TILE_GRASS = store_and_register(ve::voxel::tile::arguments {
+        .name         = "grass",
+        .texture_name = "hd_grass"
+    });
+
+    inline const ve::voxel::tile* TILE_STONE = store_and_register(ve::voxel::tile::arguments {
+        .name         = "stone",
+        .texture_name = "hd_stone"
+    });
+
+    inline const ve::voxel::tile* TILE_BRICK = store_and_register(ve::voxel::tile::arguments {
+        .name         = "brick",
+        .texture_name = "brick_wall"
+    });
 }

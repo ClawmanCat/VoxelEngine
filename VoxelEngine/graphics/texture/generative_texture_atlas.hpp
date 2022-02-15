@@ -5,108 +5,85 @@
 #include <VoxelEngine/graphics/texture/aligned_texture_atlas.hpp>
 
 
-namespace ve::graphics {
-    // A wrapper around a set of texture atlases.
-    // If one atlas becomes full, a new one is automatically generated and used instead.
-    template <typename Atlas> requires std::is_base_of_v<texture_atlas<Atlas>, Atlas>
-    class generative_texture_atlas : public texture_atlas<generative_texture_atlas<Atlas>> {
+namespace ve::gfx {
+    template <typename Atlas> class generative_texture_atlas : public texture_atlas<generative_texture_atlas<Atlas>> {
     public:
-        // Args are used to generate new atlases.
-        template <typename... Args>
-        explicit generative_texture_atlas(Args&&... args) {
-            generator = [...args = std::forward<Args>(args)]() {
-                return Atlas { args... };
-            };
+        explicit generative_texture_atlas(std::string name = "textures", std::function<unique<Atlas>(void)> constructor = [] { return make_unique<Atlas>(); }) :
+            name(std::move(name)), constructor(std::move(constructor))
+        {
+            atlases.emplace_back(this->constructor());
         }
-        
-        
-        ve_move_only(generative_texture_atlas);
-    
-    
-        void on_actor_destroyed(actor_id id) {
-            // Some textures may have been deleted, reset the largest known available size.
-            for (auto& [atlas, max_size] : storage) max_size = tex_size(size());
+
+
+        texture_list get_uniform_textures(void) const override {
+            return atlases | views::indirect | views::transform(ve_get_field(get_texture())) | ranges::to<std::vector>();
         }
-    
-    
-        expected<subtexture> add_texture(const io::image& img, ve_default_actor(owner)) {
-            VE_ASSERT(
-                glm::all(img.size <= size()),
-                "Cannot insert texture into atlas that is larger than the atlas itself."
-            );
-            
-            // Try inserting the texture into an existing atlas.
-            std::size_t index = 0;
-            
-            for (auto& [atlas, max_size] : storage) {
-                if (tex_size(img.size) <= max_size) {
-                    auto tex = atlas.add_texture(img, owner);
-                    
-                    if (tex) {
-                        texture_containers[tex->tex->get_id()] = index;
-                        return tex;
-                    } else {
-                        VE_LOG_DEBUG("Atlas "s + std::to_string(index) + " has no space for texture. Trying next atlas.");
-                        max_size = degrade_size(max_size);
-                    }
-                }
-                
-                ++index;
-            }
-            
-            // Create a new atlas for the texture.
-            VE_LOG_DEBUG(
-                "Creating new texture atlas since no atlas is available to store texture of size "s +
-                "[" + std::to_string(img.size.x) + ", " + std::to_string(img.size.y) + "]."
-            );
-            
-            storage.push_back({ generator(), tex_size(size()) });
-            
-            auto st = storage.back().atlas.add_texture(img, owner);
-            if (st) st->index = storage.size() - 1;
-            return st;
+
+
+        std::string get_uniform_name(void) const override {
+            return name;
         }
-    
-    
-        void remove_texture(const subtexture& tex) {
-            auto it = texture_containers.find(tex.tex->get_id());
-            if (it == texture_containers.end()) return;
-            
-            storage[it->second].remove_texture(tex);
-            texture_containers.erase(it);
+
+
+        vec2ui size(void) const {
+            return atlases[0]->size();
         }
-    
-    
-        static u32 quantization(void) {
-            return Atlas::quantization();
+
+
+        vec2ui quantization(void) const {
+            return atlases[0]->quantization();
         }
-    
-    
-        static vec2ui size(void) {
-            return Atlas::size();
+
+
+        subtexture prepare_storage(const vec2ui& size) {
+            return invoke_until_success([&] (auto& atlas, u8 i) {
+                auto st = atlas->prepare_storage(size);
+                st.binding = i;
+
+                return st;
+            });
         }
+
+
+        void store_at(const image_rgba8& img, subtexture& where) {
+            atlases.at(where.binding)->store_at(img, where);
+        }
+
+
+        std::vector<subtexture> prepare_storage_for_all(const std::vector<vec2ui>& sizes) {
+            return invoke_until_success([&] (auto& atlas, u8 i) {
+                auto sts = atlas->prepare_storage_for_all(sizes);
+                for (auto& st : sts) st.binding = i;
+
+                return sts;
+            });
+        }
+
+
+        VE_GET_CREF(name);
     private:
-        struct atlas_storage {
-            Atlas atlas;
-            u32 largest_possible_texture;
-        };
-    
-        std::function<Atlas(void)> generator;
-        std::vector<atlas_storage> storage;
-        hash_map<GLuint, std::size_t> texture_containers;
-        
-        
-        static u32 tex_size(const vec2ui& size) {
-            return std::min(size.x, size.y);
-        }
-        
-        static u32 degrade_size(u32 size) {
-            if (quantization() >= size) return 0;
-            else return size - quantization();
+        std::string name;
+        std::vector<unique<Atlas>> atlases;
+        std::function<unique<Atlas>(void)> constructor;
+
+
+        // Invokes the provided function as fn(atlas, index) for every atlas until it succeeds without throwing.
+        auto invoke_until_success(auto fn) {
+            for (auto [i, atlas] : atlases | views::enumerate) {
+                try {
+                    return std::invoke(fn, atlas, (u8) i);
+                } catch (const atlas_full_error &e) {}
+            }
+
+            if (atlases.size() >= max_value<u8>) {
+                throw atlas_full_error { "Generative atlas cannot generate more atlases: u8 max value exceeded." };
+            }
+
+            auto& atlas = atlases.emplace_back(constructor());
+            return std::invoke(fn, atlas, (u8) (atlases.size() - 1));
         }
     };
-    
-    
-    template <std::size_t W = 4096, std::size_t H = 4096, std::size_t Align = 32>
-    using aligned_generative_texture_atlas = generative_texture_atlas<aligned_texture_atlas<W, H, Align>>;
+
+
+    using aligned_generative_texture_atlas = generative_texture_atlas<aligned_texture_atlas>;
 }
