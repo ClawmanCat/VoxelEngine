@@ -34,7 +34,13 @@ namespace demo_game {
 
         explicit world(ve::registry& registry) : ve::static_entity(registry) {
             auto load_where  = ve::voxel::tilepos { 0 };
-            auto load_radius = ve::voxel::tilepos { 5, 5, 5 };
+
+            #ifdef VE_DEBUG
+                auto load_radius = ve::voxel::tilepos { 1, 1, 1 };
+            #else
+                auto load_radius = ve::voxel::tilepos { 5, 5, 5 };
+            #endif
+
             voxel.get_space()->add_chunk_loader(ve::make_shared<ve::voxel::point_loader<>>(load_where, load_radius));
         }
 

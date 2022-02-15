@@ -40,7 +40,7 @@ namespace ve {
                 loader = remote_generator;
                 space  = voxel::voxel_space::create(remote_generator);
 
-                space->add_chunk_loader(remote_generator);
+                space->add_chunk_loader(std::move(remote_generator));
             }
 
             // TODO: Find a more robust way to do this, this will break on unified instances.
@@ -49,8 +49,6 @@ namespace ve {
 
 
         void on_component_added_wrapped(registry& owner, entt::entity entity) {
-            return;
-
             on_chunk_load = space->add_handler([this] (const voxel::chunk_loaded_event& e) {
                 broadcast_message(chunk_load_message { .where = e.chunkpos, .data = e.chunk->get_chunk_data() });
             });
@@ -66,8 +64,6 @@ namespace ve {
 
 
         void on_component_removed(registry& owner, entt::entity entity) {
-            return;
-
             space->remove_handler<voxel::chunk_loaded_event>  (on_chunk_load);
             space->remove_handler<voxel::chunk_unloaded_event>(on_chunk_unload);
             space->remove_handler<voxel::voxel_changed_event> (on_voxel_set);

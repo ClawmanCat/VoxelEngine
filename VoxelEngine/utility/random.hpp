@@ -66,6 +66,7 @@ namespace ve::random {
 
 
         inline thread_local xorshift global_generator { generate_seed<sizeof(u64)>() };
+        using generator_t = xorshift;
 
 
         // Produces a random floating point number with uniform distribution between min and max.
@@ -101,6 +102,8 @@ namespace ve::random {
         inline thread_local std::mt19937 global_generator = create_seeded_generator<std::mt19937>(
             generate_seed<generator_state_size<std::mt19937>>()
         );
+
+        using generator_t = std::mt19937;
 
 
         // Produces a random floating point number with uniform distribution between min and max.

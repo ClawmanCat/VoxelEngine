@@ -8,7 +8,7 @@
 #include <boost/pfr.hpp>
 #include <ctti/type_id.hpp>
 #include <glm/gtc/matrix_access.hpp>
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
 #include <sstream>
 

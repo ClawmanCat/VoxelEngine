@@ -2,7 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
 
 namespace ve {

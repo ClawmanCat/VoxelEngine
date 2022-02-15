@@ -11,7 +11,7 @@
 #include <VoxelEngine/event/subscribe_only_view.hpp>
 #include <VoxelEngine/clientserver/instance_id.hpp>
 
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
 
 // Ensure constant storage for types that require it.

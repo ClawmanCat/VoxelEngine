@@ -4,7 +4,7 @@
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
 #include <VoxelEngine/utility/traits/maybe_const.hpp>
 
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
 
 namespace ve {

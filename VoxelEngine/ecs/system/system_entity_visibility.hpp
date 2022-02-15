@@ -55,7 +55,7 @@ namespace ve {
             );
 
             entity_destroyed_handler = owner.add_handler([&] (const entity_destroyed_event& e) {
-                destroyed_entities.push_back(e.entity);
+                if (!destroyed_entities.contains(e.entity)) destroyed_entities.emplace(e.entity);
             });
 
             remote_disconnected_handler = owner.add_handler([&] (const instance_disconnected_event& e) {
@@ -111,12 +111,16 @@ namespace ve {
 
 
                 // Destroyed entities will appear as going invisible on the remote.
-                for (auto entity : destroyed_entities) {
+                // Note: entities are not guaranteed to be in the view, since one could've been added and then
+                // destroyed since our last update.
+                auto destroyed_view = view_from_set(destroyed_entities) | view_from_storage(storage_for_conn);
+
+                for (auto entity : destroyed_view) {
                     visibility_status status = storage_for_conn.get(entity);
                     if (status == VISIBLE) removed.changed.push_back(entity);
                 }
 
-                storage_for_conn.erase(destroyed_entities.begin(), destroyed_entities.end());
+                storage_for_conn.erase(destroyed_view.begin(), destroyed_view.end());
 
 
                 // Send lists of entities that became visible and invisible to remote.
@@ -164,7 +168,7 @@ namespace ve {
         hash_map<instance_id, storage_type<visibility_status>> storage;
 
         event_handler_id_t entity_destroyed_handler, remote_disconnected_handler;
-        std::vector<entt::entity> destroyed_entities;
+        entt::sparse_set destroyed_entities;
     };
 
 

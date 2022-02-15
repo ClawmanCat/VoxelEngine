@@ -58,7 +58,7 @@ namespace ve {
 
             explicit subsystem(system_remote_initializer* parent, Initializer&& init) : init(fwd(init)), parent(parent) {
                 handler = parent->owner->template add_handler([this] (const component_created_event<Component>& e) {
-                    newly_added.emplace(e.entity);
+                    if (!newly_added.contains(e.entity)) newly_added.emplace(e.entity);
                 });
             }
 

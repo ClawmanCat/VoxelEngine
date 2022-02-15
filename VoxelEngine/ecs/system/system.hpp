@@ -5,7 +5,7 @@
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
 #include <VoxelEngine/utility/priority.hpp>
 
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
 
 namespace ve {

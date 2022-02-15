@@ -239,17 +239,17 @@ namespace demo_game {
 
 
     void game::setup_server_entities(void) {
+        // Create world.
+        auto& w = game::server->store_static_entity(world { *game::server });
+
+
         // Create Howlees.
-        for (i32 x = -5; x <= +5; ++x) {
-            for (i32 z = -5; z <= +5; ++z) {
-                auto& h = game::server->store_static_entity(howlee { *game::server });
+        for (i32 x = -10; x <= +10; ++x) {
+            for (i32 z = -10; z <= +10; ++z) {
+                auto& h = game::server->store_static_entity(howlee { *game::server, &w });
                 h.transform.position = vec3f { x, 0, z };
             }
         }
-
-
-        // Create world.
-        game::server->store_static_entity(world { *game::server });
 
 
         // Create player entity when a client connects to the server.

@@ -10,7 +10,7 @@
 #include <VoxelEngine/event/subscribe_only_view.hpp>
 #include <VoxelEngine/utility/arbitrary_storage.hpp>
 
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
 
 namespace ve {

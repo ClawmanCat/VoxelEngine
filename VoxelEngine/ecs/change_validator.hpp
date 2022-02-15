@@ -6,7 +6,7 @@
 #include <VoxelEngine/utility/traits/function_traits.hpp>
 #include <VoxelEngine/utility/traits/remove_const_pointer.hpp>
 
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
 
 namespace ve {

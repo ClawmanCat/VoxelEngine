@@ -5,7 +5,7 @@
 #include <VoxelEngine/ecs/component/self_component.hpp>
 #include <VoxelEngine/utility/assert.hpp>
 
-#include <entt/entt.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 
 
 namespace ve {

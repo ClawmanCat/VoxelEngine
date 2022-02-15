@@ -19,6 +19,7 @@
 #include <VoxelEngine/ecs/component_registry.hpp>
 #include <VoxelEngine/ecs/entity/static_component.hpp>
 #include <VoxelEngine/ecs/entity/static_entity.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
 #include <VoxelEngine/ecs/registry.hpp>
 #include <VoxelEngine/ecs/registry_helpers.hpp>
 #include <VoxelEngine/ecs/system/system.hpp>
