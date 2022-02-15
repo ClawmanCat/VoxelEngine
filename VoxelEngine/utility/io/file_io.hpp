@@ -4,6 +4,7 @@
 #include <VoxelEngine/utility/string.hpp>
 #include <VoxelEngine/utility/io/image.hpp>
 #include <VoxelEngine/utility/assert.hpp>
+#include <VoxelEngine/utility/algorithm.hpp>
 
 #include <stb_image.h>
 #include <stb_image_write.h>
@@ -133,6 +134,7 @@ namespace ve::io {
         auto last_dot = path_string.end();
         for (auto it = path_string.rbegin(); it != path_string.rend(); ++it) {
             if (*it == '.') last_dot = it.base();
+            if (one_of(*it, '\\', '/')) break;
         }
 
         return last_dot == path_string.end()
