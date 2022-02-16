@@ -192,7 +192,7 @@ namespace demo_game {
         >;
 
 
-        // Allow clients to see all positionless entities, all voxel spaces, and entities within 25 meters of them.
+        // Allow clients to see all positionless entities, all voxel spaces, and entities within 200 meters of them.
         auto visibility_rule = [] (const registry& owner, entt::entity entity, const message_handler* connection) {
             if (owner.template has_component<voxel_component>(entity)) { return true; }
 
@@ -200,7 +200,7 @@ namespace demo_game {
             const auto* player_transform = owner.try_get_component<transform_component>(player::server_players[connection->get_remote_id()]);
 
             if (entity_transform && player_transform) {
-                return glm::distance(entity_transform->position, player_transform->position) < 25.0f;
+                return glm::distance(entity_transform->position, player_transform->position) < 200.0f;
             } else return true;
         };
 
