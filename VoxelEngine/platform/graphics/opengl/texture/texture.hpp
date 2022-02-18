@@ -59,7 +59,6 @@ namespace ve::gfx::opengl {
 
 
         ~texture(void) {
-            assert_main_thread();
             if (id) glDeleteTextures(1, &id);
         }
 

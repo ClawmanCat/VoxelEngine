@@ -118,7 +118,7 @@ namespace ve {
                 .entity = entt::to_entity(owner->get_storage(), (Derived&) *this)
             };
 
-            for (const auto& remote : remotes) {
+            for (const auto& remote : get_visible_remotes()) {
                 owner->get_connection(remote)->send_message(
                     core_message_types::MSG_PARTIAL_SYNC,
                     sync_msg
@@ -149,7 +149,14 @@ namespace ve {
         }
 
 
-        VE_GET_CREF(remotes);
+        // Get all remotes that have visibility of this component.
+        hash_set<instance_id> get_visible_remotes(void) const {
+            auto result = remotes;
+            erase_if(result, [&] (const auto& conn) { return !owner->get_connection(conn); });
+            return result;
+        }
+
+
         VE_GET_VAL(owner);
     private:
         instance* owner = nullptr;

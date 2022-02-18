@@ -179,7 +179,7 @@ namespace ve::gfx::opengl {
         }
 
         ~indexed_vertex_buffer(void) {
-            glDeleteVertexArrays(1, &vao);
+            if (vao) glDeleteVertexArrays(1, &vao);
         }
 
 

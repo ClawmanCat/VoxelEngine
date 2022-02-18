@@ -56,25 +56,7 @@ namespace demo_game {
         game::setup_client_input();
         game::setup_client_synchronization();
         game::setup_client_systems();
-
-
-        // Connect to server.
-        auto remote_address = engine::get_arguments().value_or<std::string>("remote_address", "127.0.0.1");
-        connect_remote(*game::client, remote_address, 6969);
-
-        auto socket_connection = game::client->get_object<shared<connection::socket_client>>("ve.connection");
-        socket_connection->add_handler([] (const connection::session_error_event& e) {
-            thread_pool::instance().invoke_on_thread([e] {
-                auto msg = "An error occurred in the connection with the server. The connection was terminated.\n"s + e.error.message();
-
-                SDL_ShowSimpleMessageBox(
-                    SDL_MESSAGEBOX_ERROR,
-                    "Connection Error",
-                    msg.c_str(),
-                    nullptr
-                );
-            });
-        });
+        game::setup_client_connection();
     }
 
 
@@ -166,6 +148,28 @@ namespace demo_game {
 
         // Allow client-side entities to define update script components (e.g. to update player movements).
         game::client->add_system(system_updater<> {});
+    }
+
+
+    void game::setup_client_connection(void) {
+        auto remote_address = engine::get_arguments().value_or<std::string>("remote_address", "127.0.0.1");
+        connect_remote(*game::client, remote_address, 6969);
+
+        auto socket_connection = game::client->get_object<shared<connection::socket_client>>("ve.connection");
+        socket_connection->add_handler([] (const connection::session_error_event& e) {
+            thread_pool::instance().invoke_on_thread([e] {
+                auto msg = "An error occurred in the connection with the server. The connection was terminated.\n"s + e.error.message();
+
+                SDL_ShowSimpleMessageBox(
+                    SDL_MESSAGEBOX_ERROR,
+                    "Connection Error",
+                    msg.c_str(),
+                    nullptr
+                );
+
+                disconnect_remote(*game::client);
+            });
+        });
     }
 
 
