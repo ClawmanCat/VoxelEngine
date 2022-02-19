@@ -56,25 +56,7 @@ namespace demo_game {
         game::setup_client_input();
         game::setup_client_synchronization();
         game::setup_client_systems();
-
-
-        // Connect to server.
-        auto remote_address = engine::get_arguments().value_or<std::string>("remote_address", "127.0.0.1");
-        connect_remote(*game::client, remote_address, 6969);
-
-        auto socket_connection = game::client->get_object<shared<connection::socket_client>>("ve.connection");
-        socket_connection->add_handler([] (const connection::session_error_event& e) {
-            thread_pool::instance().invoke_on_thread([e] {
-                auto msg = "An error occurred in the connection with the server. The connection was terminated.\n"s + e.error.message();
-
-                SDL_ShowSimpleMessageBox(
-                    SDL_MESSAGEBOX_ERROR,
-                    "Connection Error",
-                    msg.c_str(),
-                    nullptr
-                );
-            });
-        });
+        game::setup_client_connection();
     }
 
 
@@ -169,6 +151,28 @@ namespace demo_game {
     }
 
 
+    void game::setup_client_connection(void) {
+        auto remote_address = engine::get_arguments().value_or<std::string>("remote_address", "127.0.0.1");
+        connect_remote(*game::client, remote_address, 6969);
+
+        auto socket_connection = game::client->get_object<shared<connection::socket_client>>("ve.connection");
+        socket_connection->add_handler([] (const connection::session_error_event& e) {
+            thread_pool::instance().invoke_on_thread([e] {
+                auto msg = "An error occurred in the connection with the server. The connection was terminated.\n"s + e.error.message();
+
+                SDL_ShowSimpleMessageBox(
+                    SDL_MESSAGEBOX_ERROR,
+                    "Connection Error",
+                    msg.c_str(),
+                    nullptr
+                );
+
+                disconnect_remote(*game::client);
+            });
+        });
+    }
+
+
     void game::setup_server(void) {
         game::server = make_unique<class server>();
 
@@ -192,7 +196,7 @@ namespace demo_game {
         >;
 
 
-        // Allow clients to see all positionless entities, all voxel spaces, and entities within 25 meters of them.
+        // Allow clients to see all positionless entities, all voxel spaces, and entities within 200 meters of them.
         auto visibility_rule = [] (const registry& owner, entt::entity entity, const message_handler* connection) {
             if (owner.template has_component<voxel_component>(entity)) { return true; }
 
@@ -200,7 +204,7 @@ namespace demo_game {
             const auto* player_transform = owner.try_get_component<transform_component>(player::server_players[connection->get_remote_id()]);
 
             if (entity_transform && player_transform) {
-                return glm::distance(entity_transform->position, player_transform->position) < 25.0f;
+                return glm::distance(entity_transform->position, player_transform->position) < 200.0f;
             } else return true;
         };
 

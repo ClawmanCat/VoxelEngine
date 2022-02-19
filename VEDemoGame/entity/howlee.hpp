@@ -83,7 +83,8 @@ namespace demo_game {
 
             // If we're inside a tile, move up.
             if (current_tile->is_solid()) {
-                motion.linear_velocity.y += terminal_velocity * dt_seconds;
+                motion.linear_velocity.y += fall_acceleration * dt_seconds;
+                motion.linear_velocity.y  = std::min(motion.linear_velocity.y, terminal_velocity);
             }
 
             // If we're not on solid ground, fall down.

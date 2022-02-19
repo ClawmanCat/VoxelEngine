@@ -16,7 +16,6 @@ namespace ve::gfx::opengl {
         explicit buffer(GLenum type) : gl_type(type) {}
 
         ~buffer(void) {
-            assert_main_thread();
             if (id) glDeleteBuffers(1, &id);
         }
 

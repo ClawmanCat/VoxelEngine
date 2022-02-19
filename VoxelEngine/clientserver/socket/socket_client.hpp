@@ -54,8 +54,11 @@ namespace ve::connection {
             exited = true;
             connection_error.assign(boost::system::errc::success, boost::system::generic_category());
 
+            if (session) {
+                session->stop();
+                session = nullptr;
+            }
 
-            session->stop();
             ctx.stop();
             thread->join();
             thread = std::nullopt;

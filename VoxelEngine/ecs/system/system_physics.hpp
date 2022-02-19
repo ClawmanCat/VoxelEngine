@@ -26,7 +26,7 @@ namespace ve {
     public:
         // "max_dt" can be used to skip physics updates if the dt becomes very large.
         // This can be used to prevent applied movement from becoming too large if the game hangs for a significant amount of time.
-        explicit system_physics(nanoseconds max_dt = 250ms, u16 priority = priority::HIGH) :
+        explicit system_physics(nanoseconds max_dt = 100ms, u16 priority = priority::HIGH) :
             max_dt(max_dt),
             priority(priority)
         {}

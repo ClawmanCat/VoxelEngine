@@ -80,7 +80,7 @@ namespace ve {
         boost::asio::io_context main_thread_ctx;
         
         
-        explicit thread_pool(std::size_t num_workers = std::max(16u, std::thread::hardware_concurrency()))
+        explicit thread_pool(std::size_t num_workers = std::max(32u, std::thread::hardware_concurrency()))
             : pool(num_workers) {}
         
         
