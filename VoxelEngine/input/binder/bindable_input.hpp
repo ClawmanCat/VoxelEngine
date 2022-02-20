@@ -159,7 +159,7 @@ namespace ve {
             bool result = false;
 
             event_types::foreach_indexed([&] <typename E, std::size_t I> {
-                if (binary_input::trigger_on == (binary_input::trigger_on_t) 1 << I) {
+                if (binary_input::trigger_on & (binary_input::trigger_on_t) 1 << I) {
                     const auto* e = safe_cast<E>(event, type);
                     result |= check_base_fields(this, e) && get_most_recent_state(*e).key == key;
                 }
@@ -202,7 +202,7 @@ namespace ve {
             bool result = false;
 
             event_types::foreach_indexed([&] <typename E, std::size_t I> {
-                if (binary_input::trigger_on == (binary_input::trigger_on_t) 1 << I) {
+                if (binary_input::trigger_on & (binary_input::trigger_on_t) 1 << I) {
                     const auto* e = safe_cast<E>(event, type);
                     result |= check_base_fields(this, e) && get_most_recent_state(*e).button == button;
                 }
@@ -244,7 +244,7 @@ namespace ve {
             bool result = false;
 
             event_types::foreach_indexed([&] <typename E, std::size_t I> {
-                if (motion_input::trigger_on == (motion_input::trigger_on_t) 1 << I) {
+                if (motion_input::trigger_on & (motion_input::trigger_on_t) 1 << I) {
                     const auto* e = safe_cast<E>(event, type);
                     result |= check_base_fields(this, e);
                 }
@@ -283,7 +283,7 @@ namespace ve {
             bool result = false;
 
             event_types::foreach_indexed([&] <typename E, std::size_t I> {
-                if (motion_input::trigger_on == (motion_input::trigger_on_t) 1 << I) {
+                if (motion_input::trigger_on & (motion_input::trigger_on_t) 1 << I) {
                     const auto* e = safe_cast<E>(event, type);
                     result |= check_base_fields(this, e);
                 }
@@ -323,7 +323,7 @@ namespace ve {
             bool result = false;
 
             event_types::foreach_indexed([&] <typename E, std::size_t I> {
-                if (motion_input::trigger_on == (motion_input::trigger_on_t) 1 << I) {
+                if (motion_input::trigger_on & (motion_input::trigger_on_t) 1 << I) {
                     const auto* e = safe_cast<E>(event, type);
                     result |= check_base_fields(this, e) && e->button == button;
                 }
