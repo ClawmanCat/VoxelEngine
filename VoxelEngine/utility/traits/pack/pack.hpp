@@ -6,6 +6,10 @@
 
 
 namespace ve::meta {
+    constexpr inline bool PACK_FOREACH_BREAK    = false;
+    constexpr inline bool PACK_FOREACH_CONTINUE = true;
+
+
     template <typename T> concept pack_of_types = requires { typename T::pack_tag; };
     
     
@@ -150,7 +154,7 @@ namespace ve::meta {
         template <template <typename...> typename Trait> using filter_trait = ve_deptr(filter_trait_impl<Trait>);
 
         
-        // Invokes pred for each element in the pack. Returns early if pred returns false.
+        // Invokes pred for each element in the pack. Returns early if pred returns PACK_FOREACH_BREAK (false).
         // Returns true if function completed without returning early or false otherwise.
         template <typename Pred> constexpr static bool foreach(Pred&& pred) {
             if constexpr (size == 0) return true;

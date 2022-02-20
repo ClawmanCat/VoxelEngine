@@ -47,32 +47,18 @@ namespace demo_game {
             ));
         }
 
-        inputs.handles.push_back(controls.add_binding(
+        inputs.handles.push_back(controls.template add_specialized_binding<input_categories::motion_progress_events_2d>(
             "look",
-            [self, &owner] (const void* event, std::size_t type_hash) {
+            [self, &owner] (const auto& args) {
                 auto& inputs = owner.template get_component<user_inputs>(self);
 
-                auto add_motion = [&] (const auto& args) {
-                    // Motion is scaled such that a mouse movement from the center to the side of the window
-                    // equals a delta of exactly (pi / 2) * sensitivity.
-                    inputs.mouse_motion +=
-                        vec2f { get_most_recent_state(args).position - get_previous_state(args).position } /
-                        vec2f { args.window->get_canvas_size() } *
-                        constants::f32_pi *
-                        player_look_sensitivity;
-                };
-
-                VE_ASSERT(
-                    !input_categories::motion_progress_events_2d::foreach([&] <typename Event> {
-                        if (ve::type_hash<Event>() == type_hash) {
-                            add_motion(*((const Event*) event));
-                            return false;
-                        }
-
-                        return true;
-                    }),
-                    "Unsupported input type for camera look. Input must be of 2d motion progress type."
-                );
+                // Motion is scaled such that a mouse movement from the center to the side of the window
+                // equals a delta of exactly (pi / 2) * sensitivity.
+                inputs.mouse_motion +=
+                    vec2f { get_most_recent_state(args).position - get_previous_state(args).position } /
+                    vec2f { args.window->get_canvas_size() } *
+                    constants::f32_pi *
+                    player_look_sensitivity;
             }
         ));
     }

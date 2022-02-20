@@ -4,9 +4,23 @@
 #include <VoxelEngine/input/input_manager.hpp>
 #include <VoxelEngine/input/binder/bindable_input.hpp>
 #include <VoxelEngine/utility/bit.hpp>
+#include <VoxelEngine/utility/traits/pack/pack.hpp>
 
 
 namespace ve {
+    namespace binding_error_handlers {
+        const static inline auto ignore = [] {};
+
+        const static inline auto warn = [] {
+            VE_LOG_WARN("Binding does not support events of provided type. Event will be ignored.");
+        };
+
+        const static inline auto error = [] {
+            VE_ASSERT(false, "Binding does not support events of provided type.");
+        };
+    }
+
+
     class input_binder {
     private:
         using binding_t = std::function<void(const void*, std::size_t)>;
@@ -82,6 +96,41 @@ namespace ve {
                 bindings[name].emplace_back(std::move(binding));
                 return binding_handle { std::string { name }, bindings[name].size() - 1 };
             }
+        }
+
+
+        // Equivalent to above, except the binding callable accepts the event argument directly.
+        // A behaviour must be chosen for when the event type does not match the expected argument.
+        // If the event type is not deducible from pred (e.g. its parameter is auto), a list of allowed event types must be provided.
+        template <
+            typename Pred,
+            meta::pack_of_types AllowedEvents = typename meta::function_traits<Pred>::arguments::template expand_outside<std::remove_cvref_t>,
+            typename Handler = decltype(binding_error_handlers::warn)
+        >
+        requires (AllowedEvents::all([] <typename E> { return std::is_invocable_v<Pred, const E&>; }))
+        binding_handle add_specialized_binding(std::string_view name, Pred binding, Handler on_fail = binding_error_handlers::warn) {
+            return add_binding(
+                name,
+                [binding = std::move(binding), on_fail = std::move(on_fail)] (const void* event, std::size_t type) {
+                    bool no_overloads_found = AllowedEvents::foreach([&] <typename E> {
+                        if (type == type_hash<E>()) {
+                            std::invoke(binding, *((const E*) event));
+                            return meta::PACK_FOREACH_BREAK;
+                        }
+
+                        return meta::PACK_FOREACH_CONTINUE;
+                    });
+
+                    if (no_overloads_found) std::invoke(on_fail);
+                }
+            );
+        }
+
+
+        // Overload of add_specialized_binding to prevent having to specify the type of pred when the AllowedEvents list is manually provided.
+        template <meta::pack_of_types AllowedEvents, typename Handler = decltype(binding_error_handlers::warn)>
+        binding_handle add_specialized_binding(std::string_view name, auto binding, Handler on_fail = binding_error_handlers::warn) {
+            return add_specialized_binding<decltype(binding), AllowedEvents>(name, std::move(binding), std::move(on_fail));
         }
 
 
