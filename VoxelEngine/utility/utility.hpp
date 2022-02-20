@@ -44,6 +44,7 @@
 #include <VoxelEngine/utility/spatial_iterate.hpp>
 #include <VoxelEngine/utility/stack_polymorph.hpp>
 #include <VoxelEngine/utility/string.hpp>
+#include <VoxelEngine/utility/swap_movable.hpp>
 #include <VoxelEngine/utility/thread/assert_main_thread.hpp>
 #include <VoxelEngine/utility/thread/dummy_mutex.hpp>
 #include <VoxelEngine/utility/thread/thread_id.hpp>

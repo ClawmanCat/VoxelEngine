@@ -4,7 +4,9 @@
 
 #pragma once
 
-#include <VoxelEngine/input/input_binder.hpp>
+#include <VoxelEngine/input/binder/bindable_input.hpp>
+#include <VoxelEngine/input/binder/input_binder.hpp>
+#include <VoxelEngine/input/input_categories.hpp>
 #include <VoxelEngine/input/input_event.hpp>
 #include <VoxelEngine/input/input_manager.hpp>
 #include <VoxelEngine/input/keyboard.hpp>

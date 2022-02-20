@@ -151,19 +151,19 @@ namespace ve::meta {
 
         
         // Invokes pred for each element in the pack. Returns early if pred returns false.
-        template <typename Pred>
-        constexpr static void foreach(Pred&& pred) {
-            if constexpr (size == 0) return;
+        // Returns true if function completed without returning early or false otherwise.
+        template <typename Pred> constexpr static bool foreach(Pred&& pred) {
+            if constexpr (size == 0) return true;
             else {
                 using invoke_t = decltype(pred.template operator()<head>());
                 
                 if constexpr (std::is_same_v<invoke_t, bool>) {
                     if (pred.template operator()<head>()) {
-                        tail::template foreach(fwd(pred));
-                    }
+                        return tail::template foreach(fwd(pred));
+                    } else return false;
                 } else {
                     pred.template operator()<head>();
-                    tail::template foreach(fwd(pred));
+                    return tail::template foreach(fwd(pred));
                 }
             }
         }
@@ -171,20 +171,26 @@ namespace ve::meta {
 
         // Equivalent to above, but pred is invoked as pred<T, Index> rather than pred<T>.
         template <typename Pred, std::size_t I = 0>
-        constexpr static void foreach_indexed(Pred&& pred) {
-            if constexpr (size == 0) return;
+        constexpr static bool foreach_indexed(Pred&& pred) {
+            if constexpr (size == 0) return true;
             else {
                 using invoke_t = decltype(pred.template operator()<head, I>());
 
                 if constexpr (std::is_same_v<invoke_t, bool>) {
                     if (pred.template operator()<head, I>()) {
-                        tail::template foreach_indexed<Pred, I + 1>(fwd(pred));
-                    }
+                        return tail::template foreach_indexed<Pred, I + 1>(fwd(pred));
+                    } else return false;
                 } else {
                     pred.template operator()<head, I>();
-                    tail::template foreach_indexed<Pred, I + 1>(fwd(pred));
+                    return tail::template foreach_indexed<Pred, I + 1>(fwd(pred));
                 }
             }
+        }
+
+
+        template <typename Pred>
+        constexpr static auto apply(Pred pred) {
+            return pred.template operator()<Ts...>();
         }
         
         

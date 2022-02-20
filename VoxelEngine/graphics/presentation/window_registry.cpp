@@ -28,10 +28,10 @@ namespace ve::gfx {
         windows.push_back(window);
 
         if (!std::exchange(had_windows, true)) {
-            input_manager::instance().trigger_event(first_window_opened_event { window });
+            input_manager::instance().dispatch_event(first_window_opened_event { window });
         }
 
-        input_manager::instance().trigger_event(window_opened_event { window });
+        input_manager::instance().dispatch_event(window_opened_event { window });
     }
 
 
@@ -41,7 +41,7 @@ namespace ve::gfx {
             windows.erase(it);
 
             // Note: don't trigger normal window_closed_event since that one is actually handled by SDL.
-            if (windows.empty()) input_manager::instance().trigger_event(last_window_closed_event { window });
+            if (windows.empty()) input_manager::instance().dispatch_event(last_window_closed_event { window });
         }
     }
 

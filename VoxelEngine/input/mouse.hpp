@@ -2,6 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/input/input_event.hpp>
+#include <VoxelEngine/utility/traits/pack/pack.hpp>
 
 #include <SDL_mouse.h>
 #include <SDL_keyboard.h>
@@ -83,4 +84,28 @@ namespace ve {
     struct ve_input_event(mouse_drag_event)       { mouse_button button; cref_of<mouse_state> begin_state, old_state, new_state; };
     struct ve_input_event(mouse_drag_start_event) { mouse_button button; cref_of<mouse_state> begin_state; };
     struct ve_input_event(mouse_drag_end_event)   { mouse_button button; cref_of<mouse_state> begin_state, end_state; };
+
+
+    // TODO: Consider redoing event hierarchy so we don't need this.
+    template <typename Event> constexpr inline auto& get_most_recent_state(Event& e) {
+        if      constexpr (requires { e.end_state;   }) return e.end_state;
+        else if constexpr (requires { e.new_state;   }) return e.new_state;
+        else if constexpr (requires { e.state;       }) return e.state;
+        else if constexpr (requires { e.begin_state; }) return e.begin_state;
+        else static_assert(meta::always_false_v<Event>, "Event does not have a state field.");
+    }
+
+    template <typename Event> constexpr inline auto& get_previous_state(Event& e) {
+        if      constexpr (requires { e.old_state;   }) return e.old_state;
+        else if constexpr (requires { e.begin_state; }) return e.begin_state;
+        else if constexpr (requires { e.state;       }) return e.state;
+        else static_assert(meta::always_false_v<Event>, "Event does not have a state field.");
+    }
+
+    template <typename Event> constexpr inline auto& get_begin_state(Event& e) {
+        if      constexpr (requires { e.begin_state; }) return e.begin_state;
+        else if constexpr (requires { e.old_state;   }) return e.old_state;
+        else if constexpr (requires { e.state;       }) return e.state;
+        else static_assert(meta::always_false_v<Event>, "Event does not have a state field.");
+    }
 }

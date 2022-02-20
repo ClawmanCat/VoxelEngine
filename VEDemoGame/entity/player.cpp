@@ -1,5 +1,5 @@
 #include <VEDemoGame/entity/player.hpp>
-#include <VEDemoGame/input/input_binder.hpp>
+#include <VEDemoGame/input/key_bindings.hpp>
 
 #include <VoxelEngine/utility/direction.hpp>
 
@@ -20,15 +20,18 @@ namespace demo_game {
 
     // Tracks user inputs done during the last tick.
     struct user_inputs {
+        user_inputs(void) = default;
+        ve_rt_move_only(user_inputs);
+
+        ~user_inputs(void) {
+            for (const auto& handle : handles) controls.remove_binding(handle);
+        }
+
+
         vec3f world_motion = vec3f { 0 };
         vec2f mouse_motion = vec2f { 0 };
 
-        std::vector<typename input_binder::input_handle> handles;
-
-
-        ~user_inputs(void) {
-            for (const auto& handle : handles) controls.unbind(handle);
-        }
+        std::vector<typename input_binder::binding_handle> handles;
     };
 
 
@@ -36,26 +39,40 @@ namespace demo_game {
         auto& inputs = owner.set_component(self, user_inputs { });
 
         for (const auto& [name, direction] : player_motions) {
-            inputs.handles.push_back(controls.bind(
+            inputs.handles.push_back(controls.add_binding(
                 name,
-                [direction = direction, self, &owner] (const binary_input::handler_args& args) {
+                [direction = direction, self, &owner] {
                     owner.template get_component<user_inputs>(self).world_motion += direction;
                 }
             ));
         }
 
-        inputs.handles.push_back(controls.bind(
+        inputs.handles.push_back(controls.add_binding(
             "look",
-            [self, &owner] (const motion_input::handler_args& args) {
+            [self, &owner] (const void* event, std::size_t type_hash) {
                 auto& inputs = owner.template get_component<user_inputs>(self);
 
-                // Motion is scaled such that a mouse movement from the center to the side of the window
-                // equals a delta of exactly (pi / 2) * sensitivity.
-                inputs.mouse_motion +=
-                    vec2f { args.current.position - args.prev.position } /
-                    vec2f { args.window->get_canvas_size() } *
-                    constants::f32_pi *
-                    player_look_sensitivity;
+                auto add_motion = [&] (const auto& args) {
+                    // Motion is scaled such that a mouse movement from the center to the side of the window
+                    // equals a delta of exactly (pi / 2) * sensitivity.
+                    inputs.mouse_motion +=
+                        vec2f { get_most_recent_state(args).position - get_previous_state(args).position } /
+                        vec2f { args.window->get_canvas_size() } *
+                        constants::f32_pi *
+                        player_look_sensitivity;
+                };
+
+                VE_ASSERT(
+                    !input_categories::motion_progress_events_2d::foreach([&] <typename Event> {
+                        if (ve::type_hash<Event>() == type_hash) {
+                            add_motion(*((const Event*) event));
+                            return false;
+                        }
+
+                        return true;
+                    }),
+                    "Unsupported input type for camera look. Input must be of 2d motion progress type."
+                );
             }
         ));
     }

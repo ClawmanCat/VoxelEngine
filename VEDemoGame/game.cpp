@@ -1,5 +1,5 @@
 #include <VEDemoGame/game.hpp>
-#include <VEDemoGame/input/input_binder.hpp>
+#include <VEDemoGame/input/key_bindings.hpp>
 #include <VEDemoGame/component/render_tag.hpp>
 #include <VEDemoGame/entity/howlee.hpp>
 #include <VEDemoGame/entity/player.hpp>
@@ -93,8 +93,8 @@ namespace demo_game {
 
     void game::setup_client_input(void) {
         // Handle mouse capture and release.
-        controls.bind("capture_mouse", [](const binary_input::handler_args& args) { input_manager::instance().set_mouse_capture(true);  });
-        controls.bind("release_mouse", [](const binary_input::handler_args& args) { input_manager::instance().set_mouse_capture(false); });
+        controls.add_binding("capture_mouse", [] { input_manager::instance().set_mouse_capture(true);  });
+        controls.add_binding("release_mouse", [] { input_manager::instance().set_mouse_capture(false); });
         input_manager::instance().set_mouse_capture(true);
 
 

@@ -1,5 +1,5 @@
 #include <VoxelEngine/tests/test_common.hpp>
-#include <VoxelEngine/input/input_binder.hpp>
+#include <VoxelEngine/input/binder/input_binder.hpp>
 #include <VoxelEngine/input/input_manager.hpp>
 #include <VoxelEngine/graphics/presentation/window.hpp>
 
