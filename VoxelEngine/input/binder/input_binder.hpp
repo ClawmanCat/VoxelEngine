@@ -106,9 +106,9 @@ namespace ve {
             typename Pred,
             meta::pack_of_types AllowedEvents = typename meta::function_traits<Pred>::arguments::template expand_outside<std::remove_cvref_t>,
             typename Handler = decltype(binding_error_handlers::warn)
-        >
-        requires (AllowedEvents::all([] <typename E> { return std::is_invocable_v<Pred, const E&>; }))
-        binding_handle add_specialized_binding(std::string_view name, Pred binding, Handler on_fail = binding_error_handlers::warn) {
+        > requires (
+            AllowedEvents::all([] <typename E> { return std::is_invocable_v<Pred, const E&>; })
+        ) binding_handle add_specialized_binding(std::string_view name, Pred binding, Handler on_fail = binding_error_handlers::warn) {
             return add_binding(
                 name,
                 [binding = std::move(binding), on_fail = std::move(on_fail)] (const void* event, std::size_t type) {

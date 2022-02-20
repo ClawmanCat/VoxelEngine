@@ -1,6 +1,5 @@
 #include <VoxelEngine/tests/test_common.hpp>
-#include <VoxelEngine/input/binder/input_binder.hpp>
-#include <VoxelEngine/input/input_manager.hpp>
+#include <VoxelEngine/input/input.hpp>
 #include <VoxelEngine/graphics/presentation/window.hpp>
 
 // *****************************************************************
@@ -11,12 +10,13 @@
 // Moving the mouse during this test will cause the test to fail due to extra events being generated.
 
 test_result test_main(void) {
+    using dg_args = typename ve::mouse_drag_input::args;
+    using trigger = typename ve::motion_input::trigger_on_t;
+
+
     // Required for dispatching fake events.
     auto window = ve::gfx::window::create(ve::gfx::window::arguments { .title = "Test Window" });
-
-
-    using motion_t = ve::motion_input::key_t::motion_type_t;
-    using when_t   = ve::motion_input::trigger_when_t;
+    ve::input_manager::instance().set_mouse_capture(true);
 
 
     ve::input_binder binder;
@@ -26,26 +26,26 @@ test_result test_main(void) {
     ve::vec2i mouse_delta;
     bool started = false, ended = false;
 
-    binder.bind(
-        ve::motion_input { .input = { motion_t::MOUSE_DRAG, ve::mouse_button::LEFT }, .trigger_when = when_t::MOTION_START | when_t::MOTION_TICK | when_t::MOTION_END },
-        [&] (const auto& args) {
-            if (args.when == when_t::MOTION_START) {
-                if (std::exchange(started, true)) result |= VE_TEST_FAIL("Motion start event triggered twice.");
-            }
 
-            else if (args.when == when_t::MOTION_END) {
-                if (!started) result |= VE_TEST_FAIL("Motion end event triggered before start event.");
-                if (std::exchange(ended, true)) result |= VE_TEST_FAIL("Motion end event triggered twice.");
+    binder.create_alias("motion", ve::mouse_drag_input { dg_args { .trigger_on = trigger::MOTION_START | trigger::MOTION_TICK | trigger::MOTION_END } });
 
-                mouse_delta = args.current.position - args.begin.position;
-            }
-
-            else {
-                if (!started) result |= VE_TEST_FAIL("Motion tick event triggered before start event.");
-                if (ended) result |= VE_TEST_FAIL("Motion tick event triggered after end event.");
-            }
+    binder.template add_specialized_binding<ve::input_categories::motion_events_2d>("motion", [&] <typename E> (const E& args) {
+        if constexpr (std::is_same_v<E, ve::mouse_move_start_event>) {
+            if (std::exchange(started, true)) result |= VE_TEST_FAIL("Motion start event triggered twice.");
         }
-    );
+
+        else if constexpr (std::is_same_v<E, ve::mouse_move_end_event>) {
+            if (!started) result |= VE_TEST_FAIL("Motion end event triggered before start event.");
+            if (std::exchange(ended, true)) result |= VE_TEST_FAIL("Motion end event triggered twice.");
+
+            mouse_delta = ve::get_most_recent_state(args).position - ve::get_begin_state(args).position;
+        }
+
+        else {
+            if (!started) result |= VE_TEST_FAIL("Motion tick event triggered before start event.");
+            if (ended) result |= VE_TEST_FAIL("Motion tick event triggered after end event.");
+        }
+    });
 
 
     ve::vec2i per_tick_motion { 10, 10 };

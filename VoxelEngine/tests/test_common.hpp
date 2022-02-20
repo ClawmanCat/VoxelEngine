@@ -15,7 +15,11 @@ struct test_result {
 
     test_result(std::optional<std::string> error, std::string test_name, ve::u32 line = 0)
         : error(std::move(error)), test_name(std::move(test_name)), line(line)
-    {}
+    {
+        #ifdef VE_BREAK_ON_FAIL
+                if (error) VE_BREAKPOINT;
+        #endif
+    }
 
 
     bool operator==(const test_result& o) const { return error == o.error; }
@@ -28,6 +32,10 @@ struct test_result {
             error     = o.error;
             test_name = o.test_name;
             line      = o.line;
+
+            #ifdef VE_BREAK_ON_FAIL
+                if (error) VE_BREAKPOINT;
+            #endif
         }
     }
 };

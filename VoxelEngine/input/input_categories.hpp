@@ -6,6 +6,14 @@
 
 
 namespace ve::input_categories {
+    using keyboard_events = meta::pack<
+        key_down_event, key_up_event, key_hold_event, key_type_event
+    >;
+
+    using mouse_button_events = meta::pack<
+        button_press_event, button_release_event, button_hold_event
+    >;
+
     // Events which indicate some input is either on or off.
     using binary_events = meta::pack<
         key_down_event, key_up_event, key_hold_event, key_type_event,
