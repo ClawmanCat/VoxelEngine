@@ -56,6 +56,8 @@ namespace ve::connection {
 
             if (session) {
                 session->stop();
+                update();
+
                 session = nullptr;
             }
 
