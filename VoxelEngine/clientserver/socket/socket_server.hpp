@@ -61,19 +61,27 @@ namespace ve::connection {
 
             acceptor.close();
 
+            // Note: the ordering of below actions is very important to prevent race conditions.
+            // Don't change this if you don't know what you're doing.
+
+            // Close sessions and run all remaining tasks, then close io_context as well.
             {
                 std::unique_lock lock { session_mtx };
                 for (auto& [id, session] : sessions) session->stop();
             }
 
+            ctx.run();
             ctx.stop();
+
+            // Since all tasks are done, threads will be joinable.
             for (auto& thread : threads) thread.join();
             threads.clear();
+
             ctx.restart();
 
 
             add_event(instance_end_event { });
-            update(); // Dispatch any remaining events.
+            update(); // Dispatch any remaining events and destroy sessions.
         }
 
 

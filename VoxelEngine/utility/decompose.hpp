@@ -132,4 +132,12 @@ namespace ve {
     // be it through std::get or boost::pfr or ve_make_decomposable.
     template <typename T> requires is_decomposable_v<T>
     using decomposer_for = decltype(detail::select_decomposer<T>());
+
+
+    template <typename Value, typename Decomposer, typename Pred>
+    constexpr inline void decompose_foreach(Value& value, Decomposer decomposer, Pred pred) {
+        [&] <std::size_t... Is> (std::index_sequence<Is...>) {
+            (std::invoke(pred, Decomposer::template get<Is>(value)), ...);
+        } (std::make_index_sequence<Decomposer::size>());
+    }
 }

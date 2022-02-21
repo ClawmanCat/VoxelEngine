@@ -42,4 +42,9 @@ namespace ve {
             ctr.size() * sizeof(typename Ctr::value_type)
         };
     }
+
+
+    constexpr u64 nth_bit(u8 n) {
+        return 1ull << n;
+    }
 }

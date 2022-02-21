@@ -16,13 +16,19 @@
 namespace ve {
     // TODO: Support joystick and controller input events.
     // TODO: Handle double clicking.
-    class input_manager : public subscribe_only_view<simple_event_dispatcher<false>> {
+    class input_manager : public simple_event_dispatcher<false> {
     public:
         using custom_event_handler = std::function<void(const SDL_Event&)>;
 
         struct custom_handler_handle {
+            using iterator_t = typename std::list<custom_event_handler>::const_iterator;
+            custom_handler_handle(SDL_EventType type, iterator_t it) : type(type), it(it) {}
+
+        private:
+            friend class input_manager;
+
             SDL_EventType type;
-            typename std::list<custom_event_handler>::const_iterator it;
+            iterator_t it;
         };
 
 
@@ -38,13 +44,6 @@ namespace ve {
         void remove_custom_handler(custom_handler_handle handle);
 
 
-        // Provide some way to create fake events. This is required e.g. for handling window_create events,
-        // as SDL provides no event for this.
-        template <typename Event> void trigger_event(const Event& event) {
-            dispatch_event(event);
-        }
-
-
         const key_state& get_key_state(SDL_Keycode key) const;
         bool is_key_pressed(SDL_Keycode key) const;
 
@@ -55,6 +54,7 @@ namespace ve {
 
         void set_mouse_capture(bool enabled);
         bool has_mouse_capture(void) const;
+
 
         VE_GET_CREF(current_mouse_move);
         VE_GET_CREF(current_mouse_drag);
