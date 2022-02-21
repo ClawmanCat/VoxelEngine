@@ -257,13 +257,24 @@ namespace demo_game {
 
 
         // Create player entity when a client connects to the server.
-        game::server->add_handler([] (const instance_connected_event& e) {
-            game::server->store_static_entity(player { *game::server, e.remote });
+        static hash_map<instance_id, shared<voxel::entity_loader<>>> entity_loaders;
+        const static voxel::tilepos range { 3 };
+
+        game::server->add_handler([&w] (const instance_connected_event& e) {
+            auto& p = game::server->store_static_entity(player { *game::server, e.remote });
             game::server_logger.info(cat("Player ", e.remote, " connected to the server."));
+
+            // Add chunk loader for player.
+            auto [it, success] = entity_loaders.emplace(e.remote, make_shared<voxel::entity_loader<>>(p.get_id(), *game::server, range));
+            w.voxel.get_space()->add_chunk_loader(it->second);
         });
 
         // Remove player entity when a client disconnects from the server.
-        game::server->add_handler([] (const instance_disconnected_event& e) {
+        game::server->add_handler([&w] (const instance_disconnected_event& e) {
+            auto it = entity_loaders.find(e.remote);
+            w.voxel.get_space()->remove_chunk_loader(it->second);
+            entity_loaders.erase(it);
+
             game::server->destroy_entity(player::server_players[e.remote]);
             game::server_logger.info(cat("Player ", e.remote, " disconnected from the server."));
         });
