@@ -50,25 +50,34 @@ namespace ve::connection {
         // Note: this will dispatch any remaining events and should therefore be called from the same thread as update.
         void stop(void) {
             if (exited) return;
-
             exited = true;
+
             connection_error.assign(boost::system::errc::success, boost::system::generic_category());
 
-            if (session) {
-                session->stop();
-                update();
+            // Note: the ordering of below actions is very important to prevent race conditions.
+            // Don't change this if you don't know what you're doing.
 
-                session = nullptr;
-            }
+            // Close session and run all remaining tasks, then close io_context as well.
+            if (session) session->stop();
 
+            ctx.run();
             ctx.stop();
+
+            update();
+
+            // This will always destroy the session. Since all tasks have been completed, the io_context will have no
+            // more references to the session.
+            session = nullptr;
+
+            // Which means the threads are all joinable as well.
             thread->join();
             thread = std::nullopt;
+
             ctx.restart();
 
 
             add_event(instance_end_event { });
-            update(); // Dispatch any remaining events.
+            update();
         }
 
 
@@ -77,7 +86,6 @@ namespace ve::connection {
 
             if (session) {
                 session->update();
-                if (!session->is_open()) session = nullptr;
             }
         }
 

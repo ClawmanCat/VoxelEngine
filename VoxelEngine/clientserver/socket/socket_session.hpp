@@ -57,9 +57,9 @@ namespace ve::connection {
 
                 if (error) dispatch_event(session_error_event { id, error });
                 dispatch_event(session_end_event { id });
-
-                is_closed = true;
             }
+
+            is_closed = true;
         }
 
 
