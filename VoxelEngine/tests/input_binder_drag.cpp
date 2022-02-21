@@ -30,11 +30,11 @@ test_result test_main(void) {
     binder.create_alias("motion", ve::mouse_drag_input { dg_args { .trigger_on = trigger::MOTION_START | trigger::MOTION_TICK | trigger::MOTION_END } });
 
     binder.template add_specialized_binding<ve::input_categories::motion_events_2d>("motion", [&] <typename E> (const E& args) {
-        if constexpr (std::is_same_v<E, ve::mouse_move_start_event>) {
+        if constexpr (std::is_same_v<E, ve::mouse_drag_start_event>) {
             if (std::exchange(started, true)) result |= VE_TEST_FAIL("Motion start event triggered twice.");
         }
 
-        else if constexpr (std::is_same_v<E, ve::mouse_move_end_event>) {
+        else if constexpr (std::is_same_v<E, ve::mouse_drag_end_event>) {
             if (!started) result |= VE_TEST_FAIL("Motion end event triggered before start event.");
             if (std::exchange(ended, true)) result |= VE_TEST_FAIL("Motion end event triggered twice.");
 
