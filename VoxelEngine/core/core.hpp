@@ -6,6 +6,7 @@
 
 #include <VoxelEngine/core/alloca_support.hpp>
 #include <VoxelEngine/core/breakpoint.hpp>
+#include <VoxelEngine/core/codegen/arithmetic.hpp>
 #include <VoxelEngine/core/codegen/bitwise_enum.hpp>
 #include <VoxelEngine/core/codegen/compare.hpp>
 #include <VoxelEngine/core/codegen/crtp.hpp>
