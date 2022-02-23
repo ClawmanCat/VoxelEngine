@@ -77,7 +77,7 @@ namespace ve {
         connection->start(address, port);
 
         auto id_buffer = serialize::to_bytes(c.get_id());
-        make_message_ignored(c.get_mtr(), id_buffer);
+        make_message_ignored(id_buffer);
 
         connection->get_session()->write(std::move(id_buffer));
     }
@@ -133,7 +133,7 @@ namespace ve {
 
 
             auto id_buffer = serialize::to_bytes(s.get_id());
-            make_message_ignored(s.get_mtr(), id_buffer);
+            make_message_ignored(id_buffer);
 
             session->write(std::move(id_buffer));
         });
