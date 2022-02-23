@@ -5,8 +5,28 @@
 
 
 namespace ve {
+    namespace detail {
+        template <typename T> struct fundamental_type_wrapper {
+            T value;
+
+            ve_field_comparable(fundamental_type_wrapper, value);
+            ve_arithmetic_as(fundamental_type_wrapper, value);
+            ve_bitwise_as(fundamental_type_wrapper, value);
+
+            constexpr operator T(void) const { return value; }
+        };
+
+
+        template <typename T> using named_component_base = std::conditional_t<
+            std::is_fundamental_v<T>,
+            fundamental_type_wrapper<T>,
+            T
+        >;
+    }
+
+
     template <meta::string_arg Name, typename T>
-    struct named_component : public T {
+    struct named_component : public detail::named_component_base<T> {
         constexpr static std::string_view name = Name.c_string;
 
 
