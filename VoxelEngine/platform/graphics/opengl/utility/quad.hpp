@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/graphics/vertex/vertex.hpp>
 #include <VoxelEngine/platform/graphics/opengl/vertex/vertex_buffer.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
 
 
 namespace ve::gfx::opengl {
@@ -17,4 +18,16 @@ namespace ve::gfx::opengl {
 
         return i;
     };
+
+
+    // Create a new draw_data, equivalent to the provided one but using the g_input_quad as VBO.
+    inline typename pipeline::draw_data draw_data_to_g_input(const typename pipeline::draw_data& data) {
+        return typename pipeline::draw_data {
+            .buffers         = { g_input_quad().get() },
+            .lighting_target = data.lighting_target,
+            .lights          = data.lights,
+            .ambient_light   = data.ambient_light,
+            .ctx             = data.ctx
+        };
+    }
 }
