@@ -5,6 +5,7 @@
 #include <VoxelEngine/graphics/vertex/vertex.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/target_sampler.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/chainer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/quad.hpp>
 #include <VoxelEngine/utility/io/paths.hpp>
 #include <VoxelEngine/utility/raii.hpp>
@@ -39,14 +40,7 @@ namespace ve::gfx::opengl {
 
 
             // Same as draw data, but with the screen-filling quad as its only vertex buffer.
-            draw_data quad_data {
-                .buffers         = { g_input_quad().get() },
-                .lighting_target = data.lighting_target,
-                .lights          = data.lights,
-                .ambient_light   = data.ambient_light,
-                .ctx             = data.ctx
-            };
-
+            draw_data quad_data = draw_data_to_g_input(data);
 
             geometry_pass->draw(data);
             lighting_pass->draw(quad_data);
@@ -56,80 +50,54 @@ namespace ve::gfx::opengl {
         void setup_pipeline(void) {
             VE_PROFILE_FN();
 
-            auto attachment_template = [](const auto& name, bool color = true) {
-                return framebuffer_attachment {
-                    name,
-                    color ? framebuffer_attachment::COLOR_BUFFER : framebuffer_attachment::DEPTH_BUFFER,
-                    color ? &texture_format_RGBA32F : &texture_format_DEPTH32F
-                };
+
+            auto get_shader = [] <typename V> (meta::type_wrapper<V> vertex, const auto& name, const auto&... stages) {
+                return shader_cache::instance().template get_or_load_shader<V>(
+                    std::vector<fs::path>{ io::paths::PATH_SHADERS / stages... },
+                    name
+                );
             };
 
+            auto geometry_pass_shader = get_shader(
+                meta::type_wrapper<vertex_types::material_vertex_3d>{},
+                "pbr_multi_pass_geometry",
+                "pbr_multi_pass.vert.glsl", "pbr_multi_pass_geometry.frag.glsl"
+            );
 
-            auto g_buffer = make_shared<render_target>(
-                std::vector {
-                    attachment_template("position"),
-                    attachment_template("normal"),
-                    attachment_template("color"),
-                    attachment_template("material"),
-                    attachment_template("depth", false)
+            auto lighting_pass_shader = get_shader(
+                meta::type_wrapper<vertex_types::no_vertex>{},
+                "pbr_multi_pass_lighting",
+                "pbr_multi_pass.g_input.glsl", "pbr_multi_pass_lighting.frag.glsl"
+            );
+
+            auto postprocessing_pass_shader = get_shader(
+                meta::type_wrapper<vertex_types::no_vertex>{},
+                "pbr_multi_pass_postprocessing",
+                "pbr_multi_pass.g_input.glsl", "pbr_multi_pass_postprocessing.frag.glsl"
+            );
+
+
+            auto make_chain_subpass = [] (const auto& shader, const auto& prefix, bool depth, const auto&... color) {
+                auto result = pipeline_chain_subpass { shader, prefix };
+
+                if (depth) result.add_depth_attachment("depth");
+                result.add_color_attachments({ color... });
+
+                return result;
+            };
+
+            auto subpasses = create_pipeline_chain(
+                {
+                    make_chain_subpass(geometry_pass_shader,       "",   true,  "position", "normal", "color", "material"),
+                    make_chain_subpass(lighting_pass_shader,       "g_", false, "position", "color"),
+                    make_chain_subpass(postprocessing_pass_shader, "l_", false)
                 },
-                get_target()->get_texture_validator(),
-                get_target()->get_render_validator()
+                get_target()
             );
 
-            geometry_pass = make_shared<single_pass_pipeline>(
-                std::move(g_buffer),
-                shader_cache::instance().get_or_load_shader<vertex_types::material_vertex_3d>(
-                    std::vector<fs::path> {
-                        io::paths::PATH_SHADERS / "pbr_multi_pass.vert.glsl",
-                        io::paths::PATH_SHADERS / "pbr_multi_pass_geometry.frag.glsl",
-                    },
-                    "pbr_multi_pass_geometry"
-                )
-            );
-
-
-            auto l_buffer = make_shared<render_target>(
-                std::vector {
-                    attachment_template("position"),
-                    attachment_template("color"),
-                },
-                get_target()->get_texture_validator(),
-                get_target()->get_render_validator()
-            );
-
-            lighting_pass = make_shared<single_pass_pipeline>(
-                std::move(l_buffer),
-                shader_cache::instance().get_or_load_shader<vertex_types::no_vertex>(
-                    std::vector<fs::path> {
-                        io::paths::PATH_SHADERS / "pbr_multi_pass.g_input.glsl",
-                        io::paths::PATH_SHADERS / "pbr_multi_pass_lighting.frag.glsl",
-                    },
-                    "pbr_multi_pass_lighting"
-                )
-            );
-
-            // Use the outputs of the geometry pass as inputs for the lighting pass.
-            for (const auto& name : make_array<std::string>("position", "color", "normal", "material")) {
-                lighting_pass->set_uniform_producer(make_shared<active_target_attachment>(geometry_pass, name, "g_"s + name));
-            }
-
-
-            postprocessing_pass = make_shared<single_pass_pipeline>(
-                get_target(),
-                shader_cache::instance().get_or_load_shader<vertex_types::no_vertex>(
-                    std::vector<fs::path> {
-                        io::paths::PATH_SHADERS / "pbr_multi_pass.g_input.glsl",
-                        io::paths::PATH_SHADERS / "pbr_multi_pass_postprocessing.frag.glsl",
-                    },
-                    "pbr_multi_pass_postprocessing"
-                )
-            );
-
-            // Bind the outputs of the lighting pass as samplers of the postprocessing pass.
-            for (const auto& name : make_array<std::string>("position", "color")) {
-                postprocessing_pass->set_uniform_producer(make_shared<active_target_attachment>(lighting_pass, name, "l_"s + name));
-            }
+            geometry_pass       = std::move(subpasses[0]);
+            lighting_pass       = std::move(subpasses[1]);
+            postprocessing_pass = std::move(subpasses[2]);
         }
 
 
