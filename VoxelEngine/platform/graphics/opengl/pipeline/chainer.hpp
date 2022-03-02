@@ -7,13 +7,25 @@
 
 namespace ve::gfx::opengl {
     struct pipeline_chain_subpass {
+        using transform_fn_t = std::function<std::string(std::string_view)>;
+
         shared<class shader> shader;
         std::vector<framebuffer_attachment> outputs;
-        std::string input_prefix;
+        transform_fn_t name_transform; // Mapping from previous stage attachment name to uniform name for this stage's input.
 
 
-        explicit pipeline_chain_subpass(shared<class shader> shader, std::string input_prefix = "", std::vector<framebuffer_attachment> outputs = {})
-            : shader(std::move(shader)), outputs(std::move(outputs)), input_prefix(std::move(input_prefix))
+        explicit pipeline_chain_subpass(shared<class shader> shader, transform_fn_t transform = cast<std::string>(), std::vector<framebuffer_attachment> outputs = {}) :
+            shader(std::move(shader)),
+            outputs(std::move(outputs)),
+            name_transform(std::move(transform))
+        {}
+
+
+        // Overload for common case where the transform is simply adding a prefix, e.g. color => g_color.
+        explicit pipeline_chain_subpass(shared<class shader> shader, std::string input_prefix, std::vector<framebuffer_attachment> outputs = {}) :
+            shader(std::move(shader)),
+            outputs(std::move(outputs)),
+            name_transform([p = std::move(input_prefix)] (std::string_view sv) { return cat(p, sv); })
         {}
 
 
@@ -66,7 +78,7 @@ namespace ve::gfx::opengl {
                 const auto& prev = result[i - 1];
 
                 for (const auto& [name, texture] : prev->get_target()->get_attachments()) {
-                    result.back()->set_uniform_producer(make_shared<active_target_attachment>(prev, name, pass.input_prefix + name));
+                    result.back()->set_uniform_producer(make_shared<active_target_attachment>(prev, name, pass.name_transform(name)));
                 }
             }
         }
