@@ -19,11 +19,6 @@ namespace ve::gfx::opengl {
     public:
         struct draw_data {
             std::vector<const vertex_buffer*> buffers;
-
-            std::string lighting_target;
-            std::vector<light_source> lights;
-            vec3f ambient_light;
-
             render_context* ctx;
         };
 

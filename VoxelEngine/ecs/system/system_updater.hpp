@@ -8,20 +8,24 @@
 
 
 namespace ve {
-    struct dont_update_by_default_tag {};
-
     template <
-        // Tags can be used to split entities across different updaters.
         meta::pack_of_types RequiredTags = meta::pack<>,
-        meta::pack_of_types ExcludedTags = meta::pack<dont_update_by_default_tag>
+        meta::pack_of_types ExcludedTags = meta::pack<>,
+        template <typename System> typename... Mixins
     > class system_updater : public system<
-        system_updater<RequiredTags, ExcludedTags>,
-        typename RequiredTags
-            ::template append<update_component>,
-        ExcludedTags
+        system_updater<RequiredTags, ExcludedTags, Mixins...>,
+        meta::pack_ops::merge_all<RequiredTags, update_component>,
+        ExcludedTags,
+        deduce_component_access,
+        Mixins...
     > {
     public:
         explicit system_updater(u16 priority = priority::HIGH) : priority(priority) {}
+
+
+        template <typename Component> constexpr static u8 access_mode_for_component(void) {
+            return (u8) system_access_mode::READ_CMP;
+        }
 
 
         u16 get_priority(void) const {
@@ -29,7 +33,7 @@ namespace ve {
         }
 
 
-        void update(registry& owner, view_type view, nanoseconds dt) {
+        void on_system_update(registry& owner, view_type view, nanoseconds dt) {
             VE_PROFILE_FN();
 
 

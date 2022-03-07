@@ -65,7 +65,7 @@ namespace ve {
         // Deduce event type from function signature
         template <
             typename Fn,
-            typename Event = std::remove_cvref_t<typename meta::function_traits<Fn>::arguments::head>
+            typename Event = meta::nth_argument_base<Fn, 0>
         > handler_id add_handler(Fn&& handler, Priority p = Priority(0)) {
             return add_handler<Event>(fwd(handler), p);
         }
@@ -87,7 +87,7 @@ namespace ve {
         // Deduce event type from function signature
         template <
             typename Fn,
-            typename Event = std::remove_cvref_t<typename meta::function_traits<Fn>::arguments::head>
+            typename Event = meta::nth_argument_base<Fn, 0>
         > handler_id add_one_time_handler(Fn&& handler, Priority p = Priority(0)) {
             return add_one_time_handler<Event>(fwd(handler), p);
         }

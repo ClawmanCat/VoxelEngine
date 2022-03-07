@@ -81,4 +81,7 @@ namespace ve::meta {
 
     template <typename Fn, std::size_t N>
     using nth_argument = typename function_traits<Fn>::arguments::template get<N>;
+
+    template <typename Fn, std::size_t N>
+    using nth_argument_base = std::remove_cvref_t<nth_argument<Fn, N>>;
 }

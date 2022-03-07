@@ -59,9 +59,10 @@ namespace ve::gfx::opengl {
 
         for (auto [i, pass] : passes | views::enumerate) {
             const bool is_last = (i == passes.size() - 1);
+            const bool empty   = pass.outputs.empty();
 
             VE_DEBUG_ASSERT(
-                !is_last || pass.outputs.empty(),
+                !is_last || empty,
                 "Output pass should use the outputs of the provided render target and not specify any attachments itself."
             );
 

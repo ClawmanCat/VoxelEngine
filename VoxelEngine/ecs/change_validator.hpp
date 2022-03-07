@@ -76,7 +76,7 @@ namespace ve {
         // The rule must be invocable as rule(instance_id, registry&, entt::entity, const Component*, const Component*) and return bool,
         // where the last two parameters are the old value and the new value of the component respectively.
         // If a component is added or removed, the old value and the new value may be null respectively.
-        template <typename Fn, typename Component = meta::remove_const_pointer<typename meta::function_traits<Fn>::arguments::template get<2>>>
+        template <typename Fn, typename Component = meta::remove_const_pointer<meta::nth_argument<Fn, 3>>>
         requires std::is_invocable_r_v<bool, Fn, instance_id, const registry&, entt::entity, const Component*, const Component*>
         rule_handle add_rule(Fn fn) {
             auto& value = rules[type_hash<Component>()];

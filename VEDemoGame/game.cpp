@@ -81,12 +81,23 @@ namespace demo_game {
             pipeline->set_uniform_producer(&game::camera);
             pipeline->set_uniform_producer(game::texture_manager->get_atlas());
 
-            auto& system = game::client->add_system(system_renderer<
-                ve::meta::pack<transform_component>,
-                ve::meta::pack<render_tag>
-            > { pipeline }).second;
 
-            system.get_lighting().ambient_light = 0.25f * normalize_color(colors::LIGHT_GOLDENROD_YELLOW);
+            // Add lighting support for PBR renderer.
+            if constexpr (std::is_same_v<render_tag, pbr_render_tag>) {
+                auto& system = game::client->add_system(system_renderer<
+                    ve::meta::pack<transform_component>,
+                    ve::meta::pack<render_tag>,
+                    ve::meta::pack<>,
+                    renderer_mixins::lighting_mixin_for<>::template type // All lights.
+                > { pipeline }).second;
+
+                system.set_ambient_light(0.25f * normalize_color(colors::LIGHT_GOLDENROD_YELLOW));
+            } else {
+                game::client->add_system(system_renderer<
+                    ve::meta::pack<transform_component>,
+                    ve::meta::pack<render_tag>
+                > { pipeline });
+            }
         });
     }
 

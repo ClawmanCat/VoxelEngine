@@ -10,13 +10,12 @@
 namespace ve {
     // The remote initializer system invokes a user-defined initializer method whenever a specific component is added to an entity.
     // This can be useful to perform initialization of entities synchronized from a remote instance.
-    class system_remote_initializer : public system<system_remote_initializer, meta::pack<create_empty_view_tag>> {
+    template <template <typename System> typename... Mixins>
+    class system_remote_initializer
+        : public system<system_remote_initializer<Mixins...>, create_empty_view, meta::pack<>, deduce_component_access, Mixins...>
+    {
     public:
         explicit system_remote_initializer(u16 priority = priority::NORMAL) : priority(priority) {}
-
-
-        void init  (registry& owner) { this->owner = &owner;  }
-        void uninit(registry& owner) { this->owner = nullptr; }
 
 
         u16 get_priority(void) const {
@@ -24,7 +23,11 @@ namespace ve {
         }
 
 
-        void update(registry& owner, view_type view, nanoseconds dt) {
+        void on_system_added  (registry& owner) { this->owner = &owner;  }
+        void on_system_removed(registry& owner) { this->owner = nullptr; }
+
+
+        void on_system_update(registry& owner, view_type view, nanoseconds dt) {
             for (const auto& s : subsystems) s->update(owner);
         }
 
@@ -33,7 +36,7 @@ namespace ve {
             meta::pack_of_types RequiredTags = meta::pack<>,
             meta::pack_of_types ExcludedTags = meta::pack<>,
             typename Initializer,
-            typename Component = std::remove_cvref_t<typename meta::function_traits<Initializer>::arguments::template get<2>>
+            typename Component = meta::nth_argument_base<Initializer, 2>
         > requires (
             std::is_invocable_v<Initializer, registry&, entt::entity, const Component&>
         ) void add_initializer(Initializer init) {
