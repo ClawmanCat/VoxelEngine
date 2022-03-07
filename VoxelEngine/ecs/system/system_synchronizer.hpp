@@ -178,7 +178,7 @@ namespace ve {
         // Adds a rule to determine synchronization of the given component on a per-entity and per-instance basis.
         template <
             typename Rule,
-            typename Component = std::remove_cvref_t<typename meta::function_traits<Rule>::arguments::template get<3>>,
+            typename Component = meta::nth_argument_base<Rule, 3>,
             meta::pack_of_types RuleRequiredTags = meta::pack<>,
             meta::pack_of_types RuleExcludedTags = meta::pack<>
         > requires (
