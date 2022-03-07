@@ -24,9 +24,6 @@ namespace ve::gfx::opengl {
     inline typename pipeline::draw_data draw_data_to_g_input(const typename pipeline::draw_data& data) {
         return typename pipeline::draw_data {
             .buffers         = { g_input_quad().get() },
-            .lighting_target = data.lighting_target,
-            .lights          = data.lights,
-            .ambient_light   = data.ambient_light,
             .ctx             = data.ctx
         };
     }

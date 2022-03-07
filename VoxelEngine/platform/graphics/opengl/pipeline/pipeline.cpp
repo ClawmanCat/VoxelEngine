@@ -26,21 +26,6 @@ namespace ve::gfx::opengl {
         bind_settings();
 
 
-        if (shader->has_uniform(data.lighting_target)) {
-            // For single-pass shading, treat lights as uniforms.
-            // TODO: Handle variable number of lights better.
-            lighting_data<> lights {
-                .num_populated_lights = (u32) data.lights.size(),
-                .ambient_light = data.ambient_light
-            };
-
-            VE_ASSERT(decltype(lights)::light_count_limit >= data.lights.size(), "Maximum number of lights exceeded.");
-            std::copy(data.lights.begin(), data.lights.end(), lights.lights.begin());
-
-            uniform_storage::set_uniform_value<lighting_data<>>(data.lighting_target, lights);
-        }
-
-
         for (const auto& buffer : data.buffers) buffer->draw(*data.ctx);
     }
 

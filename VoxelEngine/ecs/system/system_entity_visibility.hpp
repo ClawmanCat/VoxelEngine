@@ -13,11 +13,26 @@
 
 
 namespace ve {
+    // The entity visibility system determines what remote instances have vision of what entities,
+    // and performs synchronization (of entity IDs, not of components) accordingly.
+    // To synchronize components associated with a synchronized entity, use system_synchronizer.
+    //
     // TODO: It would be more optimal to have the ability to create a view over all entities with the same visibility state.
     // E.g. create a view of all visible entities, or all entities that are going invisible.
-    template <typename VisibilityRule = fn<bool, const registry&, entt::entity, const message_handler*>> requires (
+    //
+    // TODO: Allow usage of tags to split entities across multiple systems. Excluded entities should appear as invisible.
+    template <
+        typename VisibilityRule = fn<bool, const registry&, entt::entity, const message_handler*>,
+        template <typename System> typename... Mixins
+    > requires (
         std::is_invocable_r_v<bool, VisibilityRule, const registry&, entt::entity, const message_handler*>
-    ) class system_entity_visibility : public system<system_entity_visibility<VisibilityRule>> {
+    ) class system_entity_visibility : public system<
+        system_entity_visibility<VisibilityRule, Mixins...>,
+        meta::pack<>,
+        meta::pack<>,
+        deduce_component_access,
+        Mixins...
+    > {
     public:
         using system_entity_visibility_tag = void;
         using visibility_rule_t            = VisibilityRule;
@@ -48,7 +63,7 @@ namespace ve {
         }
 
 
-        void init(registry& owner) {
+        void on_system_added(registry& owner) {
             VE_DEBUG_ASSERT(
                 dynamic_cast<class instance*>(&owner),
                 "Registry must be part of an instance in order to use a synchronization system."
@@ -69,7 +84,7 @@ namespace ve {
         }
 
 
-        void uninit(registry& owner) {
+        void on_system_removed(registry& owner) {
             owner.template remove_handler<entity_destroyed_event>(entity_destroyed_handler);
             owner.template remove_handler<instance_disconnected_event>(remote_disconnected_handler);
 
@@ -77,7 +92,7 @@ namespace ve {
         }
 
 
-        void update(registry& owner, view_type view, nanoseconds dt) {
+        void on_system_update(registry& owner, view_type view, nanoseconds dt) {
             auto try_insert = [](auto& ctr, auto k, auto v) -> decltype(auto) {
                 return ctr.contains(k) ? ctr.get(k) : ctr.emplace(k, v);
             };

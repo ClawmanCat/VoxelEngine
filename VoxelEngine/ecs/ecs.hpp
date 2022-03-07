@@ -24,9 +24,12 @@
 #include <VoxelEngine/ecs/registry_helpers.hpp>
 #include <VoxelEngine/ecs/system/system.hpp>
 #include <VoxelEngine/ecs/system/system_entity_visibility.hpp>
+#include <VoxelEngine/ecs/system/system_mixin.hpp>
 #include <VoxelEngine/ecs/system/system_physics.hpp>
 #include <VoxelEngine/ecs/system/system_remote_initializer.hpp>
 #include <VoxelEngine/ecs/system/system_renderer.hpp>
+#include <VoxelEngine/ecs/system/system_renderer_mixins.hpp>
 #include <VoxelEngine/ecs/system/system_synchronizer.hpp>
 #include <VoxelEngine/ecs/system/system_updater.hpp>
+#include <VoxelEngine/ecs/system/system_utils.hpp>
 #include <VoxelEngine/ecs/view.hpp>

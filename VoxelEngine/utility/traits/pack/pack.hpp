@@ -110,6 +110,18 @@ namespace ve::meta {
 
 
 
+        template <typename T> consteval static auto erase_impl(void) {
+            if constexpr (size == 0) return ve_beptr(empty){};
+            else if constexpr (std::is_same_v<head, T>) return ve_beptr(typename tail::template erase<T>){};
+            else {
+                using tail_result = typename tail::template erase<T>;
+                return ve_beptr(typename pack<head>::template append_pack<tail_result>){};
+            }
+        }
+
+        template <typename T> using erase = ve_deptr(erase_impl, T);
+
+
         constexpr static auto reverse_impl(void) {
             if constexpr (size == 0) return ve_beptr(empty){};
             else {

@@ -28,4 +28,51 @@ namespace ve::meta::pack_ops {
 
         using type = decltype(combine_types());
     };
+
+
+    template <typename First, typename... Packs> struct intersection_impl {
+        template <typename T> struct filter {
+            constexpr static inline bool value = (Packs::template contains<T> && ...);
+        };
+
+        using type = typename First::template filter_trait<filter>;
+    };
+
+    // Returns a new pack containing only the types that are present in every provided pack.
+    template <typename... Ts> using intersection = typename intersection_impl<Ts...>::type;
+
+
+    template <typename T, typename... Ts> struct merge_all_impl {
+        template <typename X> using as_pack = std::conditional_t<
+            requires { typename X::pack_tag; }, X, pack<X>
+        >;
+
+        constexpr static auto impl(void) {
+            if constexpr (sizeof...(Ts) == 0) {
+                return as_pack<T>{};
+            } else {
+                using tail_t = decltype(merge_all_impl<Ts...>::impl());
+                return typename as_pack<T>::template append_pack<tail_t>{};
+            }
+        }
+
+        using type = decltype(impl());
+    };
+
+    // Creates a pack that is the result of merging all packs and non-pack types in Ts.
+    // E.g. returns pack<A, B, C, D, E> if Ts = [pack<A, B>, C, pack<D, E>]
+    template <typename... Ts> using merge_all = typename merge_all_impl<Ts...>::type;
+
+
+    template <typename First, typename... Packs> struct pack_permutation_impl {
+        template <typename Pack> constexpr static bool checker =
+            First::size == Pack::size &&
+            First::all([] <typename T> { return Pack::template contains<T>; });
+
+        constexpr static bool value = (checker<Packs> && ...);
+    };
+
+    // Returns true if all given packs are permutations of each other, that is, they all contain the same types,
+    // but in a possibly differing order.
+    template <typename... Packs> constexpr static bool is_permutation = pack_permutation_impl<Packs...>::value;
 }

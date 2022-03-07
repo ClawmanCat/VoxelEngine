@@ -9,7 +9,7 @@ magic_enum/0.6.6
 ctre/3.3.2
 xxhash/0.8.0
 zlib/1.2.11
-entt/0.0.2@clawmancat/stable
+entt/0.0.3@clawmancat/stable
 fastnoise2/1.0.0@clawmancat/stable
 optick/1.0.0@clawmancat/stable
 range-v3/0.11.0

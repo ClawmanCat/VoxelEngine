@@ -40,14 +40,22 @@ namespace ve {
         meta::pack_of_types Synchronized,
         meta::pack_of_types RequiredTags = meta::pack<>,
         meta::pack_of_types ExcludedTags = meta::pack<>,
-        typename VisibilitySystem = system_entity_visibility<>
+        typename VisibilitySystem = system_entity_visibility<>,
+        template <typename System> typename... Mixins
     > requires (
         Synchronized::all([] <typename Component> { return serialize::is_serializable<Component>; }) &&
         Synchronized::all([] <typename Component> { return component_tags::is_synchronizable_v<Component>; }) &&
         requires { typename VisibilitySystem::system_entity_visibility_tag; }
     ) class system_synchronizer : public system<
-        system_synchronizer<Synchronized, RequiredTags, ExcludedTags, VisibilitySystem>,
-        meta::pack<create_empty_view_tag>
+        system_synchronizer<Synchronized, RequiredTags, ExcludedTags, VisibilitySystem, Mixins...>,
+        create_empty_view,
+        meta::pack<>,
+        // While we should technically declare sync_cache related components here, that would require forward declaring them,
+        // which is impossible for nested classes. Fortunately, it does not matter, since they are private, there are no risks
+        // of concurrency issues with other systems and two instances of the synchronizer cannot run concurrently,
+        // since it is not marked as safe to do so.
+        meta::pack_ops::merge_all<Synchronized, RequiredTags, ExcludedTags>,
+        Mixins...
     > {
     private:
         // TODO: Sync cache component should persist between ticks so we can skip sending values that have not changed.
@@ -81,12 +89,17 @@ namespace ve {
         }
 
 
+        template <typename Component> constexpr static u8 access_mode_for_component(void) {
+            return (u8) system_access_mode::READ_CMP;
+        }
+
+
         u16 get_priority(void) const {
             return priority;
         }
 
 
-        void init(registry& owner) {
+        void on_system_added(registry& owner) {
             VE_DEBUG_ASSERT(
                 dynamic_cast<class instance*>(&owner),
                 "Registry must be part of an instance in order to use a synchronization system."
@@ -94,7 +107,7 @@ namespace ve {
         }
 
 
-        void update(registry& owner, view_type view, nanoseconds dt) {
+        void on_system_update(registry& owner, view_type view, nanoseconds dt) {
             auto& instance = static_cast<class instance&>(owner);
             u64 tick = instance.get_tick_count();
 
@@ -178,15 +191,15 @@ namespace ve {
         // Adds a rule to determine synchronization of the given component on a per-entity and per-instance basis.
         template <
             typename Rule,
-            typename Component = std::remove_cvref_t<typename meta::function_traits<Rule>::arguments::template get<3>>,
+            typename Component = meta::nth_argument_base<Rule, 3>,
             meta::pack_of_types RuleRequiredTags = meta::pack<>,
             meta::pack_of_types RuleExcludedTags = meta::pack<>
         > requires (
             std::is_invocable_r_v<bool, Rule, instance_id, registry&, entt::entity, const Component&> &&
             // If required tags are excluded by the system, the rule would never match anything.
-            !ExcludedTags::any([] <typename E> { return RuleRequiredTags::template contains<E>; }) &&
+            meta::pack_ops::intersection<ExcludedTags, RuleRequiredTags>::size == 0 &&
             // If excluded tags are required by the system, the rule would never match anything.
-            !RequiredTags::any([] <typename R> { return RuleExcludedTags::template contains<R>; })
+            meta::pack_ops::intersection<RequiredTags, RuleExcludedTags>::size == 0
         ) void add_per_entity_rule(Rule rule) {
             per_entity_rules[synchronized_types::template find<Component>].emplace_back(
                 rule_storage<Rule, Component, RuleRequiredTags, RuleExcludedTags> { std::move(rule) }

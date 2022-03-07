@@ -171,7 +171,7 @@ namespace ve {
 
         // Add a handler for the given message type.
         // The datatype for the message is automatically deduced to be the first parameter of Fn if it is not specified.
-        template <typename Fn, typename T = std::remove_cvref_t<typename meta::function_traits<Fn>::arguments::head>> requires std::is_invocable_v<Fn, const T&>
+        template <typename Fn, typename T = meta::nth_argument_base<Fn, 0>> requires std::is_invocable_v<Fn, const T&>
         void add_handler(mtr_identifier auto id, Fn&& handler) {
             // If the ID is an MTR ID, the type must already be registered locally, otherwise where did the ID come from?
             if constexpr (!is_mtr_id<decltype(id)>) register_message_type_local(id, type_hash<T>());

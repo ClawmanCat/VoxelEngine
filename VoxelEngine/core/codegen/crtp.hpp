@@ -38,6 +38,10 @@ namespace ve::detail {
 #define VE_STATIC_CRTP_IS_IMPLEMENTED(derived, fn)                                              \
 (&derived::fn != &fn)
 
+// Equivalent to above for templated functions, since they require the 'template' keyword.
+#define VE_STATIC_CRTP_IS_IMPLEMENTED_TMPL(derived, fn)                                         \
+(&derived::template fn != &fn)
+
 
 // Same as above, but triggers a static assert if the check fails.
 #define VE_CRTP_CHECK(derived, fn)                                                              \

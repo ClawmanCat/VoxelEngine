@@ -31,15 +31,15 @@ namespace ve::detail {
         system_data(System&& system, u16 priority) : system_data_base(priority), system(std::move(system)) {}
 
         void update(registry& self, nanoseconds dt) override {
-            system.update(self, System::make_view(get_storage(self)), dt);
+            ((typename System::system_base_t&) system).on_system_update(self, System::make_view(get_storage(self)), dt);
         }
 
         void init(registry& self) override {
-            system.init(self);
+            ((typename System::system_base_t&) system).on_system_added(self);
         }
 
         void uninit(registry& self) override {
-            system.uninit(self);
+            ((typename System::system_base_t&) system).on_system_removed(self);
         }
 
         System system;
