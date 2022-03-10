@@ -7,14 +7,19 @@
 #include <VoxelEngine/platform/graphics/opengl/pipeline/target_sampler.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/chainer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/quad.hpp>
-#include <VoxelEngine/utility/io/paths.hpp>
 #include <VoxelEngine/utility/raii.hpp>
+#include <VoxelEngine/utility/algorithm.hpp>
+#include <VoxelEngine/utility/io/paths.hpp>
 
 
 namespace ve::gfx::opengl {
     // TODO: Migrate to generic class for multipass pipelines.
     class multipass_pbr_pipeline : public pipeline, public std::enable_shared_from_this<multipass_pbr_pipeline> {
     public:
+        constexpr static inline u32 GAUSSIAN_HORIZONTAL = 0;
+        constexpr static inline u32 GAUSSIAN_VERTICAL   = 1;
+
+
         ve_shared_only_then(multipass_pbr_pipeline, setup_pipeline, shared<render_target> target) :
             pipeline(&pipeline_category::RASTERIZATION, std::move(target))
         {}
@@ -44,6 +49,7 @@ namespace ve::gfx::opengl {
 
             geometry_pass->draw(data);
             lighting_pass->draw(quad_data);
+            for (auto& pass : bloom_blur_passes) pass->draw(quad_data);
             postprocessing_pass->draw(quad_data);
         }
     private:
@@ -67,42 +73,55 @@ namespace ve::gfx::opengl {
             auto lighting_pass_shader = get_shader(
                 meta::type_wrapper<vertex_types::no_vertex>{},
                 "pbr_multi_pass_lighting",
-                "pbr_multi_pass.g_input.glsl", "pbr_multi_pass_lighting.frag.glsl"
+                "screen_quad.g_input.glsl", "pbr_multi_pass_lighting.frag.glsl"
+            );
+
+            auto bloom_blur_shader = get_shader(
+                meta::type_wrapper<vertex_types::no_vertex>{},
+                "gaussian",
+                "screen_quad.g_input.glsl", "gaussian.frag.glsl"
             );
 
             auto postprocessing_pass_shader = get_shader(
                 meta::type_wrapper<vertex_types::no_vertex>{},
                 "pbr_multi_pass_postprocessing",
-                "pbr_multi_pass.g_input.glsl", "pbr_multi_pass_postprocessing.frag.glsl"
+                "screen_quad.g_input.glsl", "pbr_multi_pass_postprocessing.frag.glsl"
             );
 
 
-            auto make_chain_subpass = [] (const auto& shader, const auto& prefix, bool depth, const auto&... color) {
-                auto result = pipeline_chain_subpass { shader, prefix };
-
-                if (depth) result.add_depth_attachment("depth");
-                result.add_color_attachments({ color... });
-
-                return result;
-            };
-
             auto subpasses = create_pipeline_chain(
                 {
-                    make_chain_subpass(geometry_pass_shader,       "",   true,  "position", "normal", "color", "material"),
-                    make_chain_subpass(lighting_pass_shader,       "g_", false, "position", "color"),
-                    make_chain_subpass(postprocessing_pass_shader, "l_", false)
+                    pipeline_chain_subpass { geometry_pass_shader }
+                        .add_depth_attachment("depth")
+                        .add_color_attachments({ "position", "normal", "color", "material" }),
+
+                    pipeline_chain_subpass { lighting_pass_shader, name_transforms::add_prefix { "g_" } }
+                        .add_color_attachments({ "position", "color", "bloom" }),
+
+                    pipeline_chain_subpass { bloom_blur_shader, name_transforms::rename_one { "bloom", "tex" } }
+                        .add_color_attachment("bloom"),
+
+                    pipeline_chain_subpass { bloom_blur_shader, name_transforms::rename_one { "bloom", "tex" } }
+                        .add_color_attachment("bloom"),
+
+                    pipeline_chain_subpass { postprocessing_pass_shader, name_transforms::add_prefix { "l_" } }
+                        .add_indirect_input(1, "position")
+                        .add_indirect_input(1, "color")
                 },
                 get_target()
             );
 
-            geometry_pass       = std::move(subpasses[0]);
-            lighting_pass       = std::move(subpasses[1]);
-            postprocessing_pass = std::move(subpasses[2]);
+            move_into(std::move(subpasses), geometry_pass, lighting_pass, bloom_blur_passes[0], bloom_blur_passes[1], postprocessing_pass);
+
+
+            bloom_blur_passes[0]->template set_uniform_value<u32>("direction", GAUSSIAN_HORIZONTAL);
+            bloom_blur_passes[1]->template set_uniform_value<u32>("direction", GAUSSIAN_VERTICAL);
         }
 
 
         shared<single_pass_pipeline> geometry_pass;
         shared<single_pass_pipeline> lighting_pass;
+        shared<single_pass_pipeline> bloom_blur_passes[2];
         shared<single_pass_pipeline> postprocessing_pass;
     };
 }

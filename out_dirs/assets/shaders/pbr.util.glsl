@@ -51,3 +51,8 @@ vec4 linear_to_SRGB(vec4 color) {
 
     return color;
 }
+
+
+vec4 tone_map(vec4 color, float exposure) {
+    return vec4(vec3(1.0) - exp(-color.rgb * exposure), color.a);
+}

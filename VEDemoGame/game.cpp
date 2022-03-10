@@ -88,7 +88,8 @@ namespace demo_game {
                     ve::meta::pack<transform_component>,
                     ve::meta::pack<render_tag>,
                     ve::meta::pack<>,
-                    renderer_mixins::lighting_mixin_for<>::template type // All lights.
+                    renderer_mixins::lighting_mixin_for<>::template type, // Use all entities with light components as lights.
+                    renderer_mixins::bloom_mixin
                 > { pipeline }).second;
 
                 system.set_ambient_light(0.25f * normalize_color(colors::LIGHT_GOLDENROD_YELLOW));

@@ -36,6 +36,20 @@ namespace ve {
     }
 
 
+    template <typename Ctr, typename... Elem>
+    inline void move_into(Ctr source, Elem&... elems) {
+        VE_DEBUG_ASSERT(
+            source.size() == sizeof...(Elem),
+            "Number of elements provided to move_into must be equal to the size of the provided container."
+        );
+
+        std::size_t i = 0;
+        ([&] (Elem& target) {
+            target = std::move(source[i++]);
+        } (elems), ...);
+    }
+
+
     constexpr inline bool one_of(const auto& first, const auto&... rest) {
         return ((first == rest) || ...);
     }

@@ -16,7 +16,7 @@ namespace ve {
         typename Derived,
         meta::pack_of_types RequiredComponents,
         meta::pack_of_types ExcludedComponents = meta::pack<>,
-        meta::pack_of_types AccessedComponents = detail::accessed_types<RequiredComponents, ExcludedComponents>,
+        meta::pack_of_types AccessedComponents = deduce_component_access,
         template <typename System> typename... Mixins
     > requires (
         // Component types cannot be both required and excluded.

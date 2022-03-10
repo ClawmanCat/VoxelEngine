@@ -3,19 +3,27 @@
 #include "pbr.util.glsl"
 
 
+#ifndef LIGHT_SIZE_LIMIT
+    #define LIGHT_SIZE_LIMIT 128
+#endif
+
+
 layout (std140, binding = 0) uniform U_Camera {
     Camera camera;
 };
 
-// Should be large enough for the number of lights used.
-// TODO: Use shader preprocessor to dynamically recompile with actual value.
-const int num_lights = 128;
-
 layout (std140, binding = 2) uniform U_Lighting {
-    Light lights[num_lights];
+    Light lights[LIGHT_SIZE_LIMIT];
     uint num_populated_lights;
 
     vec3 ambient_light;
+    float exposure;
+};
+
+layout (std140, binding = 3) uniform U_BloomData {
+    vec3 luma_conversion_weights;
+    float bloom_intensity;
+    float bloom_threshold;
 };
 
 
@@ -28,6 +36,7 @@ in vec2 uv;
 
 out vec4 l_position;
 out vec4 l_color;
+out vec4 l_bloom;
 
 
 void main() {
@@ -89,4 +98,7 @@ void main() {
 
 
     l_color.rgb = (ambient_light * l_color.rgb * occlusion) + total_radiance;
+
+    float brightness = dot(l_color.rgb, luma_conversion_weights);
+    l_bloom = vec4(l_color.rgb * vec3(brightness > bloom_threshold), 1.0);
 }

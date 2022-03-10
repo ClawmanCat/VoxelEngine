@@ -21,5 +21,6 @@ namespace ve::gfx {
         u32 num_populated_lights;
 
         vec3f ambient_light;
+        float exposure;
     };
 }

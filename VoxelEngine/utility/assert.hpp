@@ -44,6 +44,11 @@ BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_TAIL(BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)))
 }();
 
 
+// Helper for using structured bindings, since they cannot be captured by a lambda.
+#define VE_MAKE_CAPTURABLE(binding) decltype(auto) ve_impl_binding_##binding = binding
+#define VE_CAPTURE(binding) ve_impl_binding_##binding
+
+
 #ifdef VE_DEBUG
     #define VE_DEBUG_ASSERT(...) VE_ASSERT(__VA_ARGS__)
 #else

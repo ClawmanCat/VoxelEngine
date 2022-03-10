@@ -3,6 +3,11 @@
 #include "pbr.util.glsl"
 
 
+#ifndef LIGHT_SIZE_LIMIT
+    #define LIGHT_SIZE_LIMIT 128
+#endif
+
+
 layout (std140, binding = 0) uniform U_Camera {
     Camera camera;
 };
@@ -11,15 +16,12 @@ layout (std140, binding = 1) uniform U_Transform {
     mat4 transform;
 };
 
-// Should be large enough for the number of lights used.
-// TODO: Use shader preprocessor to dynamically recompile with actual value.
-const int num_lights = 128;
-
 layout (std140, binding = 2) uniform U_Lighting {
-    Light lights[num_lights];
+    Light lights[LIGHT_SIZE_LIMIT];
     uint num_populated_lights;
 
     vec3 ambient_light;
+    float exposure;
 };
 
 
