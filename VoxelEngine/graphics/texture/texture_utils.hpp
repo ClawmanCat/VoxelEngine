@@ -27,7 +27,7 @@ namespace ve::gfx {
         }
 
 
-        image_rgba8 result { .data = std::vector<RGBA8>(size.x * size.y, ve::colors::BLACK), .size = size };
+        image_rgba8 result { .data = std::vector<RGBA8>(size.x * size.y, RGBA8 { 0 }), .size = size };
 
         auto to_grayscale = [](const RGBA8& pixel, const vec4b& mask) {
             const u8 mask_sum = mask.r + mask.g + mask.b + mask.a;
@@ -85,18 +85,25 @@ namespace ve::gfx {
     }
 
 
-    inline image_rgba8 make_material_texture(const image_rgba8& roughness, const image_rgba8& metalness, const image_rgba8& ambient_occlusion, vec2ui size = vec2ui { 0 }) {
+    inline image_rgba8 make_material_texture(
+        const image_rgba8& roughness,
+        const image_rgba8& metalness,
+        const image_rgba8& ambient_occlusion,
+        const image_rgba8& emissivity,
+        vec2ui size = vec2ui { 0 }
+    ) {
         // If no size was provided, use the largest component texture size.
         if (size == vec2ui { 0 }) {
-            size.x = std::max({ roughness.size.x, metalness.size.x, ambient_occlusion.size.x });
-            size.y = std::max({ roughness.size.y, metalness.size.y, ambient_occlusion.size.y });
+            size.x = std::max({ roughness.size.x, metalness.size.x, ambient_occlusion.size.x, emissivity.size.x });
+            size.y = std::max({ roughness.size.y, metalness.size.y, ambient_occlusion.size.y, emissivity.size.y });
         }
 
 
         return combine_images({
             combine_image_data { .src = &roughness,         .source_channels = { 1, 1, 1, 0 }, .dest_channels = { 1, 0, 0, 0 } },
             combine_image_data { .src = &metalness,         .source_channels = { 1, 1, 1, 0 }, .dest_channels = { 0, 1, 0, 0 } },
-            combine_image_data { .src = &ambient_occlusion, .source_channels = { 1, 1, 1, 0 }, .dest_channels = { 0, 0, 1, 0 } }
+            combine_image_data { .src = &ambient_occlusion, .source_channels = { 1, 1, 1, 0 }, .dest_channels = { 0, 0, 1, 0 } },
+            combine_image_data { .src = &emissivity,        .source_channels = { 1, 1, 1, 0 }, .dest_channels = { 0, 0, 0, 1 } }
         }, size);
     }
 }

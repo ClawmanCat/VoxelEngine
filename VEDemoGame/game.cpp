@@ -66,7 +66,7 @@ namespace demo_game {
 
 
         auto simple_pipeline = make_shared<single_pass_pipeline>(game::window->get_canvas(), shader_cache::instance().get_or_load_shader<simple_vertex>("simple"));
-        auto pbr_pipeline    = multipass_pbr_pipeline::create(game::window->get_canvas());
+        auto pbr_pipeline    = pbr_pipeline::create(game::window->get_canvas());
 
         std::tuple pipelines {
             std::tuple { simple_pipeline, simple_render_tag {} },

@@ -1,13 +1,16 @@
 #include <VoxelEngine/platform/graphics/opengl/presentation/canvas.hpp>
 #include <VoxelEngine/graphics/presentation/window.hpp>
+#include <VoxelEngine/utility/then.hpp>
+#include <VoxelEngine/utility/color.hpp>
 
 
 namespace ve::gfx::opengl {
     canvas::canvas(window* owner, present_mode_t mode) :
         render_target(
             std::vector {
-                framebuffer_attachment { "color", framebuffer_attachment::COLOR_BUFFER },
-                framebuffer_attachment { "depth", framebuffer_attachment::DEPTH_BUFFER }
+                framebuffer_attachment_template { "color", framebuffer_attachment_template::COLOR_BUFFER }
+                    | then([] (auto& att) { att.clear_value = normalize_color_alpha(colors::SKY_BLUE); }),
+                framebuffer_attachment_template { "depth", framebuffer_attachment_template::DEPTH_BUFFER }
             },
             [owner] { return window_helpers::get_canvas_size(owner->get_handle()); },
             // The fact that targets are shared resources provides a lifetime issue:
@@ -49,10 +52,11 @@ namespace ve::gfx::opengl {
         auto canvas_size = window_helpers::get_canvas_size(owner->get_handle());
         glViewport(0, 0, (GLsizei) canvas_size.x, (GLsizei) canvas_size.y);
 
+        auto input_size = get_attachments().at("color").texture->get_size();
         glBlitNamedFramebuffer(
             framebuffer::get_id(),
             0, // Window framebuffer
-            0, 0, (GLint) canvas_size.x, (GLint) canvas_size.y,
+            0, 0, (GLint) input_size.x,  (GLint) input_size.y,
             0, 0, (GLint) canvas_size.x, (GLint) canvas_size.y,
             GL_COLOR_BUFFER_BIT,
             GL_NEAREST

@@ -46,7 +46,12 @@ namespace ve::gfx::opengl {
 
 
         void store_bytes(std::span<const u8> data) {
-            VE_ASSERT(data.size() == reflection.struct_size, "Incorrect object type for UBO: size mismatch.");
+            VE_ASSERT(
+                data.size() == reflection.struct_size,
+                "Incorrect object type for UBO ", reflection.name,
+                ": provided data is not of correct size to form a valid ", reflection.type,
+                " (Expected ", reflection.struct_size, " bytes, got ", data.size(), ")."
+            );
 
             if (data.size() == current_value.size() && memcmp(current_value.data(), data.data(), data.size()) == 0) {
                 // Stored value is equal to current value, do nothing.

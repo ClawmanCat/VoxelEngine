@@ -36,7 +36,7 @@ namespace ve::gfx::opengl {
                 auto ubo_source = uniform_state.find(uniform.name);
                 VE_ASSERT(
                     ubo_source != uniform_state.end(),
-                    cat("Cannot bind uniforms for shader ", shader->get_reflection().name, ": no value for uniform ", uniform.name, " has been provided.")
+                    "Cannot bind uniforms for shader ", shader->get_reflection().name, ": no value for uniform ", uniform.name, " has been provided."
                 );
 
 

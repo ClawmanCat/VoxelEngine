@@ -26,8 +26,8 @@ namespace ve {
 
             VE_DEBUG_ASSERT(
                 mtr.get_type(type).template holds<T>(),
-                "Attempt to add message of type", mtr.get_type(type).name, "with data of type", ctti::nameof<T>(), "to compound message",
-                "but this is not the data type associated with that MTR type."
+                "Attempt to add message of type ", mtr.get_type(type).name, " with data of type ", ctti::nameof<T>(), " to compound message",
+                " but this is not the data type associated with that MTR type."
             );
 
 

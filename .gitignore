@@ -1,8 +1,5 @@
 out/
 
-tools/*
-!tools/README.md
-
 .idea/
 .vs/
 .vscode/

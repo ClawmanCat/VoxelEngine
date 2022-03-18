@@ -9,6 +9,7 @@
 #include <VoxelEngine/utility/traits/const_as.hpp>
 #include <VoxelEngine/utility/traits/dont_deduce.hpp>
 #include <VoxelEngine/utility/traits/evaluate_if_valid.hpp>
+#include <VoxelEngine/utility/traits/forward_as.hpp>
 #include <VoxelEngine/utility/traits/function_traits.hpp>
 #include <VoxelEngine/utility/traits/glm_traits.hpp>
 #include <VoxelEngine/utility/traits/is_immovable.hpp>

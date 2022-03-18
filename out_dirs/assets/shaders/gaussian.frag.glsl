@@ -21,6 +21,7 @@ layout (std140, binding = 1) uniform U_GaussianDirection {
 };
 
 uniform sampler2D tex;
+uniform sampler2D position;
 
 
 in vec2 uv;
@@ -31,7 +32,10 @@ out vec4 color;
 // and direction = GAUSSIAN_VERTICAL for the second pass, or vice versa.
 // This shader should be used in conjunction with screen_quad.g_input.glsl as its vertex shader.
 void main() {
-    vec2 delta = (1.0 / textureSize(tex, 0)) * range;
+    float depth = texture(position, uv).w;
+
+    // Divide by 1 - distance, otherwise the distance between sample points would get larger and larger with distance.
+    vec2 delta = (1.0 / textureSize(tex, 0)) * (range * (1 - depth));
     vec4 color_rgba = texture(tex, uv);
     vec3 color_rgb  = color_rgba.rgb * weights[0];
 

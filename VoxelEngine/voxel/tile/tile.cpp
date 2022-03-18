@@ -52,7 +52,8 @@ namespace ve::voxel {
                 constexpr std::array material_textures {
                     gfx::texture_type::ROUGHNESS_TEXTURE,
                     gfx::texture_type::METALNESS_TEXTURE,
-                    gfx::texture_type::AMBIENT_OCCLUSION_TEXTURE
+                    gfx::texture_type::AMBIENT_OCCLUSION_TEXTURE,
+                    gfx::texture_type::EMISSIVE_TEXTURE
                 };
 
                 auto paths = material_textures
@@ -60,7 +61,7 @@ namespace ve::voxel {
                     | ranges::to<std::vector>;
 
 
-                // Generate a new material texture from the roughness, metalness and ao maps if one doesn't exist already.
+                // Generate a new material texture from the roughness, metalness, ao and emissive maps if one doesn't exist already.
                 gfx::generative_image_source material_texture_src {
                     cat_range_with(paths, "|"),
                     [&] {
@@ -83,7 +84,7 @@ namespace ve::voxel {
 
 
                         // And generate the texture.
-                        return gfx::make_material_texture(*ptrs[0], *ptrs[1], *ptrs[2]);
+                        return gfx::make_material_texture(*ptrs[0], *ptrs[1], *ptrs[2], *ptrs[3]);
                     }
                 };
 

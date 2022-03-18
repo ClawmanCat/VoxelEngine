@@ -3,76 +3,77 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/target_sampler.hpp>
-#include <VoxelEngine/platform/graphics/opengl/pipeline/chainer_name_transforms.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/renderpass_transforms.hpp>
 
 
 namespace ve::gfx::opengl {
-    struct pipeline_chain_subpass {
-        using transform_fn_t = std::function<std::string(std::string_view)>;
+    struct renderpass_definition {
+        using name_transform_t = std::function<std::string(std::string_view)>;
+        using size_transform_t = std::function<vec2ui(vec2ui)>;
 
         shared<class shader> shader;
         std::vector<std::pair<std::size_t, std::string>> relative_inputs;
         std::vector<named_texture> direct_inputs;
-        std::vector<framebuffer_attachment> outputs;
-        transform_fn_t name_transform; // Mapping from previous stage attachment name to uniform name for this stage's input.
+        std::vector<framebuffer_attachment_template> outputs;
+        name_transform_t name_transform; // Mapping from previous stage attachment name to uniform name for this stage's input.
+        size_transform_t size_transform = size_transforms::identity{}; // Size of this framebuffer as a function of the final target size.
 
 
-        explicit pipeline_chain_subpass(shared<class shader> shader, transform_fn_t transform = name_transforms::identity{}, std::vector<framebuffer_attachment> outputs = {}) :
+        explicit renderpass_definition(shared<class shader> shader, name_transform_t transform = name_transforms::identity{}) :
             shader(std::move(shader)),
-            outputs(std::move(outputs)),
             name_transform(std::move(transform))
         {}
 
 
-        pipeline_chain_subpass& add_attachment(framebuffer_attachment attachment) {
+        // Modify the given attachment using the predicate. Must be callable as fn(framebuffer_attachment_template&).
+        void modify_attachment(std::string_view name, auto fn) {
+            auto it = ranges::find(outputs, name, &framebuffer_attachment_template::name);
+            VE_DEBUG_ASSERT(it != outputs.end(), "No such attachment: ", name);
+
+            std::invoke(fn, *it);
+        }
+
+
+        void add_attachment(framebuffer_attachment_template attachment) {
             outputs.emplace_back(std::move(attachment));
-            return *this; // Allow chaining.
         }
 
-        pipeline_chain_subpass& add_color_attachment(std::string name, const texture_format& fmt = texture_format_RGBA32F) {
-            add_attachment(framebuffer_attachment { std::move(name), framebuffer_attachment::COLOR_BUFFER, &fmt });
-            return *this; // Allow chaining.
+        void add_color_attachment(std::string name, const texture_format& fmt = texture_format_RGBA32F) {
+            add_attachment(framebuffer_attachment_template { std::move(name), framebuffer_attachment_template::COLOR_BUFFER, &fmt });
         }
 
-        pipeline_chain_subpass& add_color_attachments(const std::vector<std::string>& names, const texture_format& fmt = texture_format_RGBA32F) {
+        void add_color_attachments(const std::vector<std::string>& names, const texture_format& fmt = texture_format_RGBA32F) {
             for (const auto& name : names) {
-                add_attachment(framebuffer_attachment { name, framebuffer_attachment::COLOR_BUFFER, &fmt });
+                add_attachment(framebuffer_attachment_template { name, framebuffer_attachment_template::COLOR_BUFFER, &fmt });
             }
-
-            return *this; // Allow chaining.
         }
 
-        pipeline_chain_subpass& add_depth_attachment(std::string name, const texture_format& fmt = texture_format_DEPTH32F) {
-            add_attachment(framebuffer_attachment { std::move(name), framebuffer_attachment::DEPTH_BUFFER, &fmt });
-            return *this; // Allow chaining.
+        void add_depth_attachment(std::string name, const texture_format& fmt = texture_format_DEPTH32F) {
+            add_attachment(framebuffer_attachment_template { std::move(name), framebuffer_attachment_template::DEPTH_BUFFER, &fmt });
         }
 
 
         // Adds an input from one of the outputs of a different renderpass.
-        pipeline_chain_subpass& add_indirect_input(std::size_t from_renderpass, std::string name) {
+        void add_indirect_input(std::size_t from_renderpass, std::string name) {
             relative_inputs.emplace_back(from_renderpass, std::move(name));
-            return *this; // Allow chaining.
         }
 
         // Adds an input from some external texture.
-        pipeline_chain_subpass& add_indirect_input(named_texture texture) {
+        void add_indirect_input(named_texture texture) {
             direct_inputs.emplace_back(std::move(texture));
-            return *this; // Allow chaining.
         }
 
         // Adds an input from some external framebuffer attachment.
-        pipeline_chain_subpass& add_indirect_input(framebuffer* fbo, std::string attachment) {
-            auto texture = fbo->get_attachments().at(attachment);
+        void add_indirect_input(framebuffer* fbo, std::string attachment) {
+            auto texture = fbo->get_attachments().at(attachment).texture;
             direct_inputs.emplace_back(named_texture { std::move(texture), std::move(attachment) });
-
-            return *this; // Allow chaining.
         }
     };
 
 
-    // Creates a set of pipelines with associated targets based on the provided subpass data and chain them together,
+    // Creates a set of pipelines with associated targets based on the provided renderpass data and chain them together,
     // using the outputs of each subpass as inputs for the next.
-    inline std::vector<shared<single_pass_pipeline>> create_pipeline_chain(std::vector<pipeline_chain_subpass> passes, shared<render_target> target) {
+    inline std::vector<shared<single_pass_pipeline>> build_pipeline(std::vector<renderpass_definition> passes, shared<render_target> target) {
         std::vector<shared<single_pass_pipeline>> result;
 
         auto texture_validator = target->get_texture_validator();
@@ -88,9 +89,11 @@ namespace ve::gfx::opengl {
             );
 
 
+            auto pass_tex_validator = [v_final = texture_validator, v_pass = pass.size_transform] { return v_pass(v_final()); };
+
             auto pass_target = is_last
                 ? std::move(target)
-                : make_shared<render_target>(pass.outputs, texture_validator, render_validator);
+                : make_shared<render_target>(pass.outputs, std::move(pass_tex_validator), render_validator);
 
             result.emplace_back(make_shared<single_pass_pipeline>(std::move(pass_target), std::move(pass.shader)));
 

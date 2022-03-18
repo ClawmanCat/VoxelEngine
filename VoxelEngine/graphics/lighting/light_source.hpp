@@ -22,5 +22,7 @@ namespace ve::gfx {
 
         vec3f ambient_light;
         float exposure;
+
+        float emissivity_constant;
     };
 }

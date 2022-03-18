@@ -15,41 +15,41 @@ namespace ve {
         }
     
     
-        void remove_object(const std::string& name) {
+        void remove_object(std::string_view name) {
             storage.erase(name);
         }
     
     
         template <typename T>
-        T take_object(const std::string& name) {
+        T take_object(std::string_view name) {
             T object = std::move(std::any_cast<T&>(storage.extract(name).mapped()));
             return object;
         }
     
     
         template <typename T>
-        T& get_object(const std::string& name) {
+        T& get_object(std::string_view name) {
             return std::any_cast<T&>(storage.at(name));
         }
     
     
         template <typename T>
-        const T& get_object(const std::string& name) const {
+        const T& get_object(std::string_view name) const {
             return std::any_cast<const T&>(storage.at(name));
         }
 
 
         template <typename T>
-        T& get_or_create_object(const std::string& name, auto&&... construction_args) {
+        T& get_or_create_object(std::string_view name, auto&&... construction_args) {
             if (auto it = storage.find(name); it != storage.end()) {
                 return std::any_cast<T&>(it->second);
             }
 
-            return store_object(name, T(fwd(construction_args)...));
+            return store_object(std::string { name }, T(fwd(construction_args)...));
         }
 
     
-        bool has_object(const std::string& name) {
+        bool has_object(std::string_view name) const {
             return storage.contains(name);
         }
     private:

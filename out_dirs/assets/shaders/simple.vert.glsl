@@ -20,7 +20,6 @@ in vec2 uv;
 in uint texture_index;
 
 out vec2 frag_uv;
-out float frag_log_z;
 out flat uint frag_tex_index;
 
 
@@ -30,11 +29,8 @@ const float depth_coeficient = 2.0f / log2(1e9f + 1.0f);
 
 
 void main() {
-    gl_Position   = transform * vec4(position, 1.0f);
-    gl_Position   = camera.matrix * gl_Position;
-    gl_Position.z = log2(max(camera.near, 1.0f + gl_Position.w)) * depth_coeficient - 1.0f;
-
+    gl_Position    = transform * vec4(position, 1.0f);
+    gl_Position    = camera.matrix * gl_Position;
     frag_uv        = uv;
-    frag_log_z     = 1.0f + gl_Position.w;
     frag_tex_index = texture_index;
 }

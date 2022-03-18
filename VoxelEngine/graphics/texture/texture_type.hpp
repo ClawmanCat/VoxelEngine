@@ -12,7 +12,8 @@ namespace ve::gfx {
         NORMAL_TEXTURE,
         ROUGHNESS_TEXTURE,
         METALNESS_TEXTURE,
-        AMBIENT_OCCLUSION_TEXTURE
+        AMBIENT_OCCLUSION_TEXTURE,
+        EMISSIVE_TEXTURE
     };
 
 
@@ -23,6 +24,7 @@ namespace ve::gfx {
             case texture_type::ROUGHNESS_TEXTURE:         return "roughness";
             case texture_type::METALNESS_TEXTURE:         return "metalness";
             case texture_type::AMBIENT_OCCLUSION_TEXTURE: return "ao";
+            case texture_type::EMISSIVE_TEXTURE:          return "emissive";
         }
     }
 }

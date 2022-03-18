@@ -1,5 +1,4 @@
 #version 430
-#include "common.util.glsl"
 #include "pbr.util.glsl"
 
 
@@ -18,25 +17,32 @@ layout (std140, binding = 2) uniform U_Lighting {
 
     vec3 ambient_light;
     float exposure;
+
+    float emissivity_constant;
 };
 
-layout (std140, binding = 3) uniform U_BloomData {
-    vec3 luma_conversion_weights;
-    float bloom_intensity;
-    float bloom_threshold;
+#ifndef NO_BLOOM
+    layout (std140, binding = 3) uniform U_BloomData {
+        vec3 luma_conversion_weights;
+        float bloom_intensity;
+        float bloom_threshold;
 };
-
+#endif
 
 uniform sampler2D g_position;
 uniform sampler2D g_normal;
 uniform sampler2D g_color;
 uniform sampler2D g_material;
 
+
 in vec2 uv;
 
 out vec4 l_position;
 out vec4 l_color;
-out vec4 l_bloom;
+
+#ifndef NO_BLOOM
+    out vec4 l_bloom;
+#endif
 
 
 void main() {
@@ -44,11 +50,12 @@ void main() {
     l_color    = texture(g_color, uv);
 
     vec3 normal   = texture(g_normal, uv).xyz;
-    vec3 material = texture(g_material, uv).xyz;
+    vec4 material = texture(g_material, uv);
 
     float roughness = material.r;
     float metalness = material.g;
     float occlusion = material.b;
+    float emissive  = material.a;
 
 
     // Reflection at an incidence angle of zero.
@@ -75,7 +82,7 @@ void main() {
 
 
         // Attenuation is the loss of light intensity over distance.
-        float attenuation = 1.0 / pow(distance_to_light, light.attenuation);
+        float attenuation = 1.0 / pow(distance_to_light + epsilon, light.attenuation);
         // Observed radiance at the position of the fragment.
         vec3 radiance = light.radiance * attenuation;
 
@@ -83,7 +90,7 @@ void main() {
         // Calculate Cook-Torrance BRDF
         // i.e. the specular reflectivity of the fragment as a function of its alignment with the eye's view of the fragment.
         float NDF = distribution_GGX(normal, halfway, roughness);
-        float G   = geometry_smith(normal, eye_alignment, light_alignment, roughness);
+        float G   = geometry_smith(eye_alignment, light_alignment, roughness);
         vec3  F   = fresnel_schlick(max(dot(halfway, eye_on_fragment), 0.0), reflection_at_zero);
 
         vec3 specular = (NDF * G * F) / (4.0 * eye_alignment * light_alignment + epsilon);
@@ -97,8 +104,14 @@ void main() {
     }
 
 
-    l_color.rgb = (ambient_light * l_color.rgb * occlusion) + total_radiance;
+    l_color.rgb =
+        (ambient_light * l_color.rgb * occlusion) +
+        (emissive * l_color.rgb * emissivity_constant) +
+        total_radiance;
 
-    float brightness = dot(l_color.rgb, luma_conversion_weights);
-    l_bloom = vec4(l_color.rgb * vec3(brightness > bloom_threshold), 1.0);
+
+    #ifndef NO_BLOOM
+        float brightness = dot(l_color.rgb, luma_conversion_weights);
+        l_bloom = vec4(l_color.rgb * brightness, 1.0);
+    #endif
 }

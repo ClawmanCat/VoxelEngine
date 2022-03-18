@@ -1,5 +1,4 @@
 #version 430
-#include "common.util.glsl"
 #include "pbr.util.glsl"
 
 
@@ -14,26 +13,39 @@ layout (std140, binding = 2) uniform U_Lighting {
 
     vec3 ambient_light;
     float exposure;
+
+    float emissivity_constant;
 };
 
-layout (std140, binding = 3) uniform U_BloomData {
-    vec3 luma_conversion_weights;
-    float bloom_intensity;
-    float bloom_threshold;
-};
+#ifndef NO_BLOOM
+    layout (std140, binding = 3) uniform U_BloomData {
+        vec3 luma_conversion_weights;
+        float bloom_intensity;
+        float bloom_threshold;
+    };
+
+    uniform sampler2D l_bloom;
+#endif
 
 uniform sampler2D l_position;
 uniform sampler2D l_color;
-uniform sampler2D l_bloom;
+
 
 in vec2 uv;
-
 out vec4 color;
 
 
 void main() {
     // Apply Bloom.
-    color = texture(l_color, uv) + (texture(l_bloom, uv) * bloom_intensity);
+    #ifndef NO_BLOOM
+        vec3 bloom = texture(l_bloom, uv).rgb * bloom_intensity;
+    #else
+        vec3 bloom = vec3(0.0, 0.0, 0.0);
+    #endif
+
+    color = texture(l_color, uv);
+    color.rgb += bloom;
+
 
     // Perform tone mapping and gamma correction.
     color = linear_to_SRGB(tone_map(color, exposure));

@@ -30,13 +30,18 @@ namespace ve::gfx::opengl {
         virtual ~pipeline(void) = default;
         virtual void draw(const draw_data& data) = 0;
 
+    protected:
+        void assert_has_render_mixins(const render_context& ctx, const std::vector<std::string_view>& mixins) const;
+
     private:
         const pipeline_category_t* type;
         shared<render_target> target;
+        bool mixin_checks_enabled = false;
 
     public:
         VE_GET_VAL(type);
         VE_GET_SET_CREF(target);
+        VE_GET_SET_VAL(mixin_checks_enabled);
     };
 
 

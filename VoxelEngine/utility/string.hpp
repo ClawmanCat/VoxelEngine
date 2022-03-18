@@ -1,6 +1,8 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/ecs/entt_include.hpp>
+#include <VoxelEngine/utility/math.hpp>
 #include <VoxelEngine/utility/functional.hpp>
 #include <VoxelEngine/utility/traits/is_type.hpp>
 #include <VoxelEngine/utility/traits/glm_traits.hpp>
@@ -8,7 +10,6 @@
 #include <boost/pfr.hpp>
 #include <ctti/type_id.hpp>
 #include <glm/gtc/matrix_access.hpp>
-#include <VoxelEngine/ecs/entt_include.hpp>
 
 #include <sstream>
 
@@ -190,6 +191,39 @@ namespace ve {
     inline std::string cat_range_with(const Rng& range, const std::string& separator) {
         std::string result;
         for (const auto& str : range | views::transform(ve_wrap_callable(to_string)) | views::intersperse(separator)) result += str;
+        return result;
+    }
+
+
+    // Splits the provided string into multiple lines by inserting \n characters, assuring no line is longer than max_length.
+    // The string can only be split after characters in the separator list.
+    // If there is no character from the separator list to split the string on, the string is split at exactly max_length.
+    inline std::string limit_line_length(const std::string& src, std::size_t max_length, const std::string& separators = " \n") {
+        // Finds the last separator in the range [current, limit) or returns limit if no separator exists.
+        auto find_next_sep = [&] (std::size_t current, std::size_t limit) -> std::size_t {
+            for (std::size_t i = limit; i > current && i < src.size(); --i) {
+                if (separators.find(src[i]) != std::string::npos) return i + 1;
+            }
+
+            return std::min(limit, src.size());
+        };
+
+
+        std::string result;
+        result.reserve(src.length() + (src.length() / max_length) + 1);
+
+
+        std::size_t current = 0;
+        while (current < src.size()) {
+            std::size_t next = find_next_sep(current, current + max_length);
+
+            result.append(src.begin() + current, src.begin() + next);
+            if (next < src.size()) result.push_back('\n');
+
+            current = next;
+        }
+
+
         return result;
     }
     

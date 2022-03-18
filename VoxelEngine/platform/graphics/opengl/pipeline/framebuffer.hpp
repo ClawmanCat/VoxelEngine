@@ -4,6 +4,7 @@
 #include <VoxelEngine/utility/assert.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/framebuffer_attachment.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/reset_texture_bindings.hpp>
 
@@ -12,96 +13,70 @@
 
 
 namespace ve::gfx::opengl {
-    class framebuffer;
-
-
     struct framebuffer_attachment {
-        enum type_t { COLOR_BUFFER = GL_COLOR_ATTACHMENT0, DEPTH_BUFFER = GL_DEPTH_ATTACHMENT };
+        framebuffer_attachment_template attachment_template;
+        shared<texture> texture;
+        u32 attachment_index;
 
-
-        // Note: attachment names are only used to fetch the attachment from the framebuffer
-        // and need not correspond to the output value names of the shader rendering to them.
-        std::string name;
-        type_t type;
-        const texture_format* format;
-        texture_type tex_type;
-
-
-        explicit framebuffer_attachment(std::string name, type_t type = COLOR_BUFFER, const texture_format* fmt = nullptr, texture_type tex_type = texture_type::TEXTURE_2D) :
-            name(std::move(name)), type(type), tex_type(tex_type)
-        {
-            if (!fmt) {
-                fmt = (type == COLOR_BUFFER)
-                    ? &get_context()->settings.color_buffer_format
-                    : &get_context()->settings.depth_buffer_format;
-            }
-
-            format = fmt;
-        }
-
-    private:
-        friend class framebuffer;
-        u8 attachment_index = 0;
+        bool is_color_attachment(void) const { return attachment_template.attachment_type == framebuffer_attachment_template::COLOR_BUFFER; }
+        bool is_depth_attachment(void) const { return attachment_template.attachment_type == framebuffer_attachment_template::DEPTH_BUFFER; }
     };
 
 
     class framebuffer {
     public:
+        enum clear_options_t : GLuint { CLEAR_COLOR_BUFFER = GL_COLOR_BUFFER_BIT, CLEAR_DEPTH_BUFFER = GL_DEPTH_BUFFER_BIT };
+
+
         framebuffer(void) = default;
 
 
         framebuffer(
-            std::vector<framebuffer_attachment> attachments,
+            const std::vector<framebuffer_attachment_template>& templates,
             std::function<vec2ui(void)> texture_validator
         ) :
-            attachment_templates(std::move(attachments)),
             texture_validator(std::move(texture_validator)),
             prev_size(this->texture_validator())
         {
             glGenFramebuffers(1, &id);
+            VE_ASSERT(id, "Failed to create framebuffer.");
+
             glBindFramebuffer(GL_FRAMEBUFFER, id);
 
 
-            std::size_t num_color_attachments = 0;
+            u32 num_color_attachments = 0;
             bool has_depth_attachment = false;
 
-            for (auto& attachment : attachment_templates) {
-                if (attachment.type == framebuffer_attachment::COLOR_BUFFER) {
-                    const static u32 color_attachment_limit = (u32) gl_get<i32>(GL_MAX_COLOR_ATTACHMENTS);
+            for (const auto& tmpl : templates) {
+                if (tmpl.attachment_type == framebuffer_attachment_template::COLOR_BUFFER) {
+                    const static u32 max_color_attachments = (u32) gl_get<i32>(GL_MAX_COLOR_ATTACHMENTS);
 
                     VE_ASSERT(
-                        num_color_attachments < color_attachment_limit,
-                        "Framebuffer may have at most", color_attachment_limit, "color attachments."
+                        num_color_attachments < max_color_attachments,
+                        "Framebuffer may have at most", max_color_attachments, "color attachments."
                     );
 
-                    attachment.attachment_index = num_color_attachments;
+                    attachments.emplace(
+                        tmpl.name,
+                        framebuffer_attachment { .attachment_template = tmpl, .texture = nullptr, .attachment_index = num_color_attachments }
+                    );
+
                     ++num_color_attachments;
                 } else {
                     VE_ASSERT(
                         !std::exchange(has_depth_attachment, true),
                         "Framebuffer may have at most one depth attachment."
                     );
+
+                    attachments.emplace(
+                        tmpl.name,
+                        framebuffer_attachment { .attachment_template = tmpl, .texture = nullptr, .attachment_index = 0 }
+                    );
                 }
-
-
-                auto [it, success] = this->attachments.emplace(
-                    attachment.name,
-                    texture::create(*attachment.format, prev_size, 1, texture_filter::NEAREST, attachment.tex_type)
-                );
-
-                if (attachment.type == framebuffer_attachment::DEPTH_BUFFER) {
-                    it->second->set_parameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-                }
-
-
-                glFramebufferTexture2D(
-                    GL_FRAMEBUFFER,
-                    (GLenum) attachment.type + attachment.attachment_index,
-                    GL_TEXTURE_2D,
-                    it->second->get_id(),
-                    0
-                );
             }
+
+
+            build_attachments();
         }
 
 
@@ -117,74 +92,90 @@ namespace ve::gfx::opengl {
             VE_DEBUG_ASSERT(id, "Cannot bind uninitialized framebuffer.");
 
             if (std::exchange(prev_size, texture_validator()) != prev_size) {
-                rebuild_attachments();
+                build_attachments();
             }
 
             glBindFramebuffer(GL_FRAMEBUFFER, id);
+            glViewport(0, 0, (GLsizei) prev_size.x, (GLsizei) prev_size.y);
+        }
 
 
-            bool has_color_attachment = ranges::contains(
-                attachment_templates | views::transform(&framebuffer_attachment::type),
-                framebuffer_attachment::COLOR_BUFFER
-            );
+        virtual void clear(GLuint mask = CLEAR_COLOR_BUFFER | CLEAR_DEPTH_BUFFER) {
+            bind();
 
-            if (has_color_attachment) {
-                std::vector<GLenum> draw_buffers;
-                for (const auto& attachment : attachment_templates) {
-                    if (attachment.type == framebuffer_attachment::COLOR_BUFFER) {
-                        draw_buffers.push_back((GLenum) attachment.type + attachment.attachment_index);
-                    }
+            for (auto& [name, attachment] : attachments) {
+                if (
+                    (attachment.is_color_attachment() && (mask & CLEAR_COLOR_BUFFER)) ||
+                    (attachment.is_depth_attachment() && (mask & CLEAR_DEPTH_BUFFER))
+                ) {
+                    if (attachment.attachment_template.should_clear()) attachment.texture->clear(attachment.attachment_template.clear_value);
                 }
-
-                glDrawBuffers((GLsizei) draw_buffers.size(), draw_buffers.data());
-            } else {
-                glDrawBuffer(GL_NONE);
             }
         }
 
 
         VE_GET_VAL(id);
-        VE_GET_CREF(attachment_templates);
         VE_GET_CREF(attachments);
         VE_GET_CREF(texture_validator);
     private:
         GLuint id = 0;
 
-        std::vector<framebuffer_attachment> attachment_templates;
-        vec_map<std::string, shared<texture>> attachments;
+        hash_map<std::string, framebuffer_attachment> attachments;
 
         // The texture validator returns the size each texture should have before the next draw call.
         std::function<vec2ui(void)> texture_validator;
         vec2ui prev_size;
 
 
-        void rebuild_attachments(void) {
+        void bind_attachments(void) {
             glBindFramebuffer(GL_FRAMEBUFFER, id);
 
-            for (auto& [name, old_attachment] : attachments) {
-                const auto& attachment_template = *ranges::find(attachment_templates, name, &framebuffer_attachment::name);
 
-                auto new_attachment = texture::create(
-                    *attachment_template.format,
+            std::vector<GLenum> draw_buffers;
+            for (const auto& attachment : attachments | views::values | views::filter(&framebuffer_attachment::is_color_attachment)) {
+                draw_buffers.push_back(((GLenum) attachment.attachment_template.attachment_type) + attachment.attachment_index);
+            }
+
+
+            if (draw_buffers.empty()) {
+                glDrawBuffer(GL_NONE);
+            } else {
+                // TODO: Re-order to match on name rather than index.
+                ranges::sort(draw_buffers);
+                glDrawBuffers((GLsizei) draw_buffers.size(), draw_buffers.data());
+            }
+        }
+
+
+        void build_attachments(void) {
+            glBindFramebuffer(GL_FRAMEBUFFER, id);
+
+
+            for (auto& [name, attachment] : attachments) {
+                const auto& tmpl = attachment.attachment_template;
+
+                auto tex = texture::create(
+                    *tmpl.tex_format,
                     prev_size,
                     1,
-                    texture_filter::NEAREST,
-                    attachment_template.tex_type
+                    tmpl.tex_filter,
+                    tmpl.tex_type,
+                    tmpl.tex_wrap
                 );
 
-                if (attachment_template.type == framebuffer_attachment::DEPTH_BUFFER) {
-                    new_attachment->set_parameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+                if (tmpl.attachment_type == framebuffer_attachment_template::DEPTH_BUFFER) {
+                    tex->set_parameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
                 }
 
                 glFramebufferTexture2D(
                     GL_FRAMEBUFFER,
-                    (GLenum) attachment_template.type + attachment_template.attachment_index,
+                    (GLenum) tmpl.attachment_type + attachment.attachment_index,
                     GL_TEXTURE_2D,
-                    new_attachment->get_id(),
+                    tex->get_id(),
                     0
                 );
 
-                std::swap(old_attachment, new_attachment);
+                std::swap(attachment.texture, tex);
             }
 
 
@@ -194,10 +185,13 @@ namespace ve::gfx::opengl {
             reset_texture_bindings((GLint) attachments.size());
 
 
-            if (false) VE_DEBUG_ASSERT(
+            VE_DEBUG_ASSERT(
                 glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE,
                 "Failed to rebuild attachments for framebuffer: code", glCheckFramebufferStatus(GL_FRAMEBUFFER)
             );
+
+
+            bind_attachments();
         }
     };
 }

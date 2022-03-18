@@ -20,6 +20,10 @@ namespace ve::gfx::opengl {
 
         void set_uniform(unique<uniform>&& uniform);
         void remove_uniform(std::string_view name);
+        bool has_uniform(std::string_view name) const;
+
+        unique<uniform> take_normal_uniform(std::string_view name);
+        shared<uniform_sampler> take_sampler_uniform(std::string_view name);
 
 
         template <typename T, typename Combine = decltype(combine_functions::overwrite)>

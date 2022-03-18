@@ -115,9 +115,11 @@ namespace demo_game {
 
                 // And randomly build if this is a builder Howlee.
                 if (tag.type == entity_howlee_tag::BUILDER && ve::cheaprand::random_real() < build_chance * dt_seconds) {
+                    const auto* tile = ve::cheaprand::random_element(std::array { true, false }) ? tiles::TILE_BRICK : tiles::TILE_EMISSIVE;
+
                     world->voxel.get_space()->set_state(
                         ve::voxel::tilepos { transform.position },
-                        ve::voxel::tile_state { .tile = tiles::TILE_BRICK, .meta = 0 }
+                        ve::voxel::tile_state { .tile = tile, .meta = 0 }
                     );
 
                     motion.linear_velocity = ve::vec3f { 0 };
