@@ -136,6 +136,7 @@ namespace ve::gfx::opengl {
         void clear(vec4f value) {
             bind();
 
+            // TODO: Do this in a more robust way. Store scalar type in format data?
             GLenum channel_t      = format.name.back() == 'F' ? GL_FLOAT : GL_UNSIGNED_BYTE;
             vec4ub integer_value  = vec4ub(glm::round(value * 255.0f));
             const void* value_ptr = format.name.back() == 'F' ? (const void*) glm::value_ptr(value) : (const void*) glm::value_ptr(integer_value);

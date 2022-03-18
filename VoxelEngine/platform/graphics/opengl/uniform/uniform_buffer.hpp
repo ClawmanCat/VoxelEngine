@@ -6,6 +6,7 @@
 #include <VoxelEngine/platform/graphics/opengl/utility/buffer.hpp>
 
 #include <gl/glew.h>
+#include <xxhash.h>
 
 
 namespace ve::gfx::opengl {
@@ -53,15 +54,12 @@ namespace ve::gfx::opengl {
                 " (Expected ", reflection.struct_size, " bytes, got ", data.size(), ")."
             );
 
-            if (data.size() == current_value.size() && memcmp(current_value.data(), data.data(), data.size()) == 0) {
-                // Stored value is equal to current value, do nothing.
-                return;
-            }
+            auto hash = XXH64(data.data(), data.size(), 0);
+            if (hash == current_value) return;
 
-            current_value.resize(data.size());
-            memcpy(current_value.data(), data.data(), data.size());
-
+            current_value = hash;
             ubo.write(data.data(), data.size());
+
             VE_DEBUG_ONLY(written = true);
         }
 
@@ -73,7 +71,7 @@ namespace ve::gfx::opengl {
 
         // UBOs are typically relatively small, so its worth caching the value CPU side so we can skip redundant writes.
         buffer<u8> ubo;
-        std::vector<u8> current_value;
+        XXH64_hash_t current_value = 0;
 
         VE_DEBUG_ONLY(bool written = false);
     };
