@@ -1,5 +1,4 @@
 #version 430
-#include "common.util.glsl"
 #include "pbr.util.glsl"
 
 
@@ -8,7 +7,6 @@ uniform sampler2D textures[num_samplers];
 
 
 in vec3 frag_position;
-in float frag_log_z;
 
 in flat uint frag_texture_index;
 in vec2 frag_uv_color;
@@ -25,14 +23,11 @@ out vec4 g_material;
 
 
 void main() {
-    // World position of the fragment, plus its depth as seen from the camera.
-    float depth  = log2(frag_log_z) * (0.5 * f_coef);
-    g_position   = vec4(frag_position, depth);
-    gl_FragDepth = depth;
+    // World position of the fragment and its normalized depth.
+    g_position = vec4(frag_position, gl_FragCoord.z);
 
-    // Material data of the fragment (R = roughness, G = metalness, B = ambient occlusion).
+    // Material data of the fragment (R = roughness, G = metalness, B = ambient occlusion, A = emissivity).
     g_material = texture(textures[frag_texture_index], frag_uv_material);
-    float occlusion = g_material.b;
 
     // Color of the fragment, converted to linear color space.
     g_color = SRGB_to_linear(texture(textures[frag_texture_index], frag_uv_color));

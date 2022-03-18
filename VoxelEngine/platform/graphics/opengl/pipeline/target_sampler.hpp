@@ -20,7 +20,7 @@ namespace ve::gfx::opengl {
         {}
 
         texture_list get_uniform_textures(void) const override {
-            return { source->get_target()->get_attachments().at(input) };
+            return { source->get_target()->get_attachments().at(input).texture };
         }
 
         std::string get_uniform_name(void) const override {

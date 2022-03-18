@@ -75,7 +75,7 @@ namespace ve::gfx::opengl::detail {
         using BT = reflect::object_type::base_type_t;
 
         #define ve_impl_unknown_attrib_size \
-        VE_ASSERT(false, "No known conversion from", magic_enum::enum_name(type), "of size", size, "to OpenGL type.")
+        VE_ASSERT(false, "No known conversion from ", magic_enum::enum_name(type), " of size ", size, " to OpenGL type.")
 
 
         if (type == BT::FLOAT) {

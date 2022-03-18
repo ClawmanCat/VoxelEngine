@@ -44,7 +44,7 @@ namespace ve {
             return true;
         });
 
-        VE_DEBUG_ASSERT(result < std::tuple_size_v<decltype(core_message_type_infos)>, "No such core message:", name);
+        VE_DEBUG_ASSERT(result < std::tuple_size_v<decltype(core_message_type_infos)>, "No such core message: ", name);
         return result;
     }
 

@@ -52,4 +52,20 @@ namespace ve::gfx::opengl {
         uniforms.erase(name);
         samplers.erase(name);
     }
+
+
+
+    bool uniform_storage::has_uniform(std::string_view name) const {
+        return uniforms.contains(name) || samplers.contains(name);
+    }
+
+
+    unique<uniform> uniform_storage::take_normal_uniform(std::string_view name) {
+        return std::move(uniforms.extract(name).mapped());
+    }
+
+
+    shared<uniform_sampler> uniform_storage::take_sampler_uniform(std::string_view name) {
+        return std::move(samplers.extract(name).mapped());
+    }
 }

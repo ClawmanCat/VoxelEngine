@@ -32,8 +32,8 @@ namespace ve {
         template <typename T> void on_message_received(mtr_identifier auto id, const T& msg) {
             VE_DEBUG_ASSERT(
                 remote_mtr.get_type(id).template holds<T>(),
-                "Attempt to receive message of type", remote_mtr.get_type(id).name, "with data of type", ctti::nameof<T>(),
-                "but this is not the data type associated with that MTR type."
+                "Attempt to receive message of type ", remote_mtr.get_type(id).name, " with data of type ", ctti::nameof<T>(),
+                " but this is not the data type associated with that MTR type."
             );
 
 
@@ -102,8 +102,8 @@ namespace ve {
 
             VE_DEBUG_ASSERT(
                 local_mtr->get_type(id).template holds<T>(),
-                "Attempt to send message of type", local_mtr->get_type(id).name, "with data of type", ctti::nameof<T>(),
-                "but this is not the data type associated with that MTR type."
+                "Attempt to send message of type ", local_mtr->get_type(id).name, " with data of type ", ctti::nameof<T>(),
+                " but this is not the data type associated with that MTR type."
             );
 
 
@@ -179,8 +179,8 @@ namespace ve {
 
             VE_DEBUG_ASSERT(
                 local_mtr->get_type(id).template holds<T>(),
-                "Attempt to register handler for message of type", local_mtr->get_type(id).name, "with data of type", ctti::nameof<T>(),
-                "but this is not the data type associated with that MTR type."
+                "Attempt to register handler for message of type ", local_mtr->get_type(id).name, " with data of type ", ctti::nameof<T>(),
+                " but this is not the data type associated with that MTR type."
             );
 
 

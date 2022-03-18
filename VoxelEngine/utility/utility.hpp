@@ -45,6 +45,7 @@
 #include <VoxelEngine/utility/stack_polymorph.hpp>
 #include <VoxelEngine/utility/string.hpp>
 #include <VoxelEngine/utility/swap_movable.hpp>
+#include <VoxelEngine/utility/then.hpp>
 #include <VoxelEngine/utility/thread/assert_main_thread.hpp>
 #include <VoxelEngine/utility/thread/dummy_mutex.hpp>
 #include <VoxelEngine/utility/thread/thread_id.hpp>
@@ -55,6 +56,7 @@
 #include <VoxelEngine/utility/traits/const_as.hpp>
 #include <VoxelEngine/utility/traits/dont_deduce.hpp>
 #include <VoxelEngine/utility/traits/evaluate_if_valid.hpp>
+#include <VoxelEngine/utility/traits/forward_as.hpp>
 #include <VoxelEngine/utility/traits/function_traits.hpp>
 #include <VoxelEngine/utility/traits/glm_traits.hpp>
 #include <VoxelEngine/utility/traits/is_immovable.hpp>

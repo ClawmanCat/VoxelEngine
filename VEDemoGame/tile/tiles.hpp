@@ -28,4 +28,9 @@ namespace demo_game::tiles {
         .name         = "brick",
         .texture_name = "brick_wall"
     });
+
+    inline const ve::voxel::tile* TILE_EMISSIVE = store_and_register(ve::voxel::tile::arguments {
+        .name         = "emissive",
+        .texture_name = "emissive_stone"
+    });
 }

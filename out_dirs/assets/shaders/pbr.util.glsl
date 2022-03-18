@@ -1,6 +1,6 @@
-const float pi = 3.14159265;
-// Sufficiently small number to prevent division by zero.
-const float epsilon = 1e-4;
+#include "common.util.glsl"
+
+
 // Normal incidence Fresnel factor for dielectrics.
 const vec3 f_dielectric = vec3(0.04);
 
@@ -14,7 +14,7 @@ float distribution_GGX(vec3 normal, vec3 halfway, float roughness) {
     float denominator = ((halfway_alignment * halfway_alignment) * (roughness_quad - 1.0) + 1.0);
     denominator = pi * denominator * denominator;
 
-    return roughness_quad / denominator;
+    return roughness_quad / unzero(denominator);
 }
 
 
@@ -23,14 +23,16 @@ float geometry_schlick_GGX(float view_normal_alignment, float roughness) {
     float k = 1.0 + roughness;
     k = (k * k) / 8.0;
 
-    return view_normal_alignment / (view_normal_alignment * (1.0 - k) + k);
+    return view_normal_alignment / unzero(view_normal_alignment * (1.0 - k) + k);
 }
 
 
 // Use Smith's method to combine influences on the perceived geometry from both the light and eye alignments.
-float geometry_smith(vec3 normal, float eye_alignment, float light_alignment, float roughness) {
-    return geometry_schlick_GGX(eye_alignment, roughness) *
-    geometry_schlick_GGX(light_alignment, roughness);
+float geometry_smith(float eye_alignment, float light_alignment, float roughness) {
+    return (
+        geometry_schlick_GGX(eye_alignment,   roughness) *
+        geometry_schlick_GGX(light_alignment, roughness)
+    );
 }
 
 
@@ -50,4 +52,9 @@ vec4 linear_to_SRGB(vec4 color) {
     color.rgb = pow(color.rgb, vec3(1.0 / 2.2));
 
     return color;
+}
+
+
+vec4 tone_map(vec4 color, float exposure) {
+    return vec4(vec3(1.0) - exp(-color.rgb * exposure), color.a);
 }

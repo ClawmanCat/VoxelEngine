@@ -7,11 +7,21 @@
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
 
 #include <gl/glew.h>
+#include <glm/gtc/type_ptr.hpp>
 
 
 namespace ve::gfx::opengl {
-    enum class texture_filter : GLint { LINEAR, NEAREST };
-    enum class texture_type : GLenum { TEXTURE_2D = GL_TEXTURE_2D, TEXTURE_CUBE_MAP = GL_TEXTURE_CUBE_MAP };
+    enum class texture_filter : GLint {
+        LINEAR, NEAREST
+    };
+
+    enum class texture_type : GLenum {
+        TEXTURE_2D = GL_TEXTURE_2D, TEXTURE_CUBE_MAP = GL_TEXTURE_CUBE_MAP
+    };
+
+    enum class texture_wrap : GLenum {
+        REPEAT = GL_REPEAT, CLAMP = GL_CLAMP_TO_EDGE, REPEAT_MIRRORED = GL_MIRRORED_REPEAT, CLAMP_MIRRORED = GL_MIRROR_CLAMP_TO_EDGE
+    };
 
 
     class texture {
@@ -22,13 +32,15 @@ namespace ve::gfx::opengl {
             const vec2ui& size,
             std::size_t mipmap_levels = get_context()->settings.num_mipmap_levels,
             texture_filter filter = texture_filter::NEAREST,
-            texture_type type = texture_type::TEXTURE_2D
+            texture_type type = texture_type::TEXTURE_2D,
+            texture_wrap wrap = texture_wrap::REPEAT
         ) :
             type((GLenum) type),
             size(size),
             format(fmt),
             mipmap_levels(mipmap_levels),
-            filter(filter)
+            filter(filter),
+            wrap(wrap)
         {
             assert_main_thread();
 
@@ -49,8 +61,8 @@ namespace ve::gfx::opengl {
             }
 
 
-            glTexParameteri(this->type, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(this->type, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(this->type, GL_TEXTURE_WRAP_S, (GLenum) wrap);
+            glTexParameteri(this->type, GL_TEXTURE_WRAP_T, (GLenum) wrap);
 
             glTexParameteri(this->type, GL_TEXTURE_MIN_FILTER, (filter == texture_filter::NEAREST ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR));
             glTexParameteri(this->type, GL_TEXTURE_MAG_FILTER, (filter == texture_filter::NEAREST ? GL_NEAREST : GL_LINEAR));
@@ -119,12 +131,28 @@ namespace ve::gfx::opengl {
         }
 
 
+        // Clears the texture to the given color.
+        // Note: if the texture has n channels, only the first n values of 'value' are used.
+        void clear(vec4f value) {
+            bind();
+
+            // TODO: Do this in a more robust way. Store scalar type in format data?
+            GLenum channel_t      = format.name.back() == 'F' ? GL_FLOAT : GL_UNSIGNED_BYTE;
+            vec4ub integer_value  = vec4ub(glm::round(value * 255.0f));
+            const void* value_ptr = format.name.back() == 'F' ? (const void*) glm::value_ptr(value) : (const void*) glm::value_ptr(integer_value);
+
+            glClearTexImage(id, 0, format.components, channel_t, value_ptr);
+            glGenerateMipmap(this->type);
+        }
+
+
         VE_GET_CREF(size);
         VE_GET_CREF(format);
         VE_GET_VAL(id);
         VE_GET_VAL(type);
         VE_GET_VAL(mipmap_levels);
         VE_GET_VAL(filter);
+        VE_GET_VAL(wrap);
     private:
         GLuint id = 0;
         GLenum type;
@@ -133,5 +161,6 @@ namespace ve::gfx::opengl {
         texture_format format;
         std::size_t mipmap_levels;
         texture_filter filter;
+        texture_wrap wrap;
     };
 }

@@ -12,6 +12,9 @@
 
 
 namespace ve::gfx {
+    using preprocessor_defs_t = vec_map<std::string, std::string>;
+
+
     class shader_cache {
     public:
         static shader_cache& instance(void);
@@ -23,20 +26,20 @@ namespace ve::gfx {
         }
 
 
-        template <typename Vertex> shared<gfxapi::shader> get_or_load_shader(const std::vector<fs::path>& files, std::string_view name) {
+        template <typename Vertex> shared<gfxapi::shader> get_or_load_shader(const std::vector<fs::path>& files, std::string_view name, const preprocessor_defs_t& defs = {}) {
             if (auto it = shaders.find(name); it != shaders.end()) return it->second;
-            return load_shader<Vertex>(files, name);
+            return load_shader<Vertex>(files, name, defs);
         }
 
 
-        template <typename Vertex> shared<gfxapi::shader> get_or_load_shader(const fs::path& folder, std::string_view name) {
+        template <typename Vertex> shared<gfxapi::shader> get_or_load_shader(const fs::path& folder, std::string_view name, const preprocessor_defs_t& defs = {}) {
             if (auto it = shaders.find(name); it != shaders.end()) return it->second;
-            return load_shader<Vertex>(folder, name);
+            return load_shader<Vertex>(folder, name, defs);
         }
 
 
-        template <typename Vertex> shared<gfxapi::shader> get_or_load_shader(std::string_view name) {
-            return get_or_load_shader<Vertex>(io::paths::PATH_SHADERS, name);
+        template <typename Vertex> shared<gfxapi::shader> get_or_load_shader(std::string_view name, const preprocessor_defs_t& defs = {}) {
+            return get_or_load_shader<Vertex>(io::paths::PATH_SHADERS, name, defs);
         }
 
 
@@ -52,10 +55,13 @@ namespace ve::gfx {
         shader_cache(void) : compile_options(make_unique<shaderc::CompileOptions>(gfxapi::shader_helpers::default_compile_options())) {}
 
 
-        template <typename Vertex> shared<gfxapi::shader> load_shader(const auto& files_or_folder, std::string_view name) {
+        template <typename Vertex> shared<gfxapi::shader> load_shader(const auto& files_or_folder, std::string_view name, const preprocessor_defs_t& defs) {
+            shaderc::CompileOptions options = *compile_options;
+            for (const auto& [k, v] : defs) options.AddMacroDefinition(k, v);
+
             auto [it, success] = shaders.emplace(
                 std::string { name },
-                gfxapi::make_shader<Vertex>(compiler.compile(files_or_folder, name, *compile_options))
+                gfxapi::make_shader<Vertex>(compiler.compile(files_or_folder, name, options))
             );
 
             return it->second;

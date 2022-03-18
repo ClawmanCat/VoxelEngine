@@ -43,7 +43,7 @@ namespace ve {
             }
         #ifdef VE_LOG_UNCAUGHT_ERRORS
         } catch (const std::exception& e) {
-            VE_ASSERT(false, "Unhandled exception:", e.what());
+            VE_ASSERT(false, "Unhandled exception: ", e.what());
         } catch (...) {
             VE_ASSERT(false, "Unhandled exception: no further information.");
         }

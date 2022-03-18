@@ -75,4 +75,10 @@ namespace ve {
 
         return { x, y, z };
     }
+
+
+    template <typename T>
+    constexpr inline T next_multiple(T after, T multiple) {
+        return after + (multiple - after % multiple);
+    }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/traits/forward_as.hpp>
 
 #include <random>
 #include <array>
@@ -91,9 +92,9 @@ namespace ve::random {
         }
 
         // Selects a random element from the range.
-        template <typename Rng> inline decltype(auto) random_element(const Rng& range) {
+        template <typename Rng> inline decltype(auto) random_element(Rng&& range) {
             auto options = std::distance(std::begin(range), std::end(range));
-            return *(std::begin(range) + random_int<std::size_t>(0, options - 1));
+            return meta::forward_as<Rng>(*(std::begin(range) + random_int<std::size_t>(0, options - 1)));
         }
     }
 
@@ -128,9 +129,9 @@ namespace ve::random {
         }
 
         // Selects a random element from the range.
-        template <typename Rng> inline decltype(auto) random_element(const Rng& range) {
-            auto options = std::distance(range.begin(), range.end());
-            return *(range.begin() + random_int<std::size_t>(0, options - 1));
+        template <typename Rng> inline decltype(auto) random_element(Rng&& range) {
+            auto options = std::distance(std::begin(range), std::end(range));
+            return meta::forward_as<Rng>(*(std::begin(range) + random_int<std::size_t>(0, options - 1)));
         }
     }
 }

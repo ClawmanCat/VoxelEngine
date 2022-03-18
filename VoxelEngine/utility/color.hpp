@@ -8,8 +8,14 @@ namespace ve {
     using color = RGBA8;
 
 
+    // Converts the values of the given color from the range [0, 255] to the range [0, 1].
     constexpr vec3f normalize_color(const color& clr) {
         return vec3f { clr } / 255.0f;
+    }
+
+    // Equivalent to above, but also converts the alpha channel.
+    constexpr vec4f normalize_color_alpha(const color& clr) {
+        return vec4f { clr } / 255.0f;
     }
 
 
