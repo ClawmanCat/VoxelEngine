@@ -7,6 +7,52 @@
 
 
 namespace ve::gfx {
+    namespace image_resizers {
+        struct nearest_neighbour {
+            RGBA8 operator()(const image_rgba8& src, const vec2ui& dest, const vec2f& factor, const vec2ui& dest_size) const {
+                return src[vec2ui { glm::round(vec2f { dest } * factor) }];
+            }
+        };
+
+        struct bilinear {
+            RGBA8 operator()(const image_rgba8& src, const vec2ui& dest, const vec2f& factor, const vec2ui& dest_size) const {
+                auto lerp = [] (auto a, auto b, auto t) { return a + (b - a) * t; };
+
+                auto bi_lerp = [&] (auto p00, auto p10, auto p01, auto p11, auto tx, auto ty) {
+                    return lerp(lerp(p00, p10, tx), lerp(p01, p11, tx), ty);
+                };
+
+
+                u32 fx = (u32) std::floor((f32) dest.x * factor.x);
+                u32 cx = (u32) std::ceil ((f32) dest.x * factor.x);
+                u32 fy = (u32) std::floor((f32) dest.y * factor.y);
+                u32 cy = (u32) std::ceil ((f32) dest.y * factor.y);
+
+                return (RGBA8) bi_lerp(
+                    (vec4f) src[{ fx, fy }], (vec4f) src[{ cx, fy }], (vec4f) src[{ fx, cy }], (vec4f) src[{ cx, cy }],
+                    ((f32) dest.x * factor.x) - (f32) fx,
+                    ((f32) dest.y * factor.y) - (f32) fy
+                );
+            }
+        };
+    }
+
+
+    inline image_rgba8 resize_image(const image_rgba8& source, const vec2ui& resize_to, auto resizer = image_resizers::nearest_neighbour{}) {
+        auto result = filled_image(resize_to, ve::colors::BLACK);
+        const vec2f factor = vec2f { source.size } / vec2f { result.size };
+
+        u32 i = 0;
+        for (u32 y = 0; y < resize_to.y; ++y) {
+            for (u32 x = 0; x < resize_to.x; ++x) {
+                result.data[i++] = std::invoke(resizer, source, vec2ui { x, y }, factor, resize_to);
+            }
+        }
+
+        return result;
+    }
+
+
     struct combine_image_data {
         const image_rgba8* src;
         vec4b source_channels, dest_channels;

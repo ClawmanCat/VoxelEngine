@@ -3,6 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/graphics/presentation/present_mode.hpp>
 #include <VoxelEngine/graphics/presentation/window_registry.hpp>
+#include <VoxelEngine/utility/io/image.hpp>
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
 #include VE_GFX_HEADER(presentation/canvas.hpp)
@@ -26,14 +27,15 @@ namespace ve::gfx {
 
         struct arguments {
             std::string title;
-            vec2ui size                    = vec2ui { 512, 512 };
-            window_location position       = { window::WINDOW_CENTERED, window::WINDOW_CENTERED, 0 };
-            window_mode window_mode        = window::BORDERED;
-            bool start_maximized           = true;
-            bool graphics_window           = true;
-            bool exit_button_closes_window = true;
-            sdl_windowflags_t flags        = SDL_WINDOW_RESIZABLE;
-            present_mode_t present_mode    = present_mode::VSYNC;
+            vec2ui size                     = vec2ui { 512, 512 };
+            window_location position        = { window::WINDOW_CENTERED, window::WINDOW_CENTERED, 0 };
+            window_mode window_mode         = window::BORDERED;
+            bool start_maximized            = true;
+            bool graphics_window            = true;
+            bool exit_button_closes_window  = true;
+            sdl_windowflags_t flags         = SDL_WINDOW_RESIZABLE;
+            present_mode_t present_mode     = present_mode::VSYNC;
+            std::optional<image_rgba8> icon = std::nullopt;
 
             // Note: these are only used when the first graphics window is created.
             const gfxapi::api_settings* api_settings = &gfxapi::default_api_settings;
@@ -76,6 +78,8 @@ namespace ve::gfx {
 
         present_mode_t get_present_mode(void) const;
         void set_present_mode(present_mode_t mode);
+
+        void set_icon(const image_rgba8& icon);
 
 
         VE_GET_CREF(handle);

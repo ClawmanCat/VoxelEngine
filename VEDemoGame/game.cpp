@@ -61,7 +61,7 @@ namespace demo_game {
 
 
     void game::setup_client_graphics(void) {
-        game::window          = window::create(window::arguments { .title = game::get_info()->display_name });
+        game::window          = window::create(window::arguments { .title = cat(game::get_info()->display_name, " - ", game::get_info()->version) });
         game::texture_manager = make_shared<ve::gfx::texture_manager<>>();
 
 
