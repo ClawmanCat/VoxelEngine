@@ -15,7 +15,7 @@
 namespace ve::gfx::opengl {
     struct framebuffer_attachment {
         framebuffer_attachment_template attachment_template;
-        shared<texture> texture;
+        shared<texture_base> texture;
         u32 attachment_index;
 
         bool is_color_attachment(void) const { return attachment_template.attachment_type == framebuffer_attachment_template::COLOR_BUFFER; }
@@ -153,14 +153,7 @@ namespace ve::gfx::opengl {
 
             for (auto& [name, attachment] : attachments) {
                 const auto& tmpl = attachment.attachment_template;
-
-                auto tex = texture::create(
-                    prev_size,
-                    *tmpl.tex_format,
-                    1,
-                    tmpl.tex_filter,
-                    tmpl.tex_wrap
-                );
+                auto tex = make_attachment_texture(tmpl, prev_size);
 
                 if (tmpl.attachment_type == framebuffer_attachment_template::DEPTH_BUFFER) {
                     tex->set_parameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);

@@ -6,11 +6,9 @@
 #include <VoxelEngine/utility/traits/glm_traits.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/texture_base.hpp>
 
-#include <glm/gtc/type_ptr.hpp>
-
 
 namespace ve::gfx::opengl {
-    class texture : public texture_base<texture> {
+    class texture : public texture_base {
     public:
         ve_shared_only(
             texture,
@@ -68,48 +66,6 @@ namespace ve::gfx::opengl {
             );
 
             return result;
-        }
-
-
-        template <typename Pixel> void clear(const Pixel& value) {
-            bind();
-
-            assert_pixel_matches_format<Pixel>(make_delayed_invoker<std::string>([&] {
-                return cat("Cannot use pixel of type ", ctti::nameof<Pixel>(), " to clear texture with format ", get_format().name, ".");
-            }));
-
-            glClearTexImage(get_id(), 0, get_format().components, get_format().component_type, glm::value_ptr(value));
-            regenerate_mipmaps();
-        }
-
-
-        // Equivalent to above, but instead of exactly matching the pixel type, the method just uses the first n channels of value,
-        // where n is the number of channels of the pixel format, and converts the channels to the appropriate format.
-        void clear_simple(const vec4f& value) {
-            bind();
-
-            vec4ub integer_value  = vec4ub { glm::round(value * 255.0f) };
-            void*  value_ptr      = get_format().is_integer_texture() ? (void*) glm::value_ptr(integer_value) : (void*) glm::value_ptr(value);
-            GLenum component_type = get_format().is_integer_texture() ? GL_UNSIGNED_BYTE : GL_FLOAT;
-
-            glClearTexImage(get_id(), 0, get_format().components, component_type, value_ptr);
-            regenerate_mipmaps();
-        }
-
-    private:
-        template <typename Pixel> void assert_pixel_matches_format(auto error_message) const {
-            using PixTraits = meta::glm_traits<Pixel>;
-            using VT = typename PixTraits::value_type;
-
-
-            const auto& format = get_format();
-            
-            VE_DEBUG_ASSERT(
-                (std::is_floating_point_v<VT> ? format.is_floating_point_texture() : format.is_integer_texture()) &&
-                ranges::all_of(format.channel_depths | views::take(format.num_channels), [] (u8 depth) { return depth == 8 * sizeof(VT); }) &&
-                format.num_channels == PixTraits::num_rows,
-                error_message
-            );
         }
     };
 }

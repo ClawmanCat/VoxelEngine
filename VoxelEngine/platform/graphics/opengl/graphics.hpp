@@ -25,6 +25,7 @@
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/texture_base.hpp>
+#include <VoxelEngine/platform/graphics/opengl/texture/texture_cube_map.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_manager.hpp>

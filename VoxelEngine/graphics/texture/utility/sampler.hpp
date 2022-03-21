@@ -36,10 +36,10 @@ namespace ve::gfx::image_samplers {
             };
 
 
-            u32 fx = (u32) std::floor((f32) dest.x * factor.x);
-            u32 cx = (u32) std::ceil ((f32) dest.x * factor.x);
-            u32 fy = (u32) std::floor((f32) dest.y * factor.y);
-            u32 cy = (u32) std::ceil ((f32) dest.y * factor.y);
+            u32 fx = std::clamp((u32) std::floor((f32) dest.x * factor.x), (u32) 0, src.size.x);
+            u32 cx = std::clamp((u32) std::ceil ((f32) dest.x * factor.x), (u32) 0, src.size.x);
+            u32 fy = std::clamp((u32) std::floor((f32) dest.y * factor.y), (u32) 0, src.size.y);
+            u32 cy = std::clamp((u32) std::ceil ((f32) dest.y * factor.y), (u32) 0, src.size.y);
 
             return (Pixel) bi_lerp(
                 (float_vec) src[{ fx, fy }], (float_vec) src[{ cx, fy }], (float_vec) src[{ fx, cy }], (float_vec) src[{ cx, cy }],

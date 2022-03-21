@@ -16,7 +16,14 @@ namespace ve::gfx {
 
 
         texture_list get_uniform_textures(void) const override {
-            return atlases | views::indirect | views::transform(ve_get_field(get_texture())) | ranges::to<std::vector>();
+            texture_list result;
+
+            for (const auto& atlas : atlases | views::indirect) {
+                auto result_for_atlas = atlas.get_uniform_textures();
+                result.insert(result.end(), result_for_atlas.begin(), result_for_atlas.end());
+            }
+
+            return result;
         }
 
 

@@ -3,9 +3,11 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/color.hpp>
 #include <VoxelEngine/utility/functional.hpp>
+#include <VoxelEngine/utility/traits/value.hpp>
 #include <VoxelEngine/platform/graphics/opengl/context/api_context.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
+#include <VoxelEngine/platform/graphics/opengl/texture/texture_cube_map.hpp>
 
 #include <gl/glew.h>
 
@@ -40,4 +42,23 @@ namespace ve::gfx::opengl {
             clear_value = (type == COLOR_BUFFER) ? vec4f { 0, 0, 0, 0 } : vec4f { 1, 0, 0, 0 };
         }
     };
+
+
+    inline shared<texture_base> make_attachment_texture(const framebuffer_attachment_template& tmpl, const vec2ui& size) {
+        auto do_construct = [&] <typename T> (meta::type_wrapper<T>) -> shared<texture_base> {
+            return T::create(
+                size,
+                *tmpl.tex_format,
+                1,
+                tmpl.tex_filter,
+                tmpl.tex_wrap
+            );
+        };
+
+
+        switch (tmpl.tex_type) {
+            case texture_type::TEXTURE_2D:       return do_construct(meta::type_wrapper<texture>{});
+            case texture_type::TEXTURE_CUBE_MAP: return do_construct(meta::type_wrapper<texture_cube_map>{});
+        }
+    }
 }
