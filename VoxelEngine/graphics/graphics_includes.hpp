@@ -27,7 +27,14 @@
 #include <VoxelEngine/graphics/texture/texture_manager.hpp>
 #include <VoxelEngine/graphics/texture/texture_source.hpp>
 #include <VoxelEngine/graphics/texture/texture_type.hpp>
-#include <VoxelEngine/graphics/texture/texture_utils.hpp>
+#include <VoxelEngine/graphics/texture/utility/combine.hpp>
+#include <VoxelEngine/graphics/texture/utility/combine_material.hpp>
+#include <VoxelEngine/graphics/texture/utility/convert.hpp>
+#include <VoxelEngine/graphics/texture/utility/luma.hpp>
+#include <VoxelEngine/graphics/texture/utility/resize.hpp>
+#include <VoxelEngine/graphics/texture/utility/sampler.hpp>
+#include <VoxelEngine/graphics/texture/utility/to_grayscale.hpp>
+#include <VoxelEngine/graphics/texture/utility/utility.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_combine_function.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_convertible.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_sampler.hpp>

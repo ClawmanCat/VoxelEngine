@@ -45,7 +45,7 @@ namespace ve::gfx {
         }
 
 
-        void store_at(const image_rgba8& img, subtexture& where) {
+        template <typename Pixel> void store_at(const image<Pixel>& img, subtexture& where) {
             atlases.at(where.binding)->store_at(img, where);
         }
 

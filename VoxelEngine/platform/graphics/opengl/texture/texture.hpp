@@ -1,166 +1,115 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/delayed_cast.hpp>
 #include <VoxelEngine/utility/io/image.hpp>
-#include <VoxelEngine/utility/thread/assert_main_thread.hpp>
-#include <VoxelEngine/platform/graphics/opengl/context/api_context.hpp>
-#include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
+#include <VoxelEngine/utility/traits/glm_traits.hpp>
+#include <VoxelEngine/platform/graphics/opengl/texture/texture_base.hpp>
 
-#include <gl/glew.h>
 #include <glm/gtc/type_ptr.hpp>
 
 
 namespace ve::gfx::opengl {
-    enum class texture_filter : GLint {
-        LINEAR, NEAREST
-    };
-
-    enum class texture_type : GLenum {
-        TEXTURE_2D = GL_TEXTURE_2D, TEXTURE_CUBE_MAP = GL_TEXTURE_CUBE_MAP
-    };
-
-    enum class texture_wrap : GLenum {
-        REPEAT = GL_REPEAT, CLAMP = GL_CLAMP_TO_EDGE, REPEAT_MIRRORED = GL_MIRRORED_REPEAT, CLAMP_MIRRORED = GL_MIRROR_CLAMP_TO_EDGE
-    };
-
-
-    class texture {
+    class texture : public texture_base<texture> {
     public:
         ve_shared_only(
             texture,
-            const texture_format& fmt,
             const vec2ui& size,
+            const texture_format& fmt = texture_format_RGBA8,
             std::size_t mipmap_levels = get_context()->settings.num_mipmap_levels,
-            texture_filter filter = texture_filter::NEAREST,
-            texture_type type = texture_type::TEXTURE_2D,
-            texture_wrap wrap = texture_wrap::REPEAT
+            texture_filter filter     = texture_filter::NEAREST,
+            texture_wrap wrap         = texture_wrap::REPEAT
         ) :
-            type((GLenum) type),
-            size(size),
-            format(fmt),
-            mipmap_levels(mipmap_levels),
-            filter(filter),
-            wrap(wrap)
+            texture_base(texture_type::TEXTURE_2D, size, fmt, mipmap_levels, filter, wrap)
         {
-            assert_main_thread();
-
-            glGenTextures(1, &id);
-            VE_ASSERT(id, "Failed to create OpenGL texture.");
-
-            glBindTexture(this->type, id);
-
-
-            if (type == texture_type::TEXTURE_2D) {
-                glTexStorage2D(this->type, (GLsizei) mipmap_levels, fmt.pixel_format, (GLsizei) size.x, (GLsizei) size.y);
-            }
-
-            else if (type == texture_type::TEXTURE_CUBE_MAP) {
-                for (u32 side = 0; side < 6; ++side) {
-                    glTexStorage2D(this->type + side, (GLsizei) mipmap_levels, fmt.pixel_format, (GLsizei) size.x, (GLsizei) size.y);
-                }
-            }
-
-
-            glTexParameteri(this->type, GL_TEXTURE_WRAP_S, (GLenum) wrap);
-            glTexParameteri(this->type, GL_TEXTURE_WRAP_T, (GLenum) wrap);
-
-            glTexParameteri(this->type, GL_TEXTURE_MIN_FILTER, (filter == texture_filter::NEAREST ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR));
-            glTexParameteri(this->type, GL_TEXTURE_MAG_FILTER, (filter == texture_filter::NEAREST ? GL_NEAREST : GL_LINEAR));
-            glGenerateMipmap(this->type);
+            glTexStorage2D((GLenum) get_gl_type(), (GLsizei) mipmap_levels, fmt.pixel_format, (GLsizei) size.x, (GLsizei) size.y);
+            regenerate_mipmaps_bound();
         }
 
 
-        ~texture(void) {
-            if (id) glDeleteTextures(1, &id);
-        }
+        template <typename Pixel> void write(const image<Pixel>& img, const vec2ui& where = vec2ui { 0 }) {
+            bind();
 
+            assert_pixel_matches_format<Pixel>(make_delayed_invoker<std::string>([&] {
+                return cat("Cannot store image with pixel type ", ctti::nameof<Pixel>(), " to texture with format ", get_format().name, ".");
+            }));
 
-        ve_immovable(texture);
-
-
-        void set_parameter(GLenum name, GLint value) {
-            assert_main_thread();
-
-            glBindTexture(type, id);
-            glTexParameteri(type, name, value);
-        }
-
-
-        void write(const image_rgba8& img, const vec2ui& where = vec2ui { 0 }) {
-            assert_main_thread();
-
-            VE_ASSERT(type == GL_TEXTURE_2D, "Currently, texture::write only supports 2D images.");
-            VE_ASSERT(format == texture_format_RGBA8, "Currently, texture::write only supports RGBA8 images.");
-
-            glBindTexture(type, id);
 
             glTexSubImage2D(
-                type,
+                GL_TEXTURE_2D,
                 0,
-                (GLint) where.x, (GLint) where.y,
+                (GLint) where.x,    (GLint) where.y,
                 (GLint) img.size.x, (GLint) img.size.y,
-                GL_RGBA,
-                GL_UNSIGNED_BYTE,
+                get_format().components,
+                get_format().component_type,
                 img.data.data()
             );
 
-            glGenerateMipmap(type);
+            regenerate_mipmaps();
         }
 
 
-        image_rgba8 read(void) const {
-            assert_main_thread();
+        template <typename Pixel = RGBA8> image<Pixel> read(void) const {
+            bind();
 
-            VE_ASSERT(type == GL_TEXTURE_2D, "Currently, texture::read only supports 2D images.");
-            VE_ASSERT(format == texture_format_RGBA8, "Currently, texture::read only supports RGBA8 images.");
+            assert_pixel_matches_format<Pixel>(make_delayed_invoker<std::string>([&] {
+                return cat("Cannot create image with pixel type ", ctti::nameof<Pixel>(), " from texture with format ", get_format().name, ".");
+            }));
 
-            image_rgba8 result;
-            result.data.resize(size.x * size.y, RGBA8 { 0, 0, 0, 255 });
-            result.size = size;
 
-            glBindTexture(type, id);
-            glGetTexImage(type, 0, GL_RGBA, GL_UNSIGNED_BYTE, result.data.data());
+            auto result = filled_image(get_size(), Pixel { 0 });
+
+            glGetTexImage(
+                GL_TEXTURE_2D,
+                0,
+                get_format().components,
+                get_format().component_type,
+                result.data.data()
+            );
 
             return result;
         }
 
 
-        void bind(void) const {
-            assert_main_thread();
-            glBindTexture(type, id);
-        }
-
-
-        // Clears the texture to the given color.
-        // Note: if the texture has n channels, only the first n values of 'value' are used.
-        void clear(vec4f value) {
+        template <typename Pixel> void clear(const Pixel& value) {
             bind();
 
-            // TODO: Do this in a more robust way. Store scalar type in format data?
-            GLenum channel_t      = format.name.back() == 'F' ? GL_FLOAT : GL_UNSIGNED_BYTE;
-            vec4ub integer_value  = vec4ub(glm::round(value * 255.0f));
-            const void* value_ptr = format.name.back() == 'F' ? (const void*) glm::value_ptr(value) : (const void*) glm::value_ptr(integer_value);
+            assert_pixel_matches_format<Pixel>(make_delayed_invoker<std::string>([&] {
+                return cat("Cannot use pixel of type ", ctti::nameof<Pixel>(), " to clear texture with format ", get_format().name, ".");
+            }));
 
-            glClearTexImage(id, 0, format.components, channel_t, value_ptr);
-            glGenerateMipmap(this->type);
+            glClearTexImage(get_id(), 0, get_format().components, get_format().component_type, glm::value_ptr(value));
+            regenerate_mipmaps();
         }
 
 
-        VE_GET_CREF(size);
-        VE_GET_CREF(format);
-        VE_GET_VAL(id);
-        VE_GET_VAL(type);
-        VE_GET_VAL(mipmap_levels);
-        VE_GET_VAL(filter);
-        VE_GET_VAL(wrap);
-    private:
-        GLuint id = 0;
-        GLenum type;
-        vec2ui size;
+        // Equivalent to above, but instead of exactly matching the pixel type, the method just uses the first n channels of value,
+        // where n is the number of channels of the pixel format, and converts the channels to the appropriate format.
+        void clear_simple(const vec4f& value) {
+            bind();
 
-        texture_format format;
-        std::size_t mipmap_levels;
-        texture_filter filter;
-        texture_wrap wrap;
+            vec4ub integer_value  = vec4ub { glm::round(value * 255.0f) };
+            void*  value_ptr      = get_format().is_integer_texture() ? (void*) glm::value_ptr(integer_value) : (void*) glm::value_ptr(value);
+            GLenum component_type = get_format().is_integer_texture() ? GL_UNSIGNED_BYTE : GL_FLOAT;
+
+            glClearTexImage(get_id(), 0, get_format().components, component_type, value_ptr);
+            regenerate_mipmaps();
+        }
+
+    private:
+        template <typename Pixel> void assert_pixel_matches_format(auto error_message) const {
+            using PixTraits = meta::glm_traits<Pixel>;
+            using VT = typename PixTraits::value_type;
+
+
+            const auto& format = get_format();
+            
+            VE_DEBUG_ASSERT(
+                (std::is_floating_point_v<VT> ? format.is_floating_point_texture() : format.is_integer_texture()) &&
+                ranges::all_of(format.channel_depths | views::take(format.num_channels), [] (u8 depth) { return depth == 8 * sizeof(VT); }) &&
+                format.num_channels == PixTraits::num_rows,
+                error_message
+            );
+        }
     };
 }

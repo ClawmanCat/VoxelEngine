@@ -45,6 +45,7 @@ generate_include_header(VoxelEngine input input.hpp)
 generate_include_header(VoxelEngine voxel voxel.hpp)
 generate_include_header(VoxelEngine utility utility.hpp)
 generate_include_header(VoxelEngine utility/traits traits.hpp)
+generate_include_header(VoxelEngine graphics/texture/utility utility.hpp)
 
 # For the actual graphics include header, we also want to include the platform graphics header,
 # so just autogenerate a different header and include that from the actual graphics header.

@@ -1,23 +1,26 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/traits/glm_traits.hpp>
 
 
 namespace ve {
-    using RGBA8 = vec4ub;
-    static_assert(sizeof(RGBA8) == 4 * sizeof(u8));
+    // TODO: Make it easier to index by index rather than coordinate.
+    template <typename Pixel> requires (meta::glm_traits<Pixel>::is_vector || std::is_scalar_v<Pixel>)
+    struct image {
+        using value_type = Pixel;
+        using image_tag  = void;
 
 
-    struct image_rgba8 {
-        std::vector<RGBA8> data;
+        std::vector<Pixel> data;
         vec2ui size;
 
 
-        RGBA8& operator[](const vec2ui& where) {
+        Pixel& operator[](const vec2ui& where) {
             return data[where.x + where.y * size.x];
         }
 
-        const RGBA8& operator[](const vec2ui& where) const {
+        const Pixel& operator[](const vec2ui& where) const {
             return data[where.x + where.y * size.x];
         }
 
@@ -41,12 +44,29 @@ namespace ve {
                 }
             }
         }
+
+
+        void clear(Pixel value = Pixel { 0 }) {
+            foreach([&] (const auto& pos, auto& pixel) { pixel = value; });
+        }
     };
 
 
-    inline image_rgba8 filled_image(const vec2ui& size, const RGBA8& color) {
-        return image_rgba8 {
-            .data = std::vector<RGBA8>(size.x * size.y, color),
+    using RGBA8   = vec4ub;
+    using RGBA32F = vec4f;
+    using GRAY8   = u8;
+    using GRAY32F = f32;
+
+    using image_rgba8   = image<RGBA8>;
+    using image_rgba32f = image<RGBA32F>;
+    using image_gray8   = image<GRAY8>;
+    using image_gray32f = image<GRAY32F>;
+
+
+    template <typename Pixel = RGBA8>
+    inline image<Pixel> filled_image(const vec2ui& size, const Pixel& color) {
+        return image<Pixel> {
+            .data = std::vector<Pixel>(size.x * size.y, color),
             .size = size
         };
     }

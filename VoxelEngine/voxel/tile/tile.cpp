@@ -1,6 +1,6 @@
 #include <VoxelEngine/voxel/tile/tile.hpp>
 #include <VoxelEngine/graphics/texture/texture_source.hpp>
-#include <VoxelEngine/graphics/texture/texture_utils.hpp>
+#include <VoxelEngine/graphics/texture/utility/utility.hpp>
 #include <VoxelEngine/graphics/texture/missing_texture.hpp>
 #include <VoxelEngine/utility/raii.hpp>
 #include <VoxelEngine/utility/functional.hpp>

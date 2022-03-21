@@ -6,21 +6,21 @@
 
 
 namespace ve::gfx {
-    struct texture_source {
+    template <typename Pixel> struct texture_source {
         virtual ~texture_source(void) = default;
 
         // Some deriving classes contain the image inside themselves, others load it from elsewhere.
         // To prevent unnecessary image copies, return a pointer and then give the deriving class the opportunity to clean it up later.
-        // TODO: This should probably be handled through RAII instead.
-        virtual const image_rgba8* require(void) = 0;
-        virtual void relinquish(const image_rgba8* ptr) {}
+        // TODO: This should probably be handled through some kind of RAII-wrapper instead.
+        virtual const image<Pixel>* require(void) = 0;
+        virtual void relinquish(const image<Pixel>* ptr) {}
 
         virtual std::string name(void) const = 0;
     };
 
 
-    template <typename Pred> requires std::is_invocable_r_v<image_rgba8, Pred>
-    struct generative_image_source : texture_source {
+    template <typename Pred, typename Pixel = RGBA8> requires std::is_invocable_r_v<image<Pixel>, Pred>
+    struct generative_image_source : texture_source<Pixel> {
         std::string texture_name;
         Pred pred;
 
@@ -28,12 +28,12 @@ namespace ve::gfx {
         generative_image_source(std::string texture_name, Pred pred) : texture_name(std::move(texture_name)), pred(std::move(pred)) {}
 
 
-        const image_rgba8* require(void) override {
-            return new image_rgba8 { std::invoke(pred) };
+        const image<Pixel>* require(void) override {
+            return new image<Pixel> { std::invoke(pred) };
         }
 
 
-        void relinquish(const image_rgba8* ptr) override {
+        void relinquish(const image<Pixel>* ptr) override {
             delete ptr;
         }
 
@@ -44,7 +44,8 @@ namespace ve::gfx {
     };
 
 
-    struct file_image_source : texture_source {
+    // TODO: Templatize on pixel type once loading of non RGBA8-images is supported.
+    struct file_image_source : texture_source<RGBA8> {
         const fs::path* path;
         const image_rgba8* fallback;
 
@@ -73,16 +74,16 @@ namespace ve::gfx {
     };
 
 
-    struct direct_image_source : texture_source {
+    template <typename Pixel> struct direct_image_source : texture_source<Pixel> {
         std::string texture_name;
-        const image_rgba8* image;
+        const image<Pixel>* img;
 
 
-        direct_image_source(std::string texture_name, const image_rgba8* image) : texture_name(std::move(texture_name)), image(image) {}
+        direct_image_source(std::string texture_name, const image<Pixel>* img) : texture_name(std::move(texture_name)), img(img) {}
 
 
-        const image_rgba8* require(void) override {
-            return image;
+        const image<Pixel>* require(void) override {
+            return img;
         }
 
 

@@ -55,14 +55,14 @@ namespace ve::gfx {
 
 
         // Performs a texture upload for a texture previously allocated with prepare_storage.
-        void store_at(const image_rgba8& img, subtexture& where) {
+        template <typename Pixel> void store_at(const image<Pixel>& img, subtexture& where) {
             VE_CRTP_CALL(Derived, store_at, img, where);
         }
 
 
         // Attempts to store the given image in the atlas. Throws atlas_full_error if the atlas is full.
-        subtexture store(const image_rgba8& img) {
-            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, store)) {
+        template <typename Pixel> subtexture store(const image<Pixel>& img) {
+            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, template store<Pixel>)) {
                 return VE_CRTP_CALL(Derived, store, img);
             } else {
                 auto where = prepare_storage(img.size);
@@ -96,11 +96,11 @@ namespace ve::gfx {
 
         // Either stores all images, or none of them if not all of them fit.
         // Throws atlas_full_error if the images were not inserted.
-        std::vector<subtexture> store_all(const std::vector<const image_rgba8*>& images) {
-            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, store_all)) {
+        template <typename Pixel> std::vector<subtexture> store_all(const std::vector<const image<Pixel>*>& images) {
+            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, template store_all<Pixel>)) {
                 return VE_CRTP_CALL(Derived, store_all, images);
             } else {
-                auto sizes = images | views::indirect | views::transform(&image_rgba8::size) | ranges::to<std::vector>;
+                auto sizes = images | views::indirect | views::transform(&image<Pixel>::size) | ranges::to<std::vector>;
                 auto where = prepare_storage_for_all(sizes);
 
                 for (const auto& [img, pos] : views::zip(images, where)) {
@@ -112,8 +112,8 @@ namespace ve::gfx {
         }
 
 
-        void store_all_at(const std::vector<const image_rgba8*>& images, std::vector<subtexture>& where) {
-            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, store_all_at)) {
+        template <typename Pixel> void store_all_at(const std::vector<const image<Pixel>*>& images, std::vector<subtexture>& where) {
+            if constexpr (VE_CRTP_IS_IMPLEMENTED(Derived, template store_all_at<Pixel>)) {
                 return VE_CRTP_CALL(Derived, store_all_at, images, where);
             } else {
                 for (auto [img, where] : views::zip(images, where)) store_at(*img, where);

@@ -26,7 +26,7 @@ namespace ve::gfx {
 
 
         // Loads the texture from the given source, if it is not cached already, otherwise returns the cached value.
-        subtexture get_or_load(texture_source& src) {
+        template <typename Pixel> subtexture get_or_load(texture_source<Pixel>& src) {
             std::unique_lock lock { mtx };
 
             const std::string name = src.name();
@@ -41,10 +41,10 @@ namespace ve::gfx {
 
         // Same as above, but guarantees that all subtextures will be part of the same texture.
         // If the combination of images is too large to fit on a single texture, this method throws.
-        std::vector<subtexture> get_or_load_to_common_texture(const std::vector<texture_source*>& sources) {
+        template <typename Pixel> std::vector<subtexture> get_or_load_to_common_texture(const std::vector<texture_source<Pixel>*>& sources) {
             std::unique_lock lock { mtx };
 
-            auto names = sources | views::indirect | views::transform(&texture_source::name);
+            auto names = sources | views::indirect | views::transform(&texture_source<Pixel>::name);
             if (auto textures = get_if_exists_common_texture(names); !textures.empty()) return textures;
 
             std::vector<const image_rgba8*> acquired;
@@ -52,25 +52,25 @@ namespace ve::gfx {
                 for (const auto& [i, ptr] : acquired | views::enumerate) sources[i]->relinquish(ptr);
             } };
 
-            acquired = sources | views::indirect | views::transform(&texture_source::require) | ranges::to<std::vector>;
+            acquired = sources | views::indirect | views::transform(&texture_source<Pixel>::require) | ranges::to<std::vector>;
             return load_to_common_texture(views::zip(names, acquired), lock);
         }
 
 
-        subtexture get_or_load(const fs::path& path, const image_rgba8& fallback = missing_texture::color_texture) {
+        template <typename Pixel = RGBA8> subtexture get_or_load(const fs::path& path, const image<Pixel>& fallback = missing_texture::color_texture) {
             file_image_source src { &path, &fallback };
             return get_or_load(src);
         }
 
-        subtexture get_or_load(std::string name, const image_rgba8& img) {
+        template <typename Pixel> subtexture get_or_load(std::string name, const image<Pixel>& img) {
             direct_image_source src { std::move(name), &img };
             return get_or_load(src);
         }
 
         // Invokes the given function to load the texture only if it is not loaded already.
-        template <typename Pred> requires std::is_invocable_r_v<image_rgba8, Pred>
+        template <typename Pred, typename Pixel = RGBA8> requires std::is_invocable_r_v<image<Pixel>, Pred>
         subtexture get_or_load(std::string name, Pred pred) {
-            generative_image_source<Pred> src { std::move(name), std::move(pred) };
+            generative_image_source<Pred, Pixel> src { std::move(name), std::move(pred) };
             return get_or_load(src);
         }
 
@@ -181,7 +181,7 @@ namespace ve::gfx {
         // Note: calling method is responsible for acquiring lock. Method will release it while waiting to prevent deadlock.
         std::vector<subtexture> load_to_common_texture(const auto& images, auto& lock) {
             std::vector<subtexture> result = atlas->prepare_storage_for_all(
-                images | views::values | views::indirect | views::transform(&image_rgba8::size) | ranges::to<std::vector>
+                images | views::values | views::indirect | views::transform(ve_get_field(size)) | ranges::to<std::vector>
             );
 
             for (const auto& [name, tex] : views::zip(images | views::keys, result)) {

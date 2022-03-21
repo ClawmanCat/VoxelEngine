@@ -108,7 +108,7 @@ namespace ve::gfx::opengl {
                     (attachment.is_color_attachment() && (mask & CLEAR_COLOR_BUFFER)) ||
                     (attachment.is_depth_attachment() && (mask & CLEAR_DEPTH_BUFFER))
                 ) {
-                    if (attachment.attachment_template.should_clear()) attachment.texture->clear(attachment.attachment_template.clear_value);
+                    if (attachment.attachment_template.should_clear()) attachment.texture->clear_simple(attachment.attachment_template.clear_value);
                 }
             }
         }
@@ -155,11 +155,10 @@ namespace ve::gfx::opengl {
                 const auto& tmpl = attachment.attachment_template;
 
                 auto tex = texture::create(
-                    *tmpl.tex_format,
                     prev_size,
+                    *tmpl.tex_format,
                     1,
                     tmpl.tex_filter,
-                    tmpl.tex_type,
                     tmpl.tex_wrap
                 );
 
@@ -179,19 +178,17 @@ namespace ve::gfx::opengl {
             }
 
 
-            // Reset the currently bound textures to the default texture, since if the attachment texture is not compatible
-            // with whatever sampler is used in the shader (e.g. its a depth texture), it will raise an UB warning,
-            // even if we rebind it before actually using the sampler.
-            reset_texture_bindings((GLint) attachments.size());
-
-
             VE_DEBUG_ASSERT(
                 glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE,
                 "Failed to rebuild attachments for framebuffer: code", glCheckFramebufferStatus(GL_FRAMEBUFFER)
             );
 
 
+            // Reset the currently bound textures to the default texture, since if the attachment texture is not compatible
+            // with whatever sampler is used in the shader (e.g. its a depth texture), it will raise an UB warning,
+            // even if we rebind it before actually using the sampler.
             bind_attachments();
+            reset_texture_bindings((GLint) attachments.size());
         }
     };
 }

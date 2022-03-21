@@ -1,5 +1,5 @@
 #include <VoxelEngine/graphics/presentation/window.hpp>
-#include <VoxelEngine/graphics/texture/texture_utils.hpp>
+#include <VoxelEngine/graphics/texture/utility/utility.hpp>
 #include <VoxelEngine/input/input_manager.hpp>
 #include <VoxelEngine/utility/priority.hpp>
 #include <VoxelEngine/utility/raii.hpp>
@@ -165,7 +165,7 @@ namespace ve::gfx {
     void window::set_icon(const image_rgba8& icon) {
         // There is no explicit requirement that icons be 64x64 anywhere in SDLs documentation,
         // but if they're not, SDL_SetWindowIcon just doesn't do anything.
-        auto resized_icon = resize_image(icon, vec2ui { 64, 64 }, image_resizers::bilinear{});
+        auto resized_icon = resize_image(icon, vec2ui { 64, 64 }, image_samplers::bilinear<RGBA8>{});
 
 
         SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(

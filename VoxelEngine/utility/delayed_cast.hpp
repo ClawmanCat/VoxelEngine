@@ -20,4 +20,10 @@ namespace ve {
     constexpr auto make_delayed_cast(auto&& from) {
         return delayed_cast<std::remove_cvref_t<decltype(from)>, To, Cast> { fwd(from) };
     }
+
+
+    template <typename To, typename Fn>
+    constexpr auto make_delayed_invoker(Fn&& fn) {
+        return delayed_cast<Fn, To, [](auto&& fn) { return std::invoke(fn); }> { fwd(fn) };
+    }
 }
