@@ -23,14 +23,14 @@ void main() {
     g_position = vec4(vertex.position, gl_FragCoord.z);
 
     // Material data of the fragment (R = roughness, G = metalness, B = ambient occlusion, A = emissivity).
-    g_material = texture(textures[vertex.texture_index], vertex.uv_material);
+    g_material = sample_array(textures, vertex.texture_index, vertex.uv_material);
 
     // Color of the fragment, converted to linear color space.
-    g_color = SRGB_to_linear(texture(textures[vertex.texture_index], vertex.uv_color));
+    g_color = SRGB_to_linear(sample_array(textures, vertex.texture_index, vertex.uv_color));
     if (g_color.a == 0.0) discard;
 
     // Normal of the fragment, with the TBN matrix applied.
-    vec3 normal = texture(textures[vertex.texture_index], vertex.uv_normal).xyz;
+    vec3 normal = sample_array(textures, vertex.texture_index, vertex.uv_normal).xyz;
     normal = 2.0 * (normal - 0.5); // [0, 1 => -1, 1]
     normal = normalize(TBN * normal);
 

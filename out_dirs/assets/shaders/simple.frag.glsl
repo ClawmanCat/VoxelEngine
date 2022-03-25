@@ -13,6 +13,6 @@ out vec4 color;
 // Basic shader for rendering 3D objects textured from an atlas texture.
 // This shader does not perform any lighting calculations.
 void main() {
-    color = texture(textures[vertex.texture_index], vertex.uv);
+    color = sample_array(textures, vertex.texture_index, vertex.uv);
     if (color.a == 0.0f) discard;
 }

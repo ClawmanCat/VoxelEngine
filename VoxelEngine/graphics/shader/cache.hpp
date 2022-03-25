@@ -6,7 +6,7 @@
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
 #include VE_GFX_HEADER(shader/shader.hpp)
-#include VE_GFX_HEADER(shader/shader_helpers.hpp)
+#include VE_GFX_HEADER(shader/compiler_config.hpp)
 
 #include <shaderc/shaderc.hpp>
 
@@ -20,9 +20,9 @@ namespace ve::gfx {
         static shader_cache& instance(void);
 
 
-        explicit shader_cache(bool enable_default_preprocessor = true)
-            : compile_options(make_unique<shaderc::CompileOptions>(gfxapi::shader_helpers::default_compile_options()))
+        explicit shader_cache(bool enable_default_preprocessor = true) : compile_options(make_unique<shaderc::CompileOptions>())
         {
+            gfxapi::compiler_config::prepare_compile_options(*compile_options);
             if (enable_default_preprocessor) setup_default_preprocessor();
         }
 
@@ -74,6 +74,7 @@ namespace ve::gfx {
 
         void setup_default_preprocessor(void) {
             auto wave_preprocessor = make_shared<preprocessors::wave_preprocessor<>>("ve.preprocessor", priority::HIGHEST);
+            gfxapi::compiler_config::prepare_default_preprocessor(*wave_preprocessor);
 
             wave_preprocessor->add_include_path(io::paths::PATH_SHADERS);
             wave_preprocessor->add_context_action([] (auto& wave_ctx, auto& src, auto& ve_ctx) {

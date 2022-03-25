@@ -84,7 +84,7 @@ namespace ve::gfx {
         // Preprocess shader
         arbitrary_storage context;
         context.store_object<std::string>("ve.filename", name);
-        context.store_object<fs::path>("ve.filepath", path);
+        context.store_object<fs::path>("ve.filepath", fs::absolute(path));
         context.store_object<const gfxapi::shader_stage*>("ve.shader_stage", stage);
         context.store_object<const shaderc::CompileOptions*>("ve.compile_options", &options);
         context.store_object<std::vector<std::string>>("ve.completed_stages", std::vector<std::string>{});

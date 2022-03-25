@@ -212,14 +212,12 @@ namespace ve::gfx::preprocessors {
 
 
                 // Boost stores the actual message in .description(), even though they provide a .what().
-                std::string msg { cat(
+                throw std::runtime_error { cat(
                     "Failed to preprocess ", stage->name, " stage of shader ", name, ":\n",
                     e.description(), "\n\n",
                     "Note: error occurred here:\n",
                     get_error_location(result.str()), " <<< HERE"
                 ) };
-
-                throw std::runtime_error { msg };
             }
         }
 
@@ -228,12 +226,17 @@ namespace ve::gfx::preprocessors {
             context_actions.push_back(std::move(action));
         }
 
-        void add_include_path(fs::path path) {
-            add_context_action([p = std::move(path)] (wave_context& wave_ctx, std::string& src, arbitrary_storage& ve_ctx) {
+
+        void add_include_path(fs::path path, bool sys_include = false) {
+            add_context_action([p = std::move(path), sys_include] (wave_context& wave_ctx, std::string& src, arbitrary_storage& ve_ctx) {
                 std::string path_string = p.string(); // Note: p.c_str() may return wchar_t on some platforms (Notably Windows).
-                wave_ctx.add_include_path(path_string.c_str());
+
+                sys_include
+                    ? wave_ctx.add_include_path(path_string.c_str())
+                    : wave_ctx.add_sysinclude_path(path_string.c_str());
             });
         }
+
 
         void add_macro(std::string macro) {
             add_context_action([m = std::move(macro)] (wave_context& wave_ctx, std::string& src, arbitrary_storage& ve_ctx) {
@@ -255,8 +258,7 @@ namespace ve::gfx::preprocessors {
 
             src += '\n'; // Previous stage may strip final newline.
 
-            // Boost is preventing this value from being directly returnable through some non-copyable bullshittery,
-            // even though RVO should apply.
+            // Boost is preventing this value from being directly returnable through some non-copyable bullshittery, even though RVO should apply.
             auto wave_ctx = make_unique<wave_context>(src.begin(), src.end(), context.get_object<std::string>("ve.filename").c_str());
             wave_ctx->set_language(boost::wave::enable_long_long(wave_ctx->get_language()));
             wave_ctx->set_language(boost::wave::enable_variadics(wave_ctx->get_language()));

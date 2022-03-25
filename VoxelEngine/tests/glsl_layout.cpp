@@ -4,7 +4,7 @@
 #include <VoxelEngine/graphics/shader/reflect.hpp>
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
-#include VE_GFX_HEADER(shader/shader_helpers.hpp)
+#include VE_GFX_HEADER(shader/shader_helpers.hpp)"VE_GFX_HEADER(shader/compiler_config.hpp"
 
 #include <ctti/nameof.hpp>
 #include <magic_enum.hpp>

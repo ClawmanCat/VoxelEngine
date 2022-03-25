@@ -77,7 +77,7 @@ foreach(dir ${BOOST_INCLUDE_DIRS})
     if (EXISTS "${dir}/boost/preprocessor")
         file(
             COPY "${dir}/boost/preprocessor"
-            DESTINATION "${SHADER_DIR}/boost/preprocessor"
+            DESTINATION "${SHADER_DIR}/boost"
         )
     endif()
 endforeach()
