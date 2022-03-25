@@ -1,4 +1,7 @@
-#include "common.util.glsl"
+#pragma once
+
+#include "math.util.glsl"
+#include "edgecase.util.glsl"
 
 
 // Normal incidence Fresnel factor for dielectrics.
@@ -30,8 +33,8 @@ float geometry_schlick_GGX(float view_normal_alignment, float roughness) {
 // Use Smith's method to combine influences on the perceived geometry from both the light and eye alignments.
 float geometry_smith(float eye_alignment, float light_alignment, float roughness) {
     return (
-        geometry_schlick_GGX(eye_alignment,   roughness) *
-        geometry_schlick_GGX(light_alignment, roughness)
+    geometry_schlick_GGX(eye_alignment,   roughness) *
+    geometry_schlick_GGX(light_alignment, roughness)
     );
 }
 

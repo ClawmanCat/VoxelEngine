@@ -1,6 +1,10 @@
 #include <VoxelEngine/graphics/presentation/window.hpp>
+#include <VoxelEngine/graphics/texture/utility/utility.hpp>
 #include <VoxelEngine/input/input_manager.hpp>
 #include <VoxelEngine/utility/priority.hpp>
+#include <VoxelEngine/utility/raii.hpp>
+#include <VoxelEngine/utility/io/file_io.hpp>
+#include <VoxelEngine/utility/io/paths.hpp>
 
 
 namespace ve::gfx {
@@ -16,6 +20,11 @@ namespace ve::gfx {
             (i32) args.size.x, (i32) args.size.y,
             args.flags | (args.graphics_window ? gfxapi::window_helpers::get_window_flags() : 0)
         );
+
+
+        // Set window icon if specified, otherwise use the engine icon.
+        set_icon(args.icon ? *args.icon : io::load_image(io::paths::PATH_ASSETS / "meta" / "logo.png"));
+
 
         if (args.start_maximized) maximize();
 
@@ -150,5 +159,35 @@ namespace ve::gfx {
 
     void window::set_present_mode(present_mode_t mode) {
         canvas->set_present_mode(mode);
+    }
+
+
+    void window::set_icon(const image_rgba8& icon) {
+        // There is no explicit requirement that icons be 64x64 anywhere in SDLs documentation,
+        // but if they're not, SDL_SetWindowIcon just doesn't do anything.
+        auto resized_icon = resize_image(icon, vec2ui { 64, 64 }, image_samplers::bilinear<RGBA8>{});
+
+
+        SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
+            (void*) resized_icon.data.data(),
+            (int) resized_icon.size.x,
+            (int) resized_icon.size.y,
+            8 * 4,
+            (int) (4 * resized_icon.size.x),
+            0x00'00'00'FF, // R
+            0x00'00'FF'00, // G
+            0x00'FF'00'00, // B
+            0xFF'00'00'00  // A
+        );
+
+
+        if (!surface) {
+            // Surface is null, no need to free.
+            throw std::runtime_error { cat("Failed to create SDL surface for icon image: ", SDL_GetError()) };
+        }
+
+
+        SDL_SetWindowIcon(handle, surface);
+        SDL_FreeSurface(surface);
     }
 }

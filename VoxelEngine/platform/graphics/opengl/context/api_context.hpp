@@ -17,10 +17,11 @@ namespace ve::gfx::opengl {
         bool logging_enabled = VE_IF_DEBUG_ELSE(true, false);
         decltype(&opengl_logging_callback) logging_callback = opengl_logging_callback;
 
-        // For default formats, just find the first format that has the required components.
+        // Default formats for window canvas framebuffer.
         texture_format color_buffer_format = texture_format_RGBA8;
         texture_format depth_buffer_format = texture_format_DEPTH32F;
 
+        // Default number of mipmap levels for all textures that do not specify the number of levels explicitly.
         std::size_t num_mipmap_levels = 4;
     };
 

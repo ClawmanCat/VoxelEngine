@@ -19,11 +19,13 @@
 #include <VoxelEngine/platform/graphics/opengl/pipeline/utility.hpp>
 #include <VoxelEngine/platform/graphics/opengl/presentation/canvas.hpp>
 #include <VoxelEngine/platform/graphics/opengl/presentation/window_helpers.hpp>
+#include <VoxelEngine/platform/graphics/opengl/shader/compiler_config.hpp>
 #include <VoxelEngine/platform/graphics/opengl/shader/shader.hpp>
-#include <VoxelEngine/platform/graphics/opengl/shader/shader_helpers.hpp>
 #include <VoxelEngine/platform/graphics/opengl/shader/stage.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
+#include <VoxelEngine/platform/graphics/opengl/texture/texture_base.hpp>
+#include <VoxelEngine/platform/graphics/opengl/texture/texture_cube_map.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_buffer.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_manager.hpp>

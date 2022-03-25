@@ -1,5 +1,5 @@
 #include <VoxelEngine/tests/test_common.hpp>
-#include <VoxelEngine/graphics/texture/texture_utils.hpp>
+#include <VoxelEngine/graphics/texture/utility/utility.hpp>
 #include <VoxelEngine/utility/io/image.hpp>
 #include <VoxelEngine/utility/io/paths.hpp>
 #include <VoxelEngine/utility/io/file_io.hpp>
@@ -13,6 +13,7 @@ test_result test_main(void) {
     ve::image_rgba8 red16x16  { .data = std::vector<ve::RGBA8>(16 * 16, ve::colors::PURE_RED),   .size = { 16, 16 } };
     ve::image_rgba8 green32x8 { .data = std::vector<ve::RGBA8>(32 * 8,  ve::colors::PURE_GREEN), .size = { 32, 8  } };
     ve::image_rgba8 blue4x4   { .data = std::vector<ve::RGBA8>(4  * 4,  ve::colors::PURE_BLUE),  .size = { 4,  4  } };
+    ve::image_rgba8 alpha     { .data = std::vector<ve::RGBA8> { ve::RGBA8 { 0, 0, 0, 255 } },   .size = { 1, 1 } };
 
     ve::image_rgba8 mixed_16x16  { .data = std::vector<ve::RGBA8>(32 * 8,  ve::colors::BLACK), .size = { 16, 16 } };
     mixed_16x16.foreach([&] (const auto& where, auto& pixel) {
@@ -21,10 +22,11 @@ test_result test_main(void) {
 
 
     // Test without scaling: Move red16x16 red channel into RGB, result should be white.
-    auto result_image_1 = ve::gfx::combine_images({
-        ve::gfx::combine_image_data { .src = &red16x16, .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 1, 0, 0, 0 } },
-        ve::gfx::combine_image_data { .src = &red16x16, .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 0, 1, 0, 0 } },
-        ve::gfx::combine_image_data { .src = &red16x16, .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 0, 0, 1, 0 } }
+    auto result_image_1 = ve::gfx::combine_images<ve::RGBA8>({
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &red16x16, .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 1, 0, 0, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &red16x16, .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 0, 1, 0, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &red16x16, .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 0, 0, 1, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &alpha,    .source_channels = { 0, 0, 0, 1 }, .dest_channels = { 0, 0, 0, 1 } }
     }, red16x16.size);
 
     result_image_1.foreach([&] (const auto& where, const auto& pixel) {
@@ -41,10 +43,11 @@ test_result test_main(void) {
 
     // Test with downscaling: Move mixed16x16 into RGB, and resize to 4x8.
     // Left half should be red, right half should be green.
-    auto result_image_2 = ve::gfx::combine_images({
-        ve::gfx::combine_image_data { .src = &mixed_16x16, .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 1, 0, 0, 0 } },
-        ve::gfx::combine_image_data { .src = &mixed_16x16, .source_channels = { 0, 1, 0, 0 }, .dest_channels = { 0, 1, 0, 0 } },
-        ve::gfx::combine_image_data { .src = &mixed_16x16, .source_channels = { 0, 0, 1, 0 }, .dest_channels = { 0, 0, 1, 0 } }
+    auto result_image_2 = ve::gfx::combine_images<ve::RGBA8>({
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &mixed_16x16, .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 1, 0, 0, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &mixed_16x16, .source_channels = { 0, 1, 0, 0 }, .dest_channels = { 0, 1, 0, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &mixed_16x16, .source_channels = { 0, 0, 1, 0 }, .dest_channels = { 0, 0, 1, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &alpha,       .source_channels = { 0, 0, 0, 1 }, .dest_channels = { 0, 0, 0, 1 } }
     }, ve::vec2ui { 4, 8 });
 
     result_image_2.foreach([&] (const auto& where, const auto& pixel) {
@@ -62,10 +65,11 @@ test_result test_main(void) {
 
     // Test with upscaling: Move mixed16x16 into RGB, and resize to 32x32.
     // Left half should be red, right half should be green.
-    auto result_image_3 = ve::gfx::combine_images({
-        ve::gfx::combine_image_data { .src = &mixed_16x16, .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 1, 0, 0, 0 } },
-        ve::gfx::combine_image_data { .src = &mixed_16x16, .source_channels = { 0, 1, 0, 0 }, .dest_channels = { 0, 1, 0, 0 } },
-        ve::gfx::combine_image_data { .src = &mixed_16x16, .source_channels = { 0, 0, 1, 0 }, .dest_channels = { 0, 0, 1, 0 } }
+    auto result_image_3 = ve::gfx::combine_images<ve::RGBA8>({
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &mixed_16x16, .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 1, 0, 0, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &mixed_16x16, .source_channels = { 0, 1, 0, 0 }, .dest_channels = { 0, 1, 0, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &mixed_16x16, .source_channels = { 0, 0, 1, 0 }, .dest_channels = { 0, 0, 1, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &alpha,       .source_channels = { 0, 0, 0, 1 }, .dest_channels = { 0, 0, 0, 1 } }
     }, ve::vec2ui { 32, 32 });
 
     result_image_3.foreach([&] (const auto& where, const auto& pixel) {
@@ -82,10 +86,11 @@ test_result test_main(void) {
 
 
     // Test with multiple differently sized images. Result should be white.
-    auto result_image_4 = ve::gfx::combine_images({
-        ve::gfx::combine_image_data { .src = &red16x16,  .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 0, 0, 1, 0 } },
-        ve::gfx::combine_image_data { .src = &green32x8, .source_channels = { 0, 1, 0, 0 }, .dest_channels = { 0, 1, 0, 0 } },
-        ve::gfx::combine_image_data { .src = &blue4x4,   .source_channels = { 0, 0, 1, 0 }, .dest_channels = { 1, 0, 0, 0 } }
+    auto result_image_4 = ve::gfx::combine_images<ve::RGBA8>({
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &red16x16,  .source_channels = { 1, 0, 0, 0 }, .dest_channels = { 0, 0, 1, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &green32x8, .source_channels = { 0, 1, 0, 0 }, .dest_channels = { 0, 1, 0, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &blue4x4,   .source_channels = { 0, 0, 1, 0 }, .dest_channels = { 1, 0, 0, 0 } },
+        ve::gfx::combine_image_data<ve::RGBA8> { .src = &alpha,     .source_channels = { 0, 0, 0, 1 }, .dest_channels = { 0, 0, 0, 1 } }
     }, ve::vec2ui { 20, 20 });
 
     result_image_4.foreach([&] (const auto& where, const auto& pixel) {

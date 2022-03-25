@@ -9,7 +9,7 @@ namespace ve {
     class arbitrary_storage {
     public:
         template <typename T>
-        T& store_object(std::string name, T&& value) {
+        T& store_object(std::string name, T value) {
             auto [it, success] = storage.emplace(std::move(name), std::move(value));
             return std::any_cast<T&>(it->second);
         }

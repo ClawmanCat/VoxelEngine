@@ -1,41 +1,30 @@
 #version 430
-#include "pbr.util.glsl"
+
+#include "utility/pbr.util.glsl"
+#include "utility/math.util.glsl"
+#include "utility/edgecase.util.glsl"
+#include "structs/camera.util.glsl"
+#include "structs/light.util.glsl"
+#include "structs/bloom.util.glsl"
+#include "structs/vertex.util.glsl"
 
 
-#ifndef LIGHT_SIZE_LIMIT
-    #define LIGHT_SIZE_LIMIT 128
-#endif
-
-
-layout (std140, binding = 0) uniform U_Camera {
-    Camera camera;
-};
-
-layout (std140, binding = 2) uniform U_Lighting {
-    Light lights[LIGHT_SIZE_LIMIT];
-    uint num_populated_lights;
-
-    vec3 ambient_light;
-    float exposure;
-
-    float emissivity_constant;
-};
+layout (std140, binding = 0) uniform U_Camera { Camera camera; };
+layout (std140, binding = 2) uniform U_Lighting { LightingData light_data; };
 
 #ifndef NO_BLOOM
-    layout (std140, binding = 3) uniform U_BloomData {
-        vec3 luma_conversion_weights;
-        float bloom_intensity;
-        float bloom_threshold;
-};
+    layout (std140, binding = 3) uniform U_BloomData { BloomData bloom_data; };
 #endif
+
 
 uniform sampler2D g_position;
 uniform sampler2D g_normal;
 uniform sampler2D g_color;
+// R = Roughness, G = Metalness, B = Ambient Occlusion, A = Emission.
 uniform sampler2D g_material;
 
 
-in vec2 uv;
+in NO_VERTEX_BLOCK vertex;
 
 out vec4 l_position;
 out vec4 l_color;
@@ -46,11 +35,11 @@ out vec4 l_color;
 
 
 void main() {
-    l_position = texture(g_position, uv);
-    l_color    = texture(g_color, uv);
+    l_position = texture(g_position, vertex.uv);
+    l_color    = texture(g_color, vertex.uv);
 
-    vec3 normal   = texture(g_normal, uv).xyz;
-    vec4 material = texture(g_material, uv);
+    vec3 normal   = texture(g_normal, vertex.uv).xyz;
+    vec4 material = texture(g_material, vertex.uv);
 
     float roughness = material.r;
     float metalness = material.g;
@@ -67,8 +56,8 @@ void main() {
 
 
     vec3 total_radiance = vec3(0.0);
-    for (uint i = 0; i < num_populated_lights; ++i) {
-        Light light = lights[i];
+    for (uint i = 0; i < light_data.num_populated_lights; ++i) {
+        Light light = light_data.lights[i];
 
 
         // Direction from which the fragment is hit by the light.
@@ -105,13 +94,13 @@ void main() {
 
 
     l_color.rgb =
-        (ambient_light * l_color.rgb * occlusion) +
-        (emissive * l_color.rgb * emissivity_constant) +
+        (light_data.ambient_light * l_color.rgb * occlusion) +
+        (emissive * l_color.rgb * light_data.emissivity_constant) +
         total_radiance;
 
 
     #ifndef NO_BLOOM
-        float brightness = dot(l_color.rgb, luma_conversion_weights);
+        float brightness = dot(l_color.rgb, bloom_data.luma_conversion_weights);
         l_bloom = vec4(l_color.rgb * brightness, 1.0);
     #endif
 }

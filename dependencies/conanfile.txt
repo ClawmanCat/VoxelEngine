@@ -24,7 +24,6 @@ glew/2.2.0
 
 
 [options]
-boost:header_only=True
 sdl2:iconv=False
 glew:shared=True
 

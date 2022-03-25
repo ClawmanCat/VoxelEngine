@@ -1,30 +1,18 @@
 #version 430
-#include "common.util.glsl"
+
+#include "utility/math.util.glsl"
+#include "utility/edgecase.util.glsl"
+#include "structs/bloom.util.glsl"
+#include "structs/vertex.util.glsl"
 
 
-#ifndef GAUSSIAN_SIZE_LIMIT
-    #define GAUSSIAN_SIZE_LIMIT 16
-#endif
-
-#define GAUSSIAN_HORIZONTAL 0
-#define GAUSSIAN_VERTICAL   1
-
-
-layout (std140, binding = 0) uniform U_GaussianData {
-    float weights[GAUSSIAN_SIZE_LIMIT];
-    uint populated_weights;
-    float range;
-};
-
-layout (std140, binding = 1) uniform U_GaussianDirection {
-    uint direction;
-};
+layout (std140, binding = 0) uniform U_GaussianData { GaussianData data; };
+layout (std140, binding = 1) uniform U_GaussianDirection { uint direction; };
 
 uniform sampler2D tex;
 uniform sampler2D position;
 
-
-in vec2 uv;
+in NO_VERTEX_BLOCK vertex;
 out vec4 color;
 
 
@@ -32,24 +20,24 @@ out vec4 color;
 // and direction = GAUSSIAN_VERTICAL for the second pass, or vice versa.
 // This shader should be used in conjunction with screen_quad.g_input.glsl as its vertex shader.
 void main() {
-    float depth = texture(position, uv).w;
+    float depth = texture(position, vertex.uv).w;
 
     // Divide by 1 - distance, otherwise the distance between sample points would get larger and larger with distance.
-    vec2 delta = (1.0 / textureSize(tex, 0)) * (range * (1 - depth));
-    vec4 color_rgba = texture(tex, uv);
-    vec3 color_rgb  = color_rgba.rgb * weights[0];
+    vec2 delta = (1.0 / textureSize(tex, 0)) * (data.range * (1 - depth));
+    vec4 color_rgba = texture(tex, vertex.uv);
+    vec3 color_rgb  = color_rgba.rgb * data.weights[0];
 
     if (direction == GAUSSIAN_HORIZONTAL) {
-        for (uint i = 1; i < populated_weights; ++i) {
-            color_rgb += texture(tex, uv + vec2(delta.x * i, 0.0)).rgb * weights[i];
-            color_rgb += texture(tex, uv - vec2(delta.x * i, 0.0)).rgb * weights[i];
+        for (uint i = 1; i < data.populated_weights; ++i) {
+            color_rgb += texture(tex, vertex.uv + vec2(delta.x * i, 0.0)).rgb * data.weights[i];
+            color_rgb += texture(tex, vertex.uv - vec2(delta.x * i, 0.0)).rgb * data.weights[i];
         }
     }
 
     else {
-        for (uint i = 1; i < populated_weights; ++i) {
-            color_rgb += texture(tex, uv + vec2(0.0, delta.y * i)).rgb * weights[i];
-            color_rgb += texture(tex, uv - vec2(0.0, delta.y * i)).rgb * weights[i];
+        for (uint i = 1; i < data.populated_weights; ++i) {
+            color_rgb += texture(tex, vertex.uv + vec2(0.0, delta.y * i)).rgb * data.weights[i];
+            color_rgb += texture(tex, vertex.uv - vec2(0.0, delta.y * i)).rgb * data.weights[i];
         }
     }
 

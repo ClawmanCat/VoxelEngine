@@ -16,10 +16,10 @@
 #include <VoxelEngine/graphics/shader/cache.hpp>
 #include <VoxelEngine/graphics/shader/compiler.hpp>
 #include <VoxelEngine/graphics/shader/glsl_layout.hpp>
-#include <VoxelEngine/graphics/shader/include_handler.hpp>
 #include <VoxelEngine/graphics/shader/layout_validator.hpp>
 #include <VoxelEngine/graphics/shader/object_type.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>
+#include <VoxelEngine/graphics/shader/shader_preprocessor.hpp>
 #include <VoxelEngine/graphics/texture/aligned_texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/generative_texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/missing_texture.hpp>
@@ -27,7 +27,14 @@
 #include <VoxelEngine/graphics/texture/texture_manager.hpp>
 #include <VoxelEngine/graphics/texture/texture_source.hpp>
 #include <VoxelEngine/graphics/texture/texture_type.hpp>
-#include <VoxelEngine/graphics/texture/texture_utils.hpp>
+#include <VoxelEngine/graphics/texture/utility/combine.hpp>
+#include <VoxelEngine/graphics/texture/utility/combine_material.hpp>
+#include <VoxelEngine/graphics/texture/utility/convert.hpp>
+#include <VoxelEngine/graphics/texture/utility/luma.hpp>
+#include <VoxelEngine/graphics/texture/utility/resize.hpp>
+#include <VoxelEngine/graphics/texture/utility/sampler.hpp>
+#include <VoxelEngine/graphics/texture/utility/to_grayscale.hpp>
+#include <VoxelEngine/graphics/texture/utility/utility.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_combine_function.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_convertible.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_sampler.hpp>

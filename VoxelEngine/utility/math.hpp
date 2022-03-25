@@ -81,4 +81,10 @@ namespace ve {
     constexpr inline T next_multiple(T after, T multiple) {
         return after + (multiple - after % multiple);
     }
+
+
+    template <typename T>
+    constexpr inline T scale(T value, vec2<T> from, vec2<T> to) {
+        return (((value - from.x) * (to.y - to.x)) / (from.y - from.x)) + to.x;
+    }
 }

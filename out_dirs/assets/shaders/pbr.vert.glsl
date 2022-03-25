@@ -1,56 +1,31 @@
 #version 430
-#include "common.util.glsl"
+
+#include "utility/math.util.glsl"
+#include "structs/camera.util.glsl"
+#include "structs/vertex.util.glsl"
 
 
-layout (std140, binding = 0) uniform U_Camera {
-    Camera camera;
-};
-
-layout (std140, binding = 1) uniform U_Transform {
-    mat4 transform;
-};
-
+layout (std140, binding = 0) uniform U_Camera { Camera camera; };
+layout (std140, binding = 1) uniform U_Transform { mat4 transform; };
 
 in vec3 position;
 in vec3 normal;
 in vec3 tangent;
-in uint texture_index;
 
+in uint texture_index;
 in vec2 uv_color;
 in vec2 uv_normal;
-
-// R = roughness, G = metalness, B = ambient occlusion, A = emissiveness.
 in vec2 uv_material;
 
-
-out vec3 frag_position;
-
-out flat uint frag_texture_index;
-out vec2 frag_uv_color;
-out vec2 frag_uv_normal;
-out vec2 frag_uv_material;
-
+out PBR_VERTEX_BLOCK vertex;
 out flat mat3 TBN;
 
 
 void main() {
-    frag_position = (transform * vec4(position, 1.0)).xyz;
-    gl_Position   = camera.matrix * vec4(frag_position, 1.0);
+    INIT_PBR_VERTEX_BLOCK(vertex);
 
+    vertex.position = (transform * vec4(vertex.position, 1.0)).xyz;
+    gl_Position = camera.matrix * vec4(vertex.position, 1.0);
 
-    // Passthough UVs and vertex normal.
-    frag_texture_index = texture_index;
-    frag_uv_color      = uv_color;
-    frag_uv_normal     = uv_normal;
-    frag_uv_material   = uv_material;
-
-
-    // Calculate matrix to convert from normal tangent space to world space.
-    vec3 bitangent = normalize(cross(normal, tangent));
-
-    vec3 T = normalize((transform * vec4(tangent,   0.0)).xyz);
-    vec3 B = normalize((transform * vec4(bitangent, 0.0)).xyz);
-    vec3 N = normalize((transform * vec4(normal,    0.0)).xyz);
-
-    TBN = mat3(T, B, N);
+    TBN = TBN_matrix(transform, normal, tangent);
 }

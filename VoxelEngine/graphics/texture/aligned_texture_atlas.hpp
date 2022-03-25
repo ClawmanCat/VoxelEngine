@@ -10,11 +10,16 @@ namespace ve::gfx {
         constexpr static float epsilon = 1e-6;
 
 
-        explicit aligned_texture_atlas(std::string name = "textures", const vec2ui& size = vec2ui { 8192 }, u32 alignment = 32) :
+        explicit aligned_texture_atlas(
+            std::string name = "textures",
+            const vec2ui& size = vec2ui { 8192 },
+            u32 alignment = 32,
+            const gfxapi::texture_format& fmt = gfxapi::texture_format_RGBA8
+        ) :
             name(std::move(name)),
             atlas_size(size),
             atlas_alignment(alignment),
-            texture(gfxapi::texture::create(gfxapi::texture_format_RGBA8, size))
+            texture(gfxapi::texture::create(size, fmt))
         {
             VE_ASSERT(atlas_size % atlas_alignment == vec2ui { 0 }, "Atlas size must be divisible by alignment.");
         }
@@ -64,7 +69,7 @@ namespace ve::gfx {
         }
 
 
-        void store_at(const image_rgba8& img, subtexture& where) {
+        template <typename Pixel> void store_at(const image<Pixel>& img, subtexture& where) {
             VE_DEBUG_ASSERT(
                 vec2ui { (where.wh * vec2f { atlas_size }) + vec2f { epsilon } } == img.size,
                 "Image dimensions do not match dimensions of pre-allocated texture storage."
@@ -101,7 +106,7 @@ namespace ve::gfx {
         blockpos find_storage(const blockpos& size) const {
             const blockpos blocks = atlas_size / atlas_alignment;
 
-            // TODO: Optimize this.
+            // TODO: Optimize this. Start at the far edge instead so we can jump by size rather than by one if the block is taken.
             for (u32 x = 0; x <= blocks.x - size.x; ++x) {
                 for (u32 y = 0; y <= blocks.y - size.y; ++y) {
                     for (u32 dx = 0; dx < size.x; ++dx) {

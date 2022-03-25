@@ -6,7 +6,7 @@
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
 #include VE_GFX_HEADER(shader/shader.hpp)
-#include VE_GFX_HEADER(shader/shader_helpers.hpp)
+#include VE_GFX_HEADER(shader/compiler_config.hpp)
 
 #include <shaderc/shaderc.hpp>
 
@@ -18,6 +18,13 @@ namespace ve::gfx {
     class shader_cache {
     public:
         static shader_cache& instance(void);
+
+
+        explicit shader_cache(bool enable_default_preprocessor = true) : compile_options(make_unique<shaderc::CompileOptions>())
+        {
+            gfxapi::compiler_config::prepare_compile_options(*compile_options);
+            if (enable_default_preprocessor) setup_default_preprocessor();
+        }
 
 
         shared<gfxapi::shader> get_shader(std::string_view name) const {
@@ -45,14 +52,14 @@ namespace ve::gfx {
 
         const auto& get_compile_options(void) const { return *compile_options; }
         void set_compile_options(const auto& options) { compile_options = make_unique<shaderc::CompileOptions>(options); }
+
+
+        VE_GET_MREF(compiler);
     private:
         shader_compiler compiler;
         unique<shaderc::CompileOptions> compile_options; // Non-assignable so use pointer.
 
         hash_map<std::string, shared<gfxapi::shader>> shaders;
-
-
-        shader_cache(void) : compile_options(make_unique<shaderc::CompileOptions>(gfxapi::shader_helpers::default_compile_options())) {}
 
 
         template <typename Vertex> shared<gfxapi::shader> load_shader(const auto& files_or_folder, std::string_view name, const preprocessor_defs_t& defs) {
@@ -65,6 +72,20 @@ namespace ve::gfx {
             );
 
             return it->second;
+        }
+
+
+        void setup_default_preprocessor(void) {
+            auto wave_preprocessor = make_shared<preprocessors::wave_preprocessor<>>("ve.preprocessor", priority::HIGHEST);
+            gfxapi::compiler_config::prepare_default_preprocessor(*wave_preprocessor);
+
+            wave_preprocessor->add_include_path(io::paths::PATH_SHADERS);
+            wave_preprocessor->add_context_action([] (auto& wave_ctx, auto& src, auto& ve_ctx) {
+                std::string filepath = ve_ctx.template get_object<fs::path>("ve.filepath").remove_filename().string();
+                wave_ctx.add_include_path(filepath.c_str());
+            });
+
+            compiler.add_preprocessor(std::move(wave_preprocessor));
         }
     };
 }

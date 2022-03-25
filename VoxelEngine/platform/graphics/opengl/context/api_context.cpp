@@ -40,6 +40,9 @@ namespace ve::gfx::opengl {
                 register_opengl_logger(settings->logging_callback);
             }
 
+            // Sample across cube map face boundaries.
+            glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
             // Pre-initialize each texture unit with an actual texture.
             // Shaders used by the engine may declare more sample uniforms than are actually used
             // (e.g. requiring a sampler array of constant size and reading the index from the vertices.),

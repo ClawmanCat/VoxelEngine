@@ -43,6 +43,7 @@ function(load_common_profile)
     set_compiler_option(-Wno-unused-parameter)
     set_compiler_option(-Wno-unused-private-field)
     set_compiler_option(-Wno-unused-function)
+    set_compiler_option(-Wno-unused-local-typedef)
 
     # Usage of magic_enum requires a large recursion depth.
     set_compiler_option(-fbracket-depth=1024)
