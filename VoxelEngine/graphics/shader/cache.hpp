@@ -20,6 +20,13 @@ namespace ve::gfx {
         static shader_cache& instance(void);
 
 
+        explicit shader_cache(bool enable_default_preprocessor = true)
+            : compile_options(make_unique<shaderc::CompileOptions>(gfxapi::shader_helpers::default_compile_options()))
+        {
+            if (enable_default_preprocessor) setup_default_preprocessor();
+        }
+
+
         shared<gfxapi::shader> get_shader(std::string_view name) const {
             VE_DEBUG_ASSERT(shaders.contains(name), "Attempt to get non-existent shader ", name);
             return shaders.find(name)->second;
@@ -52,9 +59,6 @@ namespace ve::gfx {
         hash_map<std::string, shared<gfxapi::shader>> shaders;
 
 
-        shader_cache(void) : compile_options(make_unique<shaderc::CompileOptions>(gfxapi::shader_helpers::default_compile_options())) {}
-
-
         template <typename Vertex> shared<gfxapi::shader> load_shader(const auto& files_or_folder, std::string_view name, const preprocessor_defs_t& defs) {
             shaderc::CompileOptions options = *compile_options;
             for (const auto& [k, v] : defs) options.AddMacroDefinition(k, v);
@@ -65,6 +69,19 @@ namespace ve::gfx {
             );
 
             return it->second;
+        }
+
+
+        void setup_default_preprocessor(void) {
+            auto wave_preprocessor = make_shared<preprocessors::wave_preprocessor<>>("ve.preprocessor", priority::HIGHEST);
+
+            wave_preprocessor->add_include_path(io::paths::PATH_SHADERS);
+            wave_preprocessor->add_context_action([] (auto& wave_ctx, auto& src, auto& ve_ctx) {
+                std::string filepath = ve_ctx.template get_object<fs::path>("ve.filepath").remove_filename().string();
+                wave_ctx.add_include_path(filepath.c_str());
+            });
+
+            compiler.add_preprocessor(std::move(wave_preprocessor));
         }
     };
 }

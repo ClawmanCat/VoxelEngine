@@ -243,6 +243,22 @@ namespace ve {
         
         return result;
     }
+
+
+    inline std::vector<std::string> split(std::string_view source, std::string_view delimiter) {
+        std::vector<std::string> result;
+
+        std::size_t pos = std::string_view::npos;
+        while (pos = source.find(delimiter), pos != std::string_view::npos) {
+            pos += delimiter.length();
+
+            result.emplace_back(source.begin(), source.begin() + pos);
+            source.remove_prefix(pos);
+        }
+
+        if (!result.empty()) result.emplace_back(source);
+        return result;
+    }
     
     
     inline std::string to_sentence_case(std::string_view s) {

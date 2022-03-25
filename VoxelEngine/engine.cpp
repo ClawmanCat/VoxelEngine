@@ -10,6 +10,8 @@
 #include <VoxelEngine/input/input_manager.hpp>
 
 #include <SDL.h>
+#include <boost/exception/exception.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 
 // In debug mode we often want the exception to not be intercepted, so we can see the point where it was thrown.
@@ -44,6 +46,8 @@ namespace ve {
         #ifdef VE_LOG_UNCAUGHT_ERRORS
         } catch (const std::exception& e) {
             VE_ASSERT(false, "Unhandled exception: ", e.what());
+        } catch (const boost::exception& e) {
+            VE_ASSERT(false, "Unhandled exception: ", boost::diagnostic_information(e));
         } catch (...) {
             VE_ASSERT(false, "Unhandled exception: no further information.");
         }

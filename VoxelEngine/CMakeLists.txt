@@ -58,3 +58,26 @@ generate_include_header(VoxelEngine platform/graphics/vulkan graphics.hpp)
 if (DEFINED GAME_PRE_INCLUDE_HEADER)
     target_compile_definitions(VoxelEngine PUBLIC VE_GAME_PRE_INCLUDE=${GAME_PRE_INCLUDE_HEADER})
 endif()
+
+
+# Copy sources for boost preprocessor so we can use it inside GLSL shaders.
+get_target_property(BOOST_INCLUDE_DIRS CONAN_PKG::boost INTERFACE_INCLUDE_DIRECTORIES)
+set(SHADER_DIR "${CMAKE_SOURCE_DIR}/out_dirs/assets/shaders")
+
+foreach(dir ${BOOST_INCLUDE_DIRS})
+    if (EXISTS "${dir}/boost/preprocessor.hpp")
+        message(STATUS "Copying sources from boost preprocessor (${dir}) to shader directory (${SHADER_DIR}).")
+
+        file(
+            COPY "${dir}/boost/preprocessor.hpp"
+            DESTINATION "${SHADER_DIR}/boost"
+        )
+    endif()
+
+    if (EXISTS "${dir}/boost/preprocessor")
+        file(
+            COPY "${dir}/boost/preprocessor"
+            DESTINATION "${SHADER_DIR}/boost/preprocessor"
+        )
+    endif()
+endforeach()

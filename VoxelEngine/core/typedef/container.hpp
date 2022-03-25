@@ -36,6 +36,12 @@ namespace ve {
     
         template <typename K, typename Cmp = std::less<K>>
         using tree_set = absl::btree_set<K, Cmp>;
+
+        template <typename K, typename V, typename Cmp = std::less<K>>
+        using tree_multimap = absl::btree_multimap<K, V, Cmp>;
+
+        template <typename K, typename Cmp = std::less<K>>
+        using tree_multiset = absl::btree_multiset<K, Cmp>;
     
     
         template <typename K> using default_hash = typename absl::flat_hash_set<K>::hasher;

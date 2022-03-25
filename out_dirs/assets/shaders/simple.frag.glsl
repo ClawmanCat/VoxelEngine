@@ -1,20 +1,18 @@
-// Basic shader for rendering 3D objects textured from an atlas texture.
-// This shader does not perform any lighting calculations.
 #version 430
 
+#include "utility/sampler_array.util.glsl"
+#include "structs/vertex.util.glsl"
 
-// Uniforms
-uniform sampler2D textures[VE_MAX_FS_SAMPLERS];
 
+uniform sampler2D textures[SAMPLER_ARRAY_SIZE];
 
-// Attributes
-in vec2 frag_uv;
-in flat uint frag_tex_index;
-
+in TEX_VERTEX_BLOCK vertex;
 out vec4 color;
 
 
+// Basic shader for rendering 3D objects textured from an atlas texture.
+// This shader does not perform any lighting calculations.
 void main() {
-    color = texture(textures[frag_tex_index], frag_uv);
+    color = texture(textures[vertex.texture_index], vertex.uv);
     if (color.a == 0.0f) discard;
 }

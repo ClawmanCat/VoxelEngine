@@ -6,7 +6,7 @@
 #include <VoxelEngine/utility/io/file_io.hpp>
 #include <VoxelEngine/utility/io/paths.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>
-#include <VoxelEngine/graphics/shader/include_handler.hpp>
+#include <VoxelEngine/graphics/shader/shader_preprocessor.hpp>
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
 #include VE_GFX_HEADER(shader/stage.hpp)
@@ -27,61 +27,35 @@ namespace ve::gfx {
     class shader_compiler {
     public:
         // Get all files in the given folder whose name without extension is equal to the given name.
-        static std::vector<fs::path> get_files_for_shader(const fs::path& folder, std::string_view name) {
-            std::vector<fs::path> files;
-
-            for (const auto& entry : fs::directory_iterator(folder)) {
-                if (entry.is_regular_file() && io::get_filename_from_multi_extension(entry.path()) == name) {
-                    files.push_back(entry.path());
-                }
-            }
-
-            return files;
-        }
+        static std::vector<fs::path> get_files_for_shader(const fs::path& folder, std::string_view name);
 
 
-        shader_compilation_data compile(const std::vector<fs::path>& files, std::string_view name, const shaderc::CompileOptions& options) const {
-            shader_compilation_data result;
-
-            for (const auto& file : files) {
-                auto stage_it = ranges::find_if(gfxapi::shader_stages, equal_on(&gfxapi::shader_stage::file_extension, io::get_full_extension(file)));
-
-                if (stage_it == gfxapi::shader_stages.end()) {
-                    VE_LOG_WARN(cat("Skipping file ", file, " while compiling shader ", name, " because it is of unknown type."));
-                    continue;
-                }
-
-                result.spirv.emplace(
-                    &*stage_it,
-                    compile_stage(std::string { name }, io::read_text(file), &*stage_it, options)
-                );
-            }
-
-            result.reflection = reflect::generate_reflection(std::string { name }, result.spirv);
-            return result;
-        }
-
+        shader_compilation_data compile(const std::vector<fs::path>& files, std::string_view name, const shaderc::CompileOptions& options) const;
 
         shader_compilation_data compile(const fs::path& folder, std::string_view name, const shaderc::CompileOptions& options) const {
             return compile(get_files_for_shader(folder, name), name, options);
         }
 
+
+        void add_preprocessor(shared<preprocessors::shader_preprocessor> preprocessor);
+        void remove_preprocessor(std::string_view name);
+        shared<preprocessors::shader_preprocessor> get_preprocessor(std::string_view name);
     private:
-        spirv_blob compile_stage(const std::string& name, const io::text_file& data, const gfxapi::shader_stage* stage, const shaderc::CompileOptions& options) const {
-            shaderc::Compiler compiler;
+        // Sorts from high priority to low priority.
+        struct comparator {
+            using type = shared<preprocessors::shader_preprocessor>;
+            bool operator()(const type& a, const type& b) const { return a->get_priority() > b->get_priority(); }
+        };
 
-            std::string file_string = cat_range_with(data, "\n");
-            auto result = compiler.CompileGlslToSpv(file_string, stage->shaderc_type, name.c_str(), options);
+        tree_multiset<shared<preprocessors::shader_preprocessor>, comparator> preprocessors;
 
-            if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-                throw std::runtime_error(cat(
-                    "Failed to compile ", stage->name,
-                    " for shader ", name, ":\n",
-                    result.GetErrorMessage()
-                ));
-            }
 
-            return spirv_blob { result.begin(), result.end() };
-        }
+        spirv_blob compile_stage(
+            const fs::path& path,
+            const std::string& name,
+            const io::text_file& data,
+            const gfxapi::shader_stage* stage,
+            const shaderc::CompileOptions& options
+        ) const;
     };
 }

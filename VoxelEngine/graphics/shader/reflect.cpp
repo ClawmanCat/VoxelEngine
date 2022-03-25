@@ -78,7 +78,13 @@ namespace ve::gfx::reflect {
 
                 std::size_t struct_size = 0;
                 if (type.basetype == spirv_cross::SPIRType::Struct) {
-                    struct_size = compiler.get_declared_struct_size(type);
+                    try {
+                        struct_size = compiler.get_declared_struct_size(type);
+                    } catch (...) {
+                        // Interface blocks have no declared struct size. Just skip them for now.
+                        // TODO: Find a way to reflect over interface blocks.
+                        continue;
+                    }
                 }
 
 
