@@ -52,6 +52,9 @@ namespace ve::gfx {
 
         const auto& get_compile_options(void) const { return *compile_options; }
         void set_compile_options(const auto& options) { compile_options = make_unique<shaderc::CompileOptions>(options); }
+
+
+        VE_GET_MREF(compiler);
     private:
         shader_compiler compiler;
         unique<shaderc::CompileOptions> compile_options; // Non-assignable so use pointer.
