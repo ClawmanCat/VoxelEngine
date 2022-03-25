@@ -3,77 +3,79 @@ This file contains some basic information about what components make up the engi
 It is meant as a help for people new to this codebase, who wish to understand and/or make changes to the code.  
 
 
-### Entity Component System
-At the core of the engine is the Entity Component System (ECS). An entity component system is a design pattern meant to replace the use of inheritance for objects used within the game world.  
-Instead of objects, there are *entities*, which are simply numerical identifiers that are are associated with a set of components.  
-*Components* serve a similar purpose to interfaces: they can be used to add functionality to certain entities.
-The main difference is that components can be assigned on a per-entity basis and can be added and removed at runtime.  
-Finally, systems can be used to iterate over all instances of a component. For example the `system_renderer` iterates over every `mesh_component` from every entity to render said entity.  
+### Global Layout
+This repository contains three main subprojects: the engine itself can be found in `./VoxelEngine`, a small demonstrator game for the engine can be found in `./VEDemoGame` and a demonstrator plugin for said game can be found in `./VEDemoPlugin`.  
+The engine is statically linked into the game and the two form a shared library which can be launched using the VELauncher application (`./VELauncher`).  
+Any plugins are automatically loaded at runtime from the plugin directory.
 
-The ECS used in the engine is based on [ENTT](https://github.com/skypjack/entt). It does however extend on the functionality offered by this library in several ways:
+![Component Linking](./out_dirs/assets/meta/component_linking.png)
+
+Assets, such as textures, shaders and noise functions are kept in the `out_dirs` folder and should be copied to the engine binary directory when it is built (This can be done automatically using the `COPY_OUT_DIRS` CMake target or using `tools/copy_out_dirs.py`).
+This setup will probably be changed in the future.
+
+Other notable top-level directories of this repository are `./cmake`, which contains all cmake-related utilities, 
+`./dependencies` which contains the information Conan needs to manage the engine's dependencies and conanfiles for engine dependencies that do not provide one themselves.
+(This does not mean you have to set up these packages yourself: they are made available on a Conan server hosted specifically for this project.)
+
+
+### Entity Component System (`./VoxelEngine/ecs`)
+At the core of the engine is the Entity Component System (ECS). An entity component system is a design pattern meant to replace the use of inheritance for objects used within the game world.  
+Instead of objects, there are *entities*, which are simply numerical identifiers that are associated with a set of components at runtime.  
+Systems iterate over every instance of some component (optionally with some filtering) to perform actions that would normally be handled by member functions.  
+The ECS used in the engine is based on [Skypjack's ENTT](https://github.com/skypjack/entt). Specifically, it uses [this](https://github.com/ClawmanCat/entt) fork of ENTT.  
+
+All objects within the ECS, be it entities, components or systems are managed by the registry (`./ecs/registry.hpp`). A registry is typically part of an [instance](#Client-&-Server).
+
+###### Systems
+Systems are classes that inherit from `system` in `./VoxelEngine/ecs/system/system.hpp`. Systems are templatized on a set of required components and a set of excluded components, and iterate over all entities that have every required component, but none of the excluded components.  
+Systems can be extended using mixins: extra classes, provided as template-template-parameters, that are injected as base classes of the system. 
+
+Notable built-in engine systems:
+- `system_renderer` is used to render entities with a mesh component to some render target like the screen.
+- `system_entity_visibility` is used to determine what clients can see what entities on the server.
+- `system_synchronizer` is used to perform synchronization of said entities.
+
+The engine also provides a component registry (`./VoxelEngine/ecs/component_registry.hpp`) to act upon the ECS in a type-erased way.  
+This is mostly useful for synchronization and serialization.  
+Finally, the engine provides the `change_validator` (`./VoxelEngine/ecs/change_validator.hpp`) whose task is to verify any changes made by remote synchronization systems.
 
 ###### Static Entities
-While it is nice to be able to add and remove components from entities arbitrarily, it is often useful to define a template that can be used to create many identical entities, like a class would be used in a traditional OO-based approach.  
-To facilitate this, the engine offers the concept of *static entities*, which form a kind of hybrid between a pure ECS-entity and a class-based one.  
-By extending from `static_entity`, a class gains the ability to use the `VE_COMPONENT` and `VE_COMPONENT_FN` macros. Member variables and functions declared using these macros appear as normal members within the context of the class, but are actually managed by the ECS internally.  
-For example, the `howlee` entity in `VEDemoGame` defines a member function `update`, with a signature corresponding to that of the `update_component`. When an entity is instantiated using this class, the corresponding update component is automatically added to the ECS and will thus run when `system_updater` is invoked.  
+The engine offers functionality similar to so-called prefabs in other engines in the form of static entities (`./VoxelEngine/ecs/entity/static_entity.hpp` & `./VoxelEngine/ecs/entity/static_component.hpp`).
+Classes deriving from `static_entity` can declare special component-members with `VE_COMPONENT`, which appear as normal class members, but are actually stored as ECS components.
 
-Entities created using this `static_entity` base class also contain a `this_component`, which can be used to obtain a pointer to the instance of the class associated with the entity at any time.
-
-###### Storage Groups
-While components can be used to define groups of entities at compile time, it is often useful to group entities by some runtime-defined metric as well.  
-For example it may be desired to group all entities in a given chunk in a voxel space together. With just components, this would be impossible, as one would have to define a separate component type for every chunk an entity could be in.  
-The engine provides a different system for such scenarios: *storage groups*.  
-By inheriting from `storage_group`, an object can associate some group of entities with itself. A view of the group can then be created, which functions exactly like a normal ENTT component view.  
-For example, to get all the transforms of the entities within a single chunk, one could write:
-```c++
-auto view = chunk.view() | storage.view<transform_component>();
-
-for (auto entity : view) {
-    const auto& transform = view.get<transform_component>(entity);
-}
-```
-By using `tracked_storage_group` instead of a normal storage group, it is also possible to get the storage group an entity belongs to from that group itself: by fetching the `tracked_storage_group::tracker` component of an entity, a pointer to the storage group can be obtained.
-
-
-### Renderer
+### Renderer (`./VoxelEngine/graphics` & `./VoxelEngine/platform/graphics`)
 Code for the renderer is split into two sections: the API-dependent section can be found in `VoxelEngine/platform/graphics`, and the common section can be found in `VoxelEngine/graphics`.  
 The API-dependent section consists of code that depends on the underlying graphics API, and is rewritten for each API that is supported. The common section works with all graphics APIs.  
 
 ###### Pipelines
 The main primitive of the renderer is the *pipeline*. A pipeline takes some settings and one or more buffers, and renders them to some target, like a window or a framebuffer.
-For multi-pass rendering, a pipeline can itself be made up of different pipelines, one for each render pass. An example of such a setup can be found in `pipeline/multipass_pbr_pipeline.hpp` in the API-dependent graphics section.  
-The most simple pipeline is the `simple_pipeline`, found in `pipeline/pipeline.hpp`, which performs a single render pass using the provided shaders.  
+The engine provides `simple_pipeline` (`./VoxelEngine/platform/graphics/<API>/pipeline/pipeline.hpp`), which can be used for simple single-stage rendering or as a single renderpass in more complex pipelines.
 
-###### Shaders & Inputs
-*Shaders* are managed by the `shader_cache` in `graphics/shader/cache.hpp`. Simply provide the name of a shader, or a set of shader file paths, and the engine will either compile the shader or load it from cache.  
-The returned shader will also contain additional info, like reflection information and what type of graphics pipeline it belongs to.
+###### Shaders
+The engine provides tools for compiling, reflecting over and caching GLSL shaders in `./VoxelEngine/graphics/shader`. Custom preprocessors can be added to the shader compiler to extend its functionality (`./VoxelEngine/graphics/shader/shader_preprocessor.hpp`).  
+Reflection information is stored inside shader objects and is used to automatically verify vertex buffer layouts and bound uniforms.
 
-Other than vertex buffers, shaders may accept *uniforms* as additional inputs when performing rendering.  
-Various classes in the rendering system, like the pipeline, and the vertex buffer inherit from `uniform_storage`. Objects stored in said storage will be automatically used when the object is used for rendering.
-Values can be stored either directly, or in the form of producers, which are queried for a new value every time a render is performed.  
+A shader has an associated pipeline category defining what stages it can consist of (rasterization, compute, etc.). Currently, only the rasterization pipeline is supported.
 
-Each uniform can be assigned a `combine_function`. The combine function dictates how uniforms are merged if different layers in the rendering system provide different values for a uniform. 
-For example, if both a mesh and a submesh provide a transform matrix, the desired behaviour will probably be to multiply these matrices, rather than for one to overwrite the other.
+###### VBOs
+VBO classes can be found in `./VoxelEngine/platform/graphics/<API>/vertex`. Each VBO class is templatized on the type of vertex (and index for indexed VBOs) stored within it.  
+Internally, VBOs are built on top of the `buffer` class in `./VoxelEngine/platform/graphics/<API>/utility/buffer.hpp`, which provides `std::vector` like functionalities, like the ability to resize buffers.
 
-Currently, the engine only supports Uniform Buffer Objects (UBOs) as shader inputs. The engine automatically converts any provided uniform to the STD140 layout, (See `graphics/shader/glsl_layout.hpp`) so this need not be done manually.
+###### Uniforms
+Uniforms are managed by classes that extend `uniform_storage` (`./VoxelEngine/platform/graphics/<API>/uniform/uniform_storage.hpp`).
+Examples of such classes are pipelines and VBOs.  
+When two different layers both provide a value for some uniform, the values of the uniform are combined according to some combine-function, which can be provided on a per-uniform basis.  
+All uniforms are exposed in the shaders as UBOs. Naked uniforms are not supported, as they are an OpenGL-only feature.
+Samplers are an exception to this. The engine API treats them as normal uniforms (of type `uniform_sampler`) but they are presented in shaders as naked uniforms, rather than UBOs (because GLSL requires this).
 
-###### GLSL Extensions
-The engine supports several extensions to standard GLSL. For example, shaders may include other files using `#include` directives, like in C++, and may use preprocessor macros defined when compiling the shader.  
-Said definitions can be set in the shader cache using `set_compile_options`.  
-The engine will automatically generate bindings and locations for shader inputs that do not have them. Do note that there is currently no functionality to synchronize bindings between different shaders, so in that case manual binding is still required.
+Uniforms are lazily set: values only get uploaded to the GPU if they are changed and only for uniforms actually used by the shader (Even if the `uniform_storage` contains additional uniforms).
 
 ###### Textures
-Internally, the engine uses texture atlases to combine many textures into one. This means many objects with different textures, like the different tiles of a chunk in a voxel space, can be rendered in a single draw call.  
-Managing the textures and atlases involved in this process can be done using the `texture_manager`. Textures can be provided in the form of either a file path, an image object or a generator function, and are associated with a name that can be used to fetch them later.  
+Internally, the engine uses texture atlases to combine many textures into one (`./VoxelEngine/graphics/texture`). This means many different textures, like the different tiles of a chunk in a voxel space, can be rendered in a single draw call.  
+Managing the textures and atlases involved in this process can be done using the `texture_manager` (`./VoxelEngine/graphics/texture/texture_manager.hpp`). Textures can be provided in the form of either a file path, an image object or a generator function, and are associated with a name that can be used to fetch them later (`./VoxelEngine/graphics/texture/texture_source.hpp`).  
 The UV and index information provided by returned textures can be used to directly initialize the vertices that need to have said texture applied to them.  
-For rendering, the texture atlas can be obtained from the texture manager and simply be bound as a uniform. It will automatically map to the sampler of the same name, if it exists.  
+For rendering, the texture atlas can be obtained from the texture manager and simply be bound as a uniform. It will automatically map to the sampler array of the same name, if it exists.  
 To accomplish this, texture atlases implement the `uniform_sampler` interface. Other classes may implement this interface as well to achieve similar functionality.
-
-###### Lighting
-Since the way in which lights need to be managed depends on the type of rendering performed (For example, when doing shadow mapping, it is necessary to perform one render pass per light), they cannot be handled as simple uniforms.  
-Instead, the engine provides the `light_component` which can be added to any entity to turn it into a light source.  
-The way in which this light source is handled is then decided by the pipeline.  
 
 ###### ECS Integration
 For most simple scenarios, direct interaction with the rendering system is not necessary. If one simply wants to render an object. it is enough to add a `system_renderer` to the ECS and provide the desired entity with a `mesh_component`.  
@@ -104,16 +106,6 @@ Core messages are message types that are predefined by the engine in order for i
 In most cases, you should never need to send a message of a core type manually. They are mainly for internal use.
 
 
----
-**NOTE**
-
-This feature is currently unfinished. Notably:
-- The two instances of the ECS are not yet synchronized automatically. Messages must be manually sent.
-- The remote connection is currently not in a state where it can be reliably used. It can be found on a separate branch.
-
----
-
-
 ### Voxel Spaces
 The `voxel` module contains facilities for creating voxel spaces. Voxel spaces consists of `chunks`: parts of the voxel space which can be unloaded and loaded separately.
 The use of chunks allows voxel spaces to effectively have infinite size, since only the parts of the space near a player need to be loaded.  
@@ -130,20 +122,5 @@ Meshing of the chunks within a voxel space happens automatically. To obtain the 
 
 ### Plugins
 The engine supports the ability to dynamically load and unload external plugins. Different plugins may have dependencies upon one another, which are automatically resolved by the engine.  
-Whenever a plugin stores some object within a structure it does not own, it receives a RAII-handle to that resource, which will cause the resource to be removed from the structure when the plugin is unloaded.  
-This prevents the engine from keeping references to objects from plugins that are no longer loaded.
-
----
-**NOTE**
-
-This feature is currently unfinished. Notably:
-- The system for assigning resource tokens to plugins is currently being refactored. In previous versions, resource-managing objects were responsible for deleting plugin resources manually. The new system will provide plugins with RAII-handles to these resources instead.  
-  This new system is not yet implemented. The old version of this system can be found on a separate branch.
-
----
-
-### Game
-A demonstrator game is provided with the engine to provide code examples of how to perform basic tasks. The game can be found in `VEDemoGame`.  
-This game also serves to demonstrate some of the performance capabilities of the engine, notably:
-- Having a very large number of entities active at one time (thousands of tens of thousands)
-- Using deferred shading to render a large number of light sources (several hundred).
+The plugin system is currently being refactored. Currently, plugins are responsible for releasing their owned resources before they are unloaded.
+In the future, a RAII-based system will be used to ensure this happens automatically.
