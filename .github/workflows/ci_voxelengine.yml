@@ -18,7 +18,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: configure
       run: |
-        choco install ninja cmake python llvm
+        choco install ninja cmake python visualstudio2022buildtools -y
+        choco install llvm --version 14.0.0 -y
         pip install conan
         mkdir out
     - name: run cmake
