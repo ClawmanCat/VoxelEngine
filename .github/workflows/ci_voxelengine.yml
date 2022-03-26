@@ -15,11 +15,6 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: log_msvc_dir
-      run: |
-        C:
-        cd "C:\Program Files (x86)\Windows Kits\10\Lib\"
-        dir -s 
     - uses: actions/checkout@v2
     - name: configure
       run: |
@@ -31,7 +26,7 @@ jobs:
     - name: run cmake
       working-directory: ./out
       run: |
-        cmake -DCMAKE_BUILD_TYPE=DEBUG -G Ninja -DVE_GRAPHICS_API=opengl -DENABLE_TESTING=ON -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl ../
+        cmake -DCMAKE_BUILD_TYPE=DEBUG -G Ninja -DVE_GRAPHICS_API=opengl -DENABLE_TESTING=ON -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_CXX_FLAGS="-Xlinker /libpath:\"C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\ucrt\x64\"" ../
     - name: build
       working-directory: ./out
       run: |
