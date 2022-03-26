@@ -19,7 +19,7 @@ jobs:
       run: |
         C:
         cd "C:\Program Files (x86)\Windows Kits\10\Lib\"
-        dir -s -b
+        dir -s 
     - uses: actions/checkout@v2
     - name: configure
       run: |
