@@ -1,0 +1,32 @@
+name: VoxelEngine CI
+
+# Temporarily only apply to CI branch for testing. This should be replaced with 
+# on:
+#   push:
+#     branches: ['**']
+#   pull-request:
+#     branches: [master]
+on:
+  push:
+    branches: [ci]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: configure
+      run: |
+        choco install ninja cmake python llvm
+        pip install conan
+        mkdir out
+        cd out
+    - name: run cmake
+      run: cmake -DCMAKE_BUILD_TYPE=DEBUG -G Ninja -DVE_GRAPHICS_API=opengl -DENABLE_TESTING=ON -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl ../
+    - name: build
+      run: cmake --build ./debug --target all
+    - name: engine test run
+      run: ./debug/bin/VELauncher.exe --client --server --run_for=100
+    - name: run unit tests
+      run: ctest --extra-verbose
