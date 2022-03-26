@@ -24,7 +24,9 @@ jobs:
         mkdir out
     - name: run cmake
       working-directory: ./out
-      run: cmake -DCMAKE_BUILD_TYPE=DEBUG -G Ninja -DVE_GRAPHICS_API=opengl -DENABLE_TESTING=ON -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl ../
+      run: |
+        vcvarsall.bat
+        cmake -DCMAKE_BUILD_TYPE=DEBUG -G Ninja -DVE_GRAPHICS_API=opengl -DENABLE_TESTING=ON -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl ../
     - name: build
       working-directory: ./out
       run: cmake --build ./debug --target all
