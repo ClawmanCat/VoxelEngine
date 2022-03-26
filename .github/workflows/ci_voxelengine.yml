@@ -29,7 +29,9 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=DEBUG -G Ninja -DVE_GRAPHICS_API=opengl -DENABLE_TESTING=ON -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl ../
     - name: build
       working-directory: ./out
-      run: cmake --build ./debug --target all
+      run: |
+        vcvarsall.bat
+        cmake --build ./debug --target all
     - name: engine test run
       working-directory: ./out/debug/bin
       run: VELauncher --client --server --run_for=100
