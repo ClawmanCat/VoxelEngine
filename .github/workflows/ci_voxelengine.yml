@@ -32,8 +32,8 @@ jobs:
         cmake 
         -DCMAKE_BUILD_TYPE=DEBUG 
         -G Ninja 
-        -DCMAKE_C_COMPILER_WORKS
-        -DCMAKE_CXX_COMPILER_WORKS
+        -DCMAKE_C_COMPILER_WORKS=ON
+        -DCMAKE_CXX_COMPILER_WORKS=ON
         -DCMAKE_CXX_FLAGS="/clang:-L%WIN_LIB_DIR%"
         -DVE_GRAPHICS_API=opengl 
         -DENABLE_TESTING=ON 
