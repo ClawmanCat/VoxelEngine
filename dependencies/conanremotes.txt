@@ -1,1 +1,1 @@
-clawmancat http://94.214.255.27:42069
+clawmancat http://94.214.255.27:9300
