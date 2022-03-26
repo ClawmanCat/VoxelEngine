@@ -25,9 +25,20 @@ jobs:
         mkdir out
     - name: run cmake
       working-directory: ./out
-      run: |
-        set PATH="%PATH%;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.17763.0\ucrt\x64\;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.17763.0\um\x64\"
-        cmake -DCMAKE_BUILD_TYPE=DEBUG -G Ninja -DVE_GRAPHICS_API=opengl -DENABLE_TESTING=ON -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl ../
+      run: >
+        cmake 
+        -DCMAKE_BUILD_TYPE=DEBUG 
+        -G Ninja 
+        -DLDFLAGS="
+          -L \"C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.17763.0\\ucrt\\x64\\" 
+          -L \"C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.17763.0\\um\\x64\\"
+        " 
+        -DVE_GRAPHICS_API=opengl 
+        -DENABLE_TESTING=ON 
+        -DCMAKE_VERBOSE_MAKEFILE=ON 
+        -DCMAKE_C_COMPILER=clang-cl 
+        -DCMAKE_CXX_COMPILER=clang-cl 
+        ../
     - name: build
       working-directory: ./out
       run: |
