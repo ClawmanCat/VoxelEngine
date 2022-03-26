@@ -2,6 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/functional.hpp>
+#include <VoxelEngine/utility/traits/pack/pack.hpp>
 
 #include <boost/algorithm/string.hpp>
 
@@ -12,7 +13,8 @@ namespace ve {
     class arg_parser {
     public:
         struct none {};
-        using argument_t = std::variant<std::string, i64, double, bool, none>;
+        using argument_options = meta::pack<std::string, i64, double, bool, none>;
+        using argument_t = typename argument_options::template expand_inside<std::variant>;
         
         
         arg_parser(void) = default;
@@ -38,7 +40,8 @@ namespace ve {
         }
         
         
-        template <typename T> std::optional<T> get(std::string_view name) const {
+        template <typename T> requires argument_options::template contains<T>
+        std::optional<T> get(std::string_view name) const {
             auto it = arguments.find(name);
             if (it == arguments.end()) return std::nullopt;
 
@@ -52,13 +55,15 @@ namespace ve {
         }
     
     
-        template <typename T> bool has(std::string_view name) const {
+        template <typename T> requires argument_options::template contains<T>
+        bool has(std::string_view name) const {
             auto it = arguments.find(name);
             return it != arguments.end() && std::holds_alternative<T>(it->second);
         }
 
 
-        template <typename T> T value_or(std::string_view name, T&& default_value = T { }) const {
+        template <typename T> requires argument_options::template contains<T>
+        T value_or(std::string_view name, T&& default_value = T { }) const {
             return get<T>(name).value_or(fwd(default_value));
         }
     private:

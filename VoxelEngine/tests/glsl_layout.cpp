@@ -4,7 +4,7 @@
 #include <VoxelEngine/graphics/shader/reflect.hpp>
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
-#include VE_GFX_HEADER(shader/shader_helpers.hpp)"VE_GFX_HEADER(shader/compiler_config.hpp"
+#include VE_GFX_HEADER(shader/compiler_config.hpp)
 
 #include <ctti/nameof.hpp>
 #include <magic_enum.hpp>
@@ -90,7 +90,10 @@ test_result test_with_layout(std::string glsl, const T& object) {
 
     // Compile GLSL to SPIRV so we can reflect over it.
     shaderc::Compiler compiler {};
-    auto spirv = compiler.CompileGlslToSpv(glsl, shaderc_vertex_shader, "test_shader", ve::gfxapi::shader_helpers::default_compile_options());
+
+    shaderc::CompileOptions options;
+    ve::gfxapi::compiler_config::prepare_compile_options(options);
+    auto spirv = compiler.CompileGlslToSpv(glsl, shaderc_vertex_shader, "test_shader", options);
 
     if (spirv.GetCompilationStatus() != shaderc_compilation_status_success) {
         return VE_TEST_FAIL("Failed to compile shader:", spirv.GetErrorMessage(), "\nShader source:\n", glsl);

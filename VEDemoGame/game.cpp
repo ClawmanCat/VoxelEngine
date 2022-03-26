@@ -21,7 +21,6 @@ namespace demo_game {
 
     void game::pre_init(void)  {}
     void game::pre_loop(void)  {}
-    void game::post_loop(void) {}
     void game::pre_exit(void)  {}
     void game::post_exit(void) {}
 
@@ -46,6 +45,17 @@ namespace demo_game {
     void game::post_init(void) {
         if (engine::get_arguments().has("server")) setup_server();
         if (engine::get_arguments().has("client")) setup_client();
+    }
+
+
+    void game::post_loop(void) {
+        // Allow running for a certain number of ticks for CI purposes.
+        if (auto run_for = engine::get_arguments().get<i64>("run_for"); run_for) {
+            if (engine::get_tick_count() >= u64(*run_for)) {
+                VE_LOG_INFO("Test run completed. Exiting...");
+                engine::exit();
+            }
+        }
     }
 
 
