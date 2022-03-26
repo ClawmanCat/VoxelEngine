@@ -16,14 +16,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: configure
+    - name: Configure
       run: |
         choco install ninja cmake python -y --no-progress
         choco install visualstudio2022buildtools --version 117.1.2.0 -y --no-progress
         choco install llvm --version 14.0.0 -y --no-progress
         pip install conan --progress-bar off
         mkdir out
-    - name: run cmake
+    - name: Set Windows library directories
+    - run: |
+       set WIN_LIB_DIR=C:\Program Files (x86)\Windows Kits\10\Lib\10.0.17763.0\um\x64\
+    - name: Run CMake
       working-directory: ./out
       run: >
         cmake 
@@ -31,23 +34,20 @@ jobs:
         -G Ninja 
         -DCMAKE_C_COMPILER_WORKS
         -DCMAKE_CXX_COMPILER_WORKS
-        -DCMAKE_CXX_FLAGS="
-          /clang:--library-directory=\"C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.17763.0\\ucrt\\x64\\\" 
-          /clang:--library-directory=\"C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.17763.0\\um\\x64\\\"
-        "
+        -DCMAKE_CXX_FLAGS="/clang:-L%WIN_LIB_DIR%"
         -DVE_GRAPHICS_API=opengl 
         -DENABLE_TESTING=ON 
         -DCMAKE_VERBOSE_MAKEFILE=ON 
         -DCMAKE_C_COMPILER=clang-cl 
         -DCMAKE_CXX_COMPILER=clang-cl 
         ../
-    - name: build
+    - name: Build
       working-directory: ./out
       run: |
         cmake --build ./debug --target all
-    - name: engine test run
+    - name: Engine test run
       working-directory: ./out/debug/bin
       run: VELauncher --client --server --run_for=100
-    - name: run unit tests
+    - name: Run unit tests
       working-directory: ./out/debug
       run: ctest --extra-verbose
