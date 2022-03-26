@@ -23,7 +23,7 @@ jobs:
         choco install llvm --version 14.0.0 -y --no-progress
         pip install conan --progress-bar off
         mkdir out
-        echo %PATH%
+        echo $PATH
     - name: Set Windows library directories
       run: |
        set WIN_LIB_DIR="C:\Program Files (x86)\Windows Kits\10\Lib\10.0.17763.0\um\x64\"
