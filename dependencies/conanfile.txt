@@ -19,7 +19,6 @@ ctti/0.0.1@clawmancat/stable
 sdl2/2.0.12@clawmancat/stable
 spirv-cross/20210115
 shaderc/2021.1
-vulkan-sdk/1.0.0@clawmancat/stable
 glew/2.2.0
 
 
