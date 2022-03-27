@@ -18,11 +18,9 @@ jobs:
     - uses: actions/checkout@v2
     - name: Configure
       run: |
-        choco install ninja cmake python -y --no-progress
+        choco install ninja cmake python visualstudio2019buildtools -y --no-progress
         choco install visualstudio2022buildtools --version 117.1.2.0 -y --no-progress
         choco install llvm --version 14.0.0 -y --no-progress
-        choco install vulkan-sdk --version 1.2.182.0 -y --no-progress
-        setx VULKAN_SDK="C:\VulkanSDK\1.2.128.0"
         pip install conan --progress-bar off
         mkdir out
     - name: Run CMake
