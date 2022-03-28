@@ -6,17 +6,17 @@ def runcmd(*args, verbose = True):
     if verbose: print('> ' + ' '.join([*args]))
     result = subprocess.run([*args], capture_output = True)
 
-    def print_stdout():
+    def print_stdout(result_stdout):
         if verbose:
-            for line in result: print(line)
+            for line in result_stdout: print(line)
             print('', flush = True)
 
     if result.returncode != 0:
-        print_stdout()
+        print_stdout(result.stdout.splitlines())
         raise RuntimeError(f'Subprocess {" ".join(args)} failed with error code {result.returncode}: {result.stderr}')
 
     result = result.stdout.splitlines()
-    print_stdout()
+    print_stdout(result)
         
     return result
 
