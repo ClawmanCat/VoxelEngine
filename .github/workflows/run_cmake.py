@@ -57,17 +57,19 @@ def find(root_dir, file, depth = 0):
 def main():
     runcmd(
         R'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat',
-        'cmake',
-        '-G', 'Ninja',
-        '-DVE_GRAPHICS_API=opengl',
-        '-DENABLE_TESTING=ON',
-        '-DCMAKE_BUILD_TYPE=DEBUG',
-        '-DCMAKE_C_COMPILER_WORKS=ON',
-        '-DCMAKE_CXX_COMPILER_WORKS=ON',
-        '-DCMAKE_C_COMPILER=clang-cl',
-        '-DCMAKE_CXX_COMPILER=clang-cl',
-        '-DCMAKE_VERBOSE_MAKEFILE=ON',
-        '../'
+        """
+        cmake
+        -G Ninja
+        -DVE_GRAPHICS_API=opengl
+        -DENABLE_TESTING=ON
+        -DCMAKE_BUILD_TYPE=DEBUG
+        -DCMAKE_C_COMPILER_WORKS=ON
+        -DCMAKE_CXX_COMPILER_WORKS=ON
+        -DCMAKE_C_COMPILER=clang-cl
+        -DCMAKE_CXX_COMPILER=clang-cl
+        -DCMAKE_VERBOSE_MAKEFILE=ON
+        ../
+        """
     )
 
 
