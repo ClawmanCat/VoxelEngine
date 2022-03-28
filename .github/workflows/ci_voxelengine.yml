@@ -26,7 +26,7 @@ jobs:
     - name: Run CMake
       working-directory: ./out
       run: |
-        C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat
+        "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
         cmake \
         -DCMAKE_BUILD_TYPE=DEBUG \
         -G Ninja \
