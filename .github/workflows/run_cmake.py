@@ -10,7 +10,10 @@ def runcmd(*args, verbose = True):
         raise RuntimeError(f'Subprocess {" ".join(args)} failed with error code {result.returncode}: {result.stderr}')
 
     result = result.stdout.splitlines()
-    if verbose: print('\n'.join(result), flush = True)
+    
+    if verbose:
+        for line in result: print(line)
+        print('', flush = True)
     
     return result
 
@@ -28,17 +31,22 @@ def log_env():
     print('', flush = True)
 
 
-def find(root_dir, file):
+def find(root_dir, file, depth = 0):
+    indent = ' ' * (depth * 4)
+    print(indent + f'Searching {root_dir}...')
+
     for content in os.listdir(root_dir):
         content_path = os.path.join(root_dir, content)
         
         if content == file:
+            print(indent + f'Found {content}', flush = True)
             return content_path
         
         if os.path.isdir(content_path):
-            subresult = find(content_path, file)
+            subresult = find(content_path, file, depth + 1)
             if subresult is not None: return subresult
 
+    print(indent + f'Found nothing.', flush = True)
     return None
 
 
