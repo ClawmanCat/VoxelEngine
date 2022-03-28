@@ -26,18 +26,7 @@ jobs:
     - name: Run CMake
       working-directory: ./out
       run: |
-        "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
-        cmake \
-        -DCMAKE_BUILD_TYPE=DEBUG \
-        -G Ninja \
-        -DCMAKE_C_COMPILER_WORKS=ON \
-        -DCMAKE_CXX_COMPILER_WORKS=ON \
-        -DVE_GRAPHICS_API=opengl \
-        -DENABLE_TESTING=ON \
-        -DCMAKE_VERBOSE_MAKEFILE=ON \
-        -DCMAKE_C_COMPILER=clang-cl \
-        -DCMAKE_CXX_COMPILER=clang-cl \
-        ../
+        python ../.github/workflows/run_cmake.py
     - name: Build
       working-directory: ./out
       run: |
