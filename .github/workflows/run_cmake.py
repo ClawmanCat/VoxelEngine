@@ -35,7 +35,7 @@ def find(root_dir, file):
         if content == file:
             return content_path
         
-        if os.isdir(content_path):
+        if os.path.isdir(content_path):
             subresult = find(content_path, file)
             if subresult is not None: return subresult
 
