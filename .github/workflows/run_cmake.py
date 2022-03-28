@@ -29,7 +29,7 @@ def log_env():
 
   
 def main():
-    runcmd(R'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat')
+    runcmd(R'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat')
     log_env()
     
     runcmd(
