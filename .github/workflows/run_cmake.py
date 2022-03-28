@@ -44,7 +44,7 @@ def find(root_dir, file):
 
   
 def main():
-    print(f"vcvars64: {find(R'C:\Program Files (x86)\Microsoft Visual Studio', 'vcvars64.bat')}", flush = True)
+    print(f"vcvars64: {find('C:\\Program Files (x86)\\Microsoft Visual Studio', 'vcvars64.bat')}", flush = True)
 
     # runcmd(R'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat')
     log_env()
