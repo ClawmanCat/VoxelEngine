@@ -52,10 +52,10 @@ def find(root_dir, file, depth = 0):
 
   
 def main():
-    where = find(R'C:\Program Files (x86)\Microsoft Visual Studio', 'vcvars64.bat')
+    where = find(R'C:\Program Files (x86)\Microsoft Visual Studio', 'VsDevCmd.bat')
     print(f'vcvars64: {where}', flush = True)
 
-    # runcmd(R'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat')
+    runcmd(R'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat')
     log_env()
     
     runcmd(
