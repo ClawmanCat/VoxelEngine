@@ -15,6 +15,10 @@ def runcmd(*args, verbose = True):
     return result
 
 
+def add_path(path):
+    os.environ['PATH'] += os.pathsep + path
+
+
 def log_env():
     print('Current Environment:')
     
@@ -25,6 +29,7 @@ def log_env():
 
   
 def main():
+    runcmd(R'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat')
     log_env()
     
     runcmd(
