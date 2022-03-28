@@ -27,9 +27,26 @@ def log_env():
     
     print('', flush = True)
 
+
+def find(root_dir, file):
+    for content in os.listdir(root_dir):
+        content_path = os.path.join(root_dir, content)
+        
+        if content == file:
+            return content_path
+        
+        if os.isdir(content_path):
+            subresult = find(content_path, file)
+            if subresult is not None: return subresult
+
+    return None
+
+
   
 def main():
-    runcmd(R'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat')
+    print(f"vcvars64: {find(R'C:\Program Files (x86)\Microsoft Visual Studio', 'vcvars64.bat')}", flush = True)
+
+    # runcmd(R'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat')
     log_env()
     
     runcmd(
