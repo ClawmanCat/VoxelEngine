@@ -1,5 +1,6 @@
 name: VoxelEngine CI
 
+
 # Temporarily only apply to CI branch for testing. This should be replaced with 
 # on:
 #   push:
