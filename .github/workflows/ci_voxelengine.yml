@@ -24,6 +24,7 @@ jobs:
         pip install conan --progress-bar off
         mkdir out
         refreshenv
+    - uses: ilammy/msvc-dev-cmd@v1
     - name: Run CMake
       working-directory: ./out
       run: >
