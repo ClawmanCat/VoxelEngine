@@ -1,6 +1,5 @@
 name: VoxelEngine CI
 
-
 # Temporarily only apply to CI branch for testing. This should be replaced with 
 # on:
 #   push:
@@ -19,7 +18,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Configure
       run: |
-        choco install ninja cmake python vulkan-sdk visualstudio2019buildtools -y --no-progress
+        choco install ninja cmake python visualstudio2019buildtools -y --no-progress
         choco install llvm --version 14.0.0 -y --no-progress
         pip install conan --progress-bar off
         mkdir out
