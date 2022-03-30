@@ -18,8 +18,9 @@ jobs:
     - uses: actions/checkout@v2
     - name: Configure
       run: |
-        choco install ninja cmake python visualstudio2019buildtools -y --no-progress
+        choco install ninja cmake python -y --no-progress
         choco install llvm --version 14.0.0 -y --no-progress
+        choco install visualstudio2019buildtools --package-parameters "--allWorkloads --includeRecommended --includeOptional --quiet --norestart" -y --no-progress
         pip install conan --progress-bar off
         mkdir out
         refreshenv
