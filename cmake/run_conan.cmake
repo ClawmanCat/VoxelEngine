@@ -4,7 +4,6 @@ function(conan_command name)
         COMMAND conan ${name}
         ${ARGN}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMAND_ECHO STDOUT
     )
 endfunction()
 
@@ -16,8 +15,8 @@ function(select_conan_profile return_var)
     get_platform_name(os)
     string(TOLOWER ${CMAKE_BUILD_TYPE} configuration)
 
-
     set(target_profile "${CMAKE_SOURCE_DIR}/dependencies/profiles/${os}_${configuration}.conanprofile")
+
 
     if (EXISTS ${target_profile})
         set(${return_var} ${target_profile} PARENT_SCOPE)
@@ -42,12 +41,16 @@ function(run_conan profile)
 
 
     # Load additional settings
-    set(target_settings "${CMAKE_SOURCE_DIR}/dependencies/profiles/${os}_${configuration}")
+    get_platform_name(os)
+    string(TOLOWER ${CMAKE_BUILD_TYPE} configuration)
+
+    set(target_settings "${CMAKE_SOURCE_DIR}/dependencies/profiles/${os}_${configuration}.conansettings")
 
     if (EXISTS ${target_settings})
         file(READ ${target_settings} additional_command_settings)
+        conan_command(install -b missing -g cmake -if ./out/conan/ -pr ${profile} ${additional_command_settings} ./dependencies/)
     else()
-        set(additional_command_settings " ")
+        conan_command(install -b missing -g cmake -if ./out/conan/ -pr ${profile} ./dependencies/)
     endif()
 
 

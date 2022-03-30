@@ -5,4 +5,3 @@ Provided profiles currently change the following settings:
 
 On Windows:
 - Force usage of MSVC to compile dependencies, since some libraries don't like Clang.
-- Force rebuild Boost in debug mode, since binaries on conan center are all compiled with `MD` instead of `MDd`.
