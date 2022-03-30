@@ -49,7 +49,7 @@ namespace ve::gfx::reflect {
 
 
 
-    stage generate_stage_reflection(const gfxapi::shader_stage* stage, const spirv_blob& spirv) {
+    stage generate_stage_reflection(const gfxapi::shader_stage* stage, const SPIRV& spirv) {
         // Maps from fields in ShaderResources to fields in stage.
         constexpr std::array resource_map {
             std::pair { &spirv_cross::ShaderResources::stage_inputs,          &stage::inputs          },
@@ -102,7 +102,7 @@ namespace ve::gfx::reflect {
 
 
 
-    shader_reflection generate_reflection(std::string name, const vec_map<const gfxapi::shader_stage*, spirv_blob>& stages) {
+    shader_reflection generate_reflection(std::string name, const vec_map<const gfxapi::shader_stage*, SPIRV>& stages) {
         VE_ASSERT(!stages.empty(), "Shader must consist of at least one stage.");
 
         for (const auto& stage_property : { &gfxapi::shader_stage::first, &gfxapi::shader_stage::last }) {

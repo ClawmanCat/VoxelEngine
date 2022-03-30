@@ -29,15 +29,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Set required preprocessor definitions.
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 add_compile_definitions(SDL_MAIN_HANDLED)
-# Boost Asio includes Windows.h. While it defines WIN32_LEAN_AND_MEAN, wingdi still defines macros like "ERROR".
+# Boost.Asio unfortunately includes Windows.h. While it defines WIN32_LEAN_AND_MEAN, wingdi still defines macros like "ERROR".
 add_compile_definitions(NOGDI)
-# Not supported on Windows with Clang as of 14/07/2021
+# Not supported on Windows with Clang on Windows as of 14/07/2021
 add_compile_definitions(BOOST_ASIO_DISABLE_STD_COROUTINE)
 add_compile_definitions(_SILENCE_CLANG_COROUTINE_MESSAGE)
-# Optional dependencies for Boost Asio, but we're using the header-only version of Boost.
-add_compile_definitions(BOOST_DATE_TIME_NO_LIB)
-add_compile_definitions(BOOST_REGEX_NO_LIB)
-add_compile_definitions(BOOST_SYSTEM_NO_LIB)
 
 
 # Install Dependencies

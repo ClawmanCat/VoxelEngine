@@ -5,3 +5,7 @@ compiler=Visual Studio
 compiler.version=16
 compiler.runtime=MDd
 build_type=Debug
+
+
+[options]
+boost:debug_level=2

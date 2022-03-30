@@ -4,6 +4,7 @@ function(conan_command name)
         COMMAND conan ${name}
         ${ARGN}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND_ECHO STDOUT
     )
 endfunction()
 
@@ -40,16 +41,18 @@ function(run_conan profile)
     parse_kv_file("${CMAKE_SOURCE_DIR}/dependencies/conanremotes.txt" conan_add_remote)
 
 
-    # Install dependencies.
-    conan_command(
-        install
-        -b missing
-        -g cmake
-        -if ./out/conan/
-        -pr ${profile}
-        ./dependencies/
-    )
+    # Load additional settings
+    set(target_settings "${CMAKE_SOURCE_DIR}/dependencies/profiles/${os}_${configuration}")
 
+    if (EXISTS ${target_settings})
+        file(READ ${target_settings} additional_command_settings)
+    else()
+        set(additional_command_settings " ")
+    endif()
+
+
+    # Install dependencies.
+    conan_command(install -b missing -g cmake -if ./out/conan/ -pr ${profile} ${additional_command_settings} ./dependencies/)
     include("${CMAKE_SOURCE_DIR}/out/conan/conanbuildinfo.cmake")
 
 

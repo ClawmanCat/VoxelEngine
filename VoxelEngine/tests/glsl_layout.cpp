@@ -1,6 +1,6 @@
 #include <VoxelEngine/tests/test_common.hpp>
 #include <VoxelEngine/graphics/shader/glsl_layout.hpp>
-#include <VoxelEngine/graphics/shader/compiler.hpp>
+#include <VoxelEngine/graphics/shader/compiler/compiler.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
@@ -101,7 +101,7 @@ test_result test_with_layout(std::string glsl, const T& object) {
 
     auto reflection = ve::gfx::reflect::generate_stage_reflection(
         &ve::gfxapi::shader_stages[0],
-        ve::gfx::spirv_blob { spirv.begin(), spirv.end() }
+        ve::gfx::SPIRV { spirv.begin(), spirv.end() }
     );
 
 

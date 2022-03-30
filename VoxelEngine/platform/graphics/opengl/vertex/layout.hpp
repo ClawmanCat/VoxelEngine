@@ -11,6 +11,8 @@
 #include <gl/glew.h>
 
 
+// Vertex layout description generated from reflection information.
+// For the vertex layout information stored in vertex classes, see vertex_attribute in VoxelEngine/graphics/vertex/vertex.hpp.
 namespace ve::gfx::opengl::detail {
     GLenum get_gl_attribute_type(typename reflect::object_type::base_type_t type, std::size_t size);
 

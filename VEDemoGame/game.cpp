@@ -75,7 +75,7 @@ namespace demo_game {
         game::texture_manager = make_shared<ve::gfx::texture_manager<>>();
 
 
-        auto simple_pipeline = make_shared<single_pass_pipeline>(game::window->get_canvas(), shader_cache::instance().get_or_load_shader<simple_vertex>("simple"));
+        auto simple_pipeline = make_shared<single_pass_pipeline>(game::window->get_canvas(), shader_cache::instance().get_or_load<simple_vertex>("simple"));
         auto pbr_pipeline    = pbr_pipeline::create(game::window->get_canvas());
 
         std::tuple pipelines {

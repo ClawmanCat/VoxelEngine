@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/graphics/shader/cache.hpp>
+#include <VoxelEngine/graphics/shader/compiler/cache.hpp>
 #include <VoxelEngine/graphics/vertex/vertex.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/target_sampler.hpp>
@@ -68,7 +68,7 @@ namespace ve::gfx::opengl {
 
 
             auto get_shader = [] <typename V> (meta::type_wrapper<V> vertex, const auto& name, const auto&... stages) {
-                return shader_cache::instance().template get_or_load_shader<V>(
+                return shader_cache::instance().template get_or_load<V>(
                     std::vector<fs::path>{ io::paths::PATH_SHADERS / stages... },
                     name
                 );

@@ -14,7 +14,7 @@
 
 
 namespace ve::gfx::reflect {
-    using spirv_blob = std::vector<u32>;
+    using SPIRV = std::vector<u32>;
 
 
     // Represents a variable in the shader.
@@ -70,6 +70,6 @@ namespace ve::gfx::reflect {
     };
 
 
-    extern stage generate_stage_reflection(const gfxapi::shader_stage* stage, const spirv_blob& spirv);
-    extern shader_reflection generate_reflection(std::string name, const vec_map<const gfxapi::shader_stage*, spirv_blob>& stages);
+    extern stage generate_stage_reflection(const gfxapi::shader_stage* stage, const SPIRV& spirv);
+    extern shader_reflection generate_reflection(std::string name, const vec_map<const gfxapi::shader_stage*, SPIRV>& stages);
 }

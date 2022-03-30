@@ -82,7 +82,7 @@ void main() {
         float G   = geometry_smith(eye_alignment, light_alignment, roughness);
         vec3  F   = fresnel_schlick(max(dot(halfway, eye_on_fragment), 0.0), reflection_at_zero);
 
-        vec3 specular = (NDF * G * F) / (4.0 * eye_alignment * light_alignment + epsilon);
+        vec3 specular = (NDF * G * F) / unzero(4.0 * eye_alignment * light_alignment);
 
 
         // Light is either reflected specularly or diffusely, depending on the calculated Fresnel value.

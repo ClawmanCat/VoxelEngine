@@ -13,13 +13,14 @@
 #include <VoxelEngine/graphics/presentation/present_mode.hpp>
 #include <VoxelEngine/graphics/presentation/window.hpp>
 #include <VoxelEngine/graphics/presentation/window_registry.hpp>
-#include <VoxelEngine/graphics/shader/cache.hpp>
-#include <VoxelEngine/graphics/shader/compiler.hpp>
+#include <VoxelEngine/graphics/shader/compiler/cache.hpp>
+#include <VoxelEngine/graphics/shader/compiler/compile_settings.hpp>
+#include <VoxelEngine/graphics/shader/compiler/compiler.hpp>
+#include <VoxelEngine/graphics/shader/compiler/shader_preprocessor.hpp>
 #include <VoxelEngine/graphics/shader/glsl_layout.hpp>
 #include <VoxelEngine/graphics/shader/layout_validator.hpp>
 #include <VoxelEngine/graphics/shader/object_type.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>
-#include <VoxelEngine/graphics/shader/shader_preprocessor.hpp>
 #include <VoxelEngine/graphics/texture/aligned_texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/generative_texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/missing_texture.hpp>
