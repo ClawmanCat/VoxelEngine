@@ -1,5 +1,6 @@
 #include <VoxelEngine/graphics/shader/compiler/cache.hpp>
-#include <VoxelEngine/graphics/shader/compiler/shader_preprocessor.hpp>
+#include <VoxelEngine/graphics/shader/preprocessor/wave_preprocessor.hpp>
+#include <VoxelEngine/graphics/shader/preprocessor/binding_generator.hpp>
 
 
 namespace ve::gfx {
@@ -37,15 +38,22 @@ namespace ve::gfx {
 
 
     void shader_cache::setup_default_preprocessors(void) {
-        auto wave_preprocessor = make_shared<preprocessors::wave_preprocessor<>>("ve.preprocessor", priority::HIGHEST);
-        gfxapi::compiler_config::prepare_default_preprocessor(*wave_preprocessor);
+        // Wave preprocessor performs "normal" C-style preprocessing.
+        auto preprocessor = make_shared<wave_preprocessor<>>("ve.preprocessor", priority::HIGHEST);
+        gfxapi::compiler_config::prepare_default_preprocessor(*preprocessor);
 
-        wave_preprocessor->add_include_path(io::paths::PATH_SHADERS);
-        wave_preprocessor->add_context_action([] (auto& wave_ctx, auto& src, auto& ve_ctx) {
+        preprocessor->add_include_path(io::paths::PATH_SHADERS);
+        preprocessor->add_context_action([] (auto& wave_ctx, auto& src, auto& ve_ctx) {
             std::string filepath = ve_ctx.template get_object<fs::path>("ve.filepath").remove_filename().string();
             wave_ctx.add_include_path(filepath.c_str());
         });
 
-        compiler.add_preprocessor(std::move(wave_preprocessor));
+        compiler.add_preprocessor(std::move(preprocessor));
+
+
+        // Automatically resolve bindings for UBOs, SSBOs and specialization constants.
+        // shaderc also has an option to do this, but it doesn't work with bindings spread across multiple SPIRV blobs.
+        auto binding_preprocessor = make_shared<autobinding_preprocessor>("ve.autobinder");
+        compiler.add_preprocessor(std::move(binding_preprocessor));
     }
 }

@@ -16,10 +16,13 @@
 #include <VoxelEngine/graphics/shader/compiler/cache.hpp>
 #include <VoxelEngine/graphics/shader/compiler/compile_settings.hpp>
 #include <VoxelEngine/graphics/shader/compiler/compiler.hpp>
-#include <VoxelEngine/graphics/shader/compiler/shader_preprocessor.hpp>
 #include <VoxelEngine/graphics/shader/glsl_layout.hpp>
 #include <VoxelEngine/graphics/shader/layout_validator.hpp>
 #include <VoxelEngine/graphics/shader/object_type.hpp>
+#include <VoxelEngine/graphics/shader/preprocessor/binding_generator.hpp>
+#include <VoxelEngine/graphics/shader/preprocessor/dsm_preprocessor.hpp>
+#include <VoxelEngine/graphics/shader/preprocessor/shader_preprocessor.hpp>
+#include <VoxelEngine/graphics/shader/preprocessor/wave_preprocessor.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>
 #include <VoxelEngine/graphics/texture/aligned_texture_atlas.hpp>
 #include <VoxelEngine/graphics/texture/generative_texture_atlas.hpp>

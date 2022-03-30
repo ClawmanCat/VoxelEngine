@@ -3,7 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/graphics/shader/reflect.hpp>
 #include <VoxelEngine/graphics/shader/compiler/compile_settings.hpp>
-#include <VoxelEngine/graphics/shader/compiler/shader_preprocessor.hpp>
+#include <VoxelEngine/graphics/shader/preprocessor/shader_preprocessor.hpp>
 #include <VoxelEngine/utility/io/paths.hpp>
 
 #include <VoxelEngine/platform/graphics/graphics_includer.hpp>
@@ -42,18 +42,25 @@ namespace ve::gfx {
         // Create a shader from the provided shader source files.
         shader_compilation_data compile(const std::vector<fs::path>& files, std::string_view name, const shader_compile_settings& settings);
 
-        void add_preprocessor(shared<preprocessors::shader_preprocessor> preprocessor);
+        void add_preprocessor(shared<shader_preprocessor> preprocessor);
         void remove_preprocessor(std::string_view name);
-        shared<preprocessors::shader_preprocessor> get_preprocessor(std::string_view name);
+        shared<shader_preprocessor> get_preprocessor(std::string_view name);
     private:
         struct comparator {
             // Yes, it should be '>', not '<'. Higher priorities should come first.
             bool operator()(const auto& a, const auto& b) const { return a->get_priority() > b->get_priority(); }
         };
 
-        tree_set<shared<preprocessors::shader_preprocessor>, comparator> preprocessors;
+        tree_set<shared<shader_preprocessor>, comparator> preprocessors;
 
 
-        SPIRV create_blob(std::string source, const fs::path& path, const gfxapi::shader_stage* stage, const shader_compile_settings& settings, arbitrary_storage& ctx);
+        SPIRV create_blob(
+            std::string_view name,
+            std::string source,
+            const fs::path& path,
+            const gfxapi::shader_stage* stage,
+            const shader_compile_settings& settings,
+            arbitrary_storage& ctx
+        );
     };
 }

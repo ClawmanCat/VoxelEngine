@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/graphics/shader/compiler/shader_preprocessor.hpp>
+#include <VoxelEngine/graphics/shader/preprocessor/shader_preprocessor.hpp>
 #include <VoxelEngine/utility/arbitrary_storage.hpp>
 #include <VoxelEngine/utility/traits/pack/pack.hpp>
 
@@ -41,7 +41,7 @@ namespace ve::gfx {
     struct shader_compile_settings {
         const shaderc::CompileOptions* compiler_options;
         arbitrary_storage preprocessor_context;
-        std::vector<shared<preprocessors::shader_preprocessor>> additional_preprocessors;
+        std::vector<shared<shader_preprocessor>> additional_preprocessors;
         std::size_t preprocessor_recursion_limit = 32;
         shader_specialize_settings specialization_settings;
 

@@ -9,11 +9,11 @@
 #include "structs/vertex.util.glsl"
 
 
-layout (std140, binding = 0) uniform U_Camera { Camera camera; };
-layout (std140, binding = 2) uniform U_Lighting { LightingData light_data; };
+UBO U_Camera { Camera camera; };
+UBO U_Lighting { LightingData light_data; };
 
 #ifndef NO_BLOOM
-    layout (std140, binding = 3) uniform U_BloomData { BloomData bloom_data; };
+    UBO U_BloomData { BloomData bloom_data; };
 #endif
 
 

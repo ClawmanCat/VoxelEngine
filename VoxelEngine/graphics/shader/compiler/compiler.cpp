@@ -5,8 +5,11 @@
 
 namespace ve::gfx {
     shader_compilation_data shader_compiler::compile(const source_list& sources, std::string_view name, const shader_compile_settings& settings, const location_list& dirs) {
-        shader_compilation_data result;
+        auto profiler_msg = cat("Compile shader ", name);
+        VE_PROFILE_FN(profiler_msg.c_str());
 
+
+        shader_compilation_data result;
 
         arbitrary_storage context = settings.preprocessor_context;
         context.store_object<const shader_compile_settings*>("ve.compile_settings", &settings);
@@ -19,7 +22,7 @@ namespace ve::gfx {
 
         for (const auto& [stage, source] : sources) {
             auto path = get_path(stage) / cat(name, stage->file_extension);
-            auto blob = create_blob(source, path, stage, settings, context);
+            auto blob = create_blob(name, source, path, stage, settings, context);
 
             result.spirv_blobs.emplace(stage, std::move(blob));
             result.glsl_sources.emplace(stage, source);
@@ -67,7 +70,7 @@ namespace ve::gfx {
     }
 
 
-    void shader_compiler::add_preprocessor(shared<preprocessors::shader_preprocessor> preprocessor) {
+    void shader_compiler::add_preprocessor(shared<shader_preprocessor> preprocessor) {
         preprocessors.emplace(std::move(preprocessor));
     }
 
@@ -77,19 +80,29 @@ namespace ve::gfx {
     }
 
 
-    shared<preprocessors::shader_preprocessor> shader_compiler::get_preprocessor(std::string_view name) {
+    shared<shader_preprocessor> shader_compiler::get_preprocessor(std::string_view name) {
         auto it = ranges::find_if(preprocessors, [&] (const auto& pp) { return pp->get_name() == name; });
         return (it == preprocessors.end()) ? nullptr : *it;
     }
 
 
-    SPIRV shader_compiler::create_blob(std::string source, const fs::path& path, const gfxapi::shader_stage* stage, const shader_compile_settings& settings, arbitrary_storage& ctx) {
-        std::string filename = io::get_filename_from_multi_extension(path);
+    SPIRV shader_compiler::create_blob(
+        std::string_view name,
+        std::string source,
+        const fs::path& path,
+        const gfxapi::shader_stage* stage,
+        const shader_compile_settings& settings,
+        arbitrary_storage& ctx
+    ) {
+        auto profiler_msg = cat("Compile ", stage->name, " for shader ", name);
+        VE_PROFILE_FN(profiler_msg.c_str());
 
+
+        std::string filename = io::get_filename_from_multi_extension(path);
         auto on_error = [&] (std::string_view current_state) {
             fs::path dump_path = io::paths::PATH_LOGS / cat(filename, stage->file_extension);
             io::write_text(dump_path, split(source, "\n"));
-            VE_LOG_ERROR(cat("Shader compilation failed. Dumping ", current_state, " shader source code to ", dump_path));
+            VE_LOG_ERROR(cat("Shader compilation for shader ", name, " failed. Dumping ", current_state, " shader source code to ", dump_path));
         };
 
 
@@ -105,6 +118,7 @@ namespace ve::gfx {
 
         std::string previous_state;
         std::size_t pass = 0;
+
 
         do {
             previous_state = source;
