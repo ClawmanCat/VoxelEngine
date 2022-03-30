@@ -41,6 +41,7 @@ jobs:
     - name: Build
       working-directory: ./out
       run: |
+        cmake --regenerate-during-build -SC:../ -BC:./debug
         cmake --build ./debug --target all
     - name: Engine test run
       working-directory: ./out/debug/bin
