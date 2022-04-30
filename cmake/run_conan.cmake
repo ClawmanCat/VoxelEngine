@@ -15,8 +15,8 @@ function(select_conan_profile return_var)
     get_platform_name(os)
     string(TOLOWER ${CMAKE_BUILD_TYPE} configuration)
 
-
     set(target_profile "${CMAKE_SOURCE_DIR}/dependencies/profiles/${os}_${configuration}.conanprofile")
+
 
     if (EXISTS ${target_profile})
         set(${return_var} ${target_profile} PARENT_SCOPE)
@@ -40,15 +40,20 @@ function(run_conan profile)
     parse_kv_file("${CMAKE_SOURCE_DIR}/dependencies/conanremotes.txt" conan_add_remote)
 
 
+    # Load additional settings
+    get_platform_name(os)
+    string(TOLOWER ${CMAKE_BUILD_TYPE} configuration)
+
+    set(target_settings "${CMAKE_SOURCE_DIR}/dependencies/profiles/${os}_${configuration}.conansettings")
+
+
     # Install dependencies.
-    conan_command(
-        install
-        -b missing
-        -g cmake
-        -if ./out/conan/
-        -pr ${profile}
-        ./dependencies/
-    )
+    if (EXISTS ${target_settings})
+        file(READ ${target_settings} additional_command_settings)
+        conan_command(install -b missing -g cmake -if ./out/conan/ -pr ${profile} ${additional_command_settings} ./dependencies/)
+    else()
+        conan_command(install -b missing -g cmake -if ./out/conan/ -pr ${profile} ./dependencies/)
+    endif()
 
     include("${CMAKE_SOURCE_DIR}/out/conan/conanbuildinfo.cmake")
 

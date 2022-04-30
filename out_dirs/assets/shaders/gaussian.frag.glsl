@@ -6,8 +6,8 @@
 #include "structs/vertex.util.glsl"
 
 
-layout (std140, binding = 0) uniform U_GaussianData { GaussianData data; };
-layout (std140, binding = 1) uniform U_GaussianDirection { uint direction; };
+UBO U_GaussianData { GaussianData data; };
+UBO U_GaussianDirection { uint direction; };
 
 uniform sampler2D tex;
 uniform sampler2D position;

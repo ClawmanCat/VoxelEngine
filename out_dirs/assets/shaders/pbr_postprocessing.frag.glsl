@@ -6,10 +6,10 @@
 #include "structs/vertex.util.glsl"
 
 
-layout (std140, binding = 2) uniform U_Lighting { LightingData light_data; };
+UBO U_Lighting { LightingData light_data; };
 
 #ifndef NO_BLOOM
-    layout (std140, binding = 3) uniform U_BloomData { BloomData bloom_data; };
+    UBO U_BloomData { BloomData bloom_data; };
     uniform sampler2D l_bloom;
 #endif
 

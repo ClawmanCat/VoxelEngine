@@ -6,6 +6,8 @@
 
 
 namespace ve::gfx {
+    // Vertex layout description stored within vertex classes.
+    // For the vertex layout information generated from reflection information, see vertex_layout in VoxelEngine/platform/graphics/<API>/vertex/layout.hpp.
     struct vertex_attribute {
         reflect::object_type type;
 

@@ -14,22 +14,25 @@ namespace ve::gfx {
     // Assures the provided vertex type can be used for the shader with the provided inputs.
     template <typename Vertex> requires has_vertex_layout<Vertex>
     inline void validate_vertex_layout(const std::vector<reflect::attribute>& inputs) {
-        const auto& layout = Vertex::get_vertex_layout();
+        return validate_vertex_layout(ctti::nameof<Vertex>().cppstring(), Vertex::get_vertex_layout(), inputs);
+    }
 
+
+    inline void validate_vertex_layout(std::string_view name, const auto& layout, const std::vector<reflect::attribute>& inputs) {
         for (const auto& input : inputs) {
-            auto it = ranges::find_if(layout, equal_on(&vertex_attribute::name, input.name));
+            auto it = ranges::find_if(layout, [&](const auto& attrib) { return attrib.name == input.name; });
 
             if (it == layout.end()) {
                 throw std::runtime_error(cat(
                     "Shader input ", input.name,
-                    " not fulfilled by vertex type ", ctti::nameof<Vertex>().cppstring()
+                    " not fulfilled by vertex type ", name
                 ));
             }
 
             if (!it->type.can_initialize_vertex_attribute(input.type)) {
                 throw std::runtime_error(cat(
                     "Shader input ", input.name,
-                    " has a type not compatible with that provided by vertex type ", ctti::nameof<Vertex>().cppstring()
+                    " has a type not compatible with that provided by vertex type ", name
                 ));
             }
         }

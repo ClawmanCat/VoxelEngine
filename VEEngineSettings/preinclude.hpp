@@ -11,13 +11,14 @@ namespace ve::gfx {
 
 
 namespace demo_game {
+    // VEDemoGame texture manager.
     namespace detail {
         using texture_atlas_t = ve::gfx::generative_texture_atlas<ve::gfx::aligned_texture_atlas>;
-
         extern ve::gfx::texture_manager<texture_atlas_t>& get_texture_manager(void);
     }
 
 
+    // Custom voxel settings for VEDemoGame.
     // Base provides default values for settings that are not overloaded.
     template <typename Base> struct voxel_settings : Base {
         using texture_atlas_t = detail::texture_atlas_t;

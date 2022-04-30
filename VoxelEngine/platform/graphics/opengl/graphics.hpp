@@ -20,6 +20,8 @@
 #include <VoxelEngine/platform/graphics/opengl/presentation/canvas.hpp>
 #include <VoxelEngine/platform/graphics/opengl/presentation/window_helpers.hpp>
 #include <VoxelEngine/platform/graphics/opengl/shader/compiler_config.hpp>
+#include <VoxelEngine/platform/graphics/opengl/shader/make_shader.hpp>
+#include <VoxelEngine/platform/graphics/opengl/shader/recompile_data.hpp>
 #include <VoxelEngine/platform/graphics/opengl/shader/shader.hpp>
 #include <VoxelEngine/platform/graphics/opengl/shader/stage.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>

@@ -14,7 +14,6 @@ While the engine should support other platforms than Windows, they have not yet 
 
 Additionally you must have the following installed:
 - [Conan](https://conan.io/) (and therefore [Python](https://www.python.org/downloads/)) to install the required dependencies (`pip install conan`).
-- The [Vulkan SDK](https://https://www.lunarg.com/vulkan-sdk/). 
 - [CMake](https://cmake.org/download/) and some generator for CMake to build the project with (e.g. [Ninja](https://ninja-build.org/)).
 
 To build the project (with Ninja):
@@ -26,7 +25,7 @@ cmake --build ./[debug|release] --target all
 ```
 (Of course you can also just use any IDE that supports CMake.)
 
-After building the project, you may run VELauncher with either `--client`, `--server` or both to run either the client, the server or both at the same time. If the server is running on a different machine, you can also pass `--remote_address=[hostname]` when running the client to connect to it.
+After building the project, you can run the demonstrator game by calling VELauncher with either `--client`, `--server` or both to run either the client, the server or both at the same time. If the server is running on a different machine, you can also pass `--remote_address=[hostname]` when running the client to connect to it.
 
 ### Documentation
 Documentation about how to use the engine is available at the [wiki](https://github.com/ClawmanCat/VoxelEngine/wiki). 

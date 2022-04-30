@@ -1,7 +1,5 @@
-#include <VEDemoGame/preinclude.hpp>
+#include <VEEngineSettings/preinclude.hpp>
 #include <VEDemoGame/game.hpp>
-
-#include <VoxelEngine/utility/logger.hpp>
 
 
 namespace demo_game::detail {

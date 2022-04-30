@@ -23,9 +23,10 @@ namespace ve::gfx::opengl {
         VE_RELEASE_ONLY(ve_rt_swap_move_only(uniform_buffer, reflection, ubo, current_value));
 
 
-        void bind(void) const {
+        // Note: UBOs with the same type and value may be re-used between shaders, so we cannot assume the binding from the reflection is always valid.
+        void bind(GLuint binding) const {
             VE_DEBUG_ASSERT(written, "Cannot bind UBO before writing data to it.");
-            glBindBufferBase(GL_UNIFORM_BUFFER, reflection.binding, ubo.get_id());
+            glBindBufferBase(GL_UNIFORM_BUFFER, binding, ubo.get_id());
         }
 
 

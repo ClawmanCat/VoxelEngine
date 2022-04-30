@@ -58,7 +58,11 @@ function(target_link_libraries_system target)
 
         # Link the libraries as SYSTEM to mute warnings
         get_target_property(include_dirs ${lib} INTERFACE_INCLUDE_DIRECTORIES)
-        target_include_directories(${target} SYSTEM ${visibility} ${include_dirs})
+        
+		foreach (dir IN ITEMS ${include_dirs})
+            target_include_directories(${target} SYSTEM ${visibility} ${dir})
+        endforeach()
+		
         target_link_libraries(${target} ${lib})
 
 
@@ -67,7 +71,7 @@ function(target_link_libraries_system target)
         get_compiler_name(compiler)
 
         if (${compiler} STREQUAL msvc)
-            foreach(${dir} IN ITEMS ${include_dirs})
+            foreach(dir IN ITEMS ${include_dirs})
                 add_compile_options(/external:I${dir})
             endforeach()
         endif()

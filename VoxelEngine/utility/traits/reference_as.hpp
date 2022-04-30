@@ -10,12 +10,12 @@ namespace ve::meta {
     };
 
     template <typename T, typename As>
-    struct reference_as<As&> {
+    struct reference_as<T, As&> {
         using type = std::add_lvalue_reference_t<std::remove_reference_t<T>>;
     };
 
     template <typename T, typename As>
-    struct reference_as<As&&> {
+    struct reference_as<T, As&&> {
         using type = std::add_rvalue_reference_t<std::remove_reference_t<T>>;
     };
 

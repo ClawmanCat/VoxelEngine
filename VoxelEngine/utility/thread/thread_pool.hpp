@@ -5,6 +5,7 @@
 #include <VoxelEngine/utility/traits/function_traits.hpp>
 
 #include <boost/asio.hpp>
+#include <VoxelEngine/core/windows_header_cleanup.hpp>
 
 #include <thread>
 #include <mutex>

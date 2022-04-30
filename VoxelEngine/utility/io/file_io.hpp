@@ -41,7 +41,9 @@ namespace ve::io {
     using text_file = std::vector<std::string>;
     using data_file = std::vector<u8>;
 
-    struct io_error : public std::runtime_error { using std::runtime_error::runtime_error; };
+    struct io_error : public std::runtime_error {
+        explicit io_error(auto&&... args) : std::runtime_error(fwd(args)...) {}
+    };
 
 
     inline text_file read_text(const fs::path& path) {

@@ -10,11 +10,35 @@
 #include <cstddef>
 #include <functional>
 #include <type_traits>
+#include <filesystem>
 
 
 namespace ve {
+    namespace detail {
+        // In the case of fs::path, path::value_type is char, but dereferencing an iterator just returns another path.
+        template <typename T> using actual_value_type = typename std::iterator_traits<std::remove_cvref_t<decltype(std::cbegin(std::declval<T>()))>>::value_type;
+
+        // Returns true if T::iterator::value_type == T.
+        template <typename T> constexpr static bool iterates_itself = std::is_same_v<
+            std::remove_cvref_t<T>,
+            actual_value_type<T>
+        >;
+    }
+
+
     template <typename T> constexpr inline std::size_t hash_of(const T& value) {
         return std::hash<T>{}(value);
+    }
+
+    // Drop-in replacement for boost::hash_combine. Prevents boost from complaining that boost::hash isn't defined
+    // when we only provide a std::hash overload for the type.
+    template <typename T> constexpr inline void hash_combine(std::size_t& seed, const T& value) {
+        boost::hash_combine(seed, hash_of(value));
+    }
+
+    // Used for serialization so should be an explicitly sized type.
+    template <typename T> constexpr u64 type_hash(void) {
+        return ctti::unnamed_type_id<T>().hash();
     }
 }
 
@@ -28,11 +52,17 @@ struct std::hash<T> {
 };
 
 // Allow hashing of containers.
-template <typename T> requires requires (const T t) { std::cbegin(t), std::cend(t); }
-struct std::hash<T> {
+template <typename T> requires (
+    // Type must be iterable
+    requires (const T t) { std::cbegin(t), std::cend(t); } &&
+    // Element type cannot be T, this would cause infinite recursion.
+    !ve::detail::iterates_itself<T> &&
+    // Element itself must be hashable.
+    requires (const ve::detail::actual_value_type<T> v) { std::hash<ve::detail::actual_value_type<T>>{}(v); }
+) struct std::hash<T> {
     constexpr std::size_t operator()(const T& value) const {
         std::size_t hash = 0;
-        for (const auto& elem : value) boost::hash_combine(hash, ve::hash_of(elem));
+        for (const auto& elem : value) ve::hash_combine(hash, ve::hash_of(elem));
         return hash;
     }
 };
@@ -44,7 +74,7 @@ constexpr std::size_t hash(void) const {                            \
     std::size_t hash = 0;                                           \
                                                                     \
     boost::pfr::for_each_field(*this, [&](const auto& elem) {       \
-        boost::hash_combine(hash, ve::hash_of(elem));               \
+        ve::hash_combine(hash, ve::hash_of(elem));                  \
     });                                                             \
                                                                     \
     return hash;                                                    \
@@ -52,7 +82,7 @@ constexpr std::size_t hash(void) const {                            \
 
 
 // Make the type automatically hashable on the given fields.
-#define ve_impl_hash_field(R, D, E) boost::hash_combine(hash, ve::hash_of(E));
+#define ve_impl_hash_field(R, D, E) ve::hash_combine(hash, ve::hash_of(E));
 
 #define ve_field_hashable(...)                                      \
 constexpr std::size_t hash(void) const {                            \
@@ -65,20 +95,4 @@ constexpr std::size_t hash(void) const {                            \
     );                                                              \
                                                                     \
     return hash;                                                    \
-}
-
-
-namespace ve {
-    template <typename T> constexpr u64 type_hash(void) {
-        return ctti::unnamed_type_id<T>().hash();
-    }
-
-
-    struct compare_by_hash {
-        template <typename T>
-        constexpr bool operator()(const T& a, const T& b) const {
-            const auto hasher = std::hash<T>{};
-            return hasher(a) < hasher(b);
-        }
-    };
 }

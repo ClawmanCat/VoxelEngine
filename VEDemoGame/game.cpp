@@ -21,7 +21,6 @@ namespace demo_game {
 
     void game::pre_init(void)  {}
     void game::pre_loop(void)  {}
-    void game::post_loop(void) {}
     void game::pre_exit(void)  {}
     void game::post_exit(void) {}
 
@@ -49,6 +48,17 @@ namespace demo_game {
     }
 
 
+    void game::post_loop(void) {
+        // Allow running for a certain number of ticks for CI purposes.
+        if (auto run_for = engine::get_arguments().get<i64>("run_for"); run_for) {
+            if (engine::get_tick_count() >= u64(*run_for)) {
+                VE_LOG_INFO("Test run completed. Exiting...");
+                engine::exit();
+            }
+        }
+    }
+
+
     void game::setup_client(void) {
         game::client = make_unique<class client>();
 
@@ -65,7 +75,7 @@ namespace demo_game {
         game::texture_manager = make_shared<ve::gfx::texture_manager<>>();
 
 
-        auto simple_pipeline = make_shared<single_pass_pipeline>(game::window->get_canvas(), shader_cache::instance().get_or_load_shader<simple_vertex>("simple"));
+        auto simple_pipeline = make_shared<single_pass_pipeline>(game::window->get_canvas(), shader_cache::instance().get_or_load<simple_vertex>("simple"));
         auto pbr_pipeline    = pbr_pipeline::create(game::window->get_canvas());
 
         std::tuple pipelines {

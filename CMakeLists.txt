@@ -8,12 +8,11 @@ file(LOCK ${CMAKE_SOURCE_DIR}/cmake.lock)
 
 # Allow loading of scripts from cmake folder.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-
+# Store builds in out folder.
+set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/out")
 # Allow including from the root directory.
 include_directories(${CMAKE_SOURCE_DIR})
 
-# Store builds in out folder.
-set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/out")
 
 # Output to out directory.
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out/${CMAKE_BUILD_TYPE}/lib)
@@ -29,15 +28,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Set required preprocessor definitions.
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 add_compile_definitions(SDL_MAIN_HANDLED)
-# Boost Asio includes Windows.h. While it defines WIN32_LEAN_AND_MEAN, wingdi still defines macros like "ERROR".
+# Boost.Asio unfortunately includes Windows.h. While it defines WIN32_LEAN_AND_MEAN, wingdi still defines macros like "ERROR".
 add_compile_definitions(NOGDI)
-# Not supported on Windows with Clang as of 14/07/2021
+# Not supported on Windows with Clang on Windows as of 14/07/2021
 add_compile_definitions(BOOST_ASIO_DISABLE_STD_COROUTINE)
 add_compile_definitions(_SILENCE_CLANG_COROUTINE_MESSAGE)
-# Optional dependencies for Boost Asio, but we're using the header-only version of Boost.
-add_compile_definitions(BOOST_DATE_TIME_NO_LIB)
-add_compile_definitions(BOOST_REGEX_NO_LIB)
-add_compile_definitions(BOOST_SYSTEM_NO_LIB)
 
 
 # Install Dependencies
@@ -47,14 +42,10 @@ select_conan_profile(conan_profile)
 message(STATUS ${conan_profile})
 run_conan(${conan_profile})
 
+
 # Enable compiler-specific warnings
 include(compiler_profile)
 set_compiler_profile()
-
-
-# Make sure symbols are exported on Windows.
-# (This prevents requiring specifying dllexport / dllimport everywhere.)
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 
 # Copy required directories to binary folder.
@@ -78,17 +69,20 @@ endif()
 
 # Enable testing (Each subproject will add its own tests.)
 if (${ENABLE_TESTING})
-    message(STATUS "Test generation is enabled.")
+    message(STATUS "Test mode is enabled.")
+
     enable_testing()
+    add_compile_definitions("VE_TESTING=1")
 endif()
 
 
-# Define header with overloaded settings from game to be included in the engine.
-# TODO: This whole setup is kinda sketchy. Find a better way to manage engine settings externally.
-# Maybe use a separate project?
-# Note: values set here are used in VoxelEngine/CMakeLists.txt
-set(GAME_PRE_INCLUDE_HEADER VEDemoGame/preinclude.hpp)
-set(GAME_TARGET_NAME VEDemoGame)
+# Set graphics API.
+if (VE_GRAPHICS_API)
+    string(TOUPPER ${VE_GRAPHICS_API} gfxapi_upper)
+
+    add_compile_definitions("VE_GRAPHICS_API=${VE_GRAPHICS_API}")
+    add_compile_definitions("VE_GRAPHICS_API_${gfxapi_upper}=1")
+endif()
 
 
 # Add subprojects.
@@ -96,3 +90,4 @@ add_subdirectory(VoxelEngine)
 add_subdirectory(VEDemoGame)
 add_subdirectory(VELauncher)
 add_subdirectory(VEDemoPlugin)
+add_subdirectory(VEEngineSettings)

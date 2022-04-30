@@ -3,6 +3,57 @@
 
 
 namespace ve::gfx::reflect {
+    std::ostream& operator<<(std::ostream& stream, const shader_reflection& reflection) {
+        auto indenter   = make_indenter(stream);
+        auto fmt_shader = make_scoped_kv_formatter(
+            cat(to_sentence_case(reflection.pipeline->name), " shader ", reflection.name),
+            stream,
+            indenter
+        );
+
+        for (const auto& [stage_id, stage] : reflection.stages) {
+            auto fmt_stage = make_scoped_kv_formatter(stage_id->name, stream, indenter);
+
+
+            #define named_sf(x) std::pair { &stage::x, #x }
+            const auto stage_fields = std::array {
+                named_sf(inputs),          named_sf(outputs),
+                named_sf(uniform_buffers), named_sf(storage_buffers),
+                named_sf(push_constants),  named_sf(specialization_constants),
+                named_sf(samplers)
+            };
+
+            #define named_af(x) std::pair { &attribute::x, #x }
+            const auto attrib_fields = std::tuple {
+                named_af(name), named_af(type), named_af(struct_size),
+                named_af(location), named_af(binding)
+            };
+
+            std::string_view last_attrib_field = "binding";
+
+
+            for (const auto& [field, name] : stage_fields) {
+                const auto& vec  = stage.*field;
+                auto fmt_attribs = make_scoped_kv_formatter(name, stream, indenter);
+
+                for (const auto& value : vec) {
+                    indenter();
+
+                    tuple_foreach(attrib_fields, [&] (const auto& pair) {
+                        const auto& [attrib_field, attrib_name] = pair;
+                        const auto& attrib_value = value.*attrib_field;
+
+                        stream << attrib_name << ": " << to_string(attrib_value);
+                        stream << (attrib_name == last_attrib_field ? "\n" : ", ");
+                    });
+                }
+            }
+        }
+
+        return stream;
+    }
+
+
     shader_object reflect_object(
         const spirv_cross::Compiler& compiler,
         const std::string& name,
@@ -49,7 +100,7 @@ namespace ve::gfx::reflect {
 
 
 
-    stage generate_stage_reflection(const gfxapi::shader_stage* stage, const spirv_blob& spirv) {
+    stage generate_stage_reflection(const gfxapi::shader_stage* stage, const SPIRV& spirv) {
         // Maps from fields in ShaderResources to fields in stage.
         constexpr std::array resource_map {
             std::pair { &spirv_cross::ShaderResources::stage_inputs,          &stage::inputs          },
@@ -102,7 +153,7 @@ namespace ve::gfx::reflect {
 
 
 
-    shader_reflection generate_reflection(std::string name, const vec_map<const gfxapi::shader_stage*, spirv_blob>& stages) {
+    shader_reflection generate_reflection(std::string name, const vec_map<const gfxapi::shader_stage*, SPIRV>& stages) {
         VE_ASSERT(!stages.empty(), "Shader must consist of at least one stage.");
 
         for (const auto& stage_property : { &gfxapi::shader_stage::first, &gfxapi::shader_stage::last }) {

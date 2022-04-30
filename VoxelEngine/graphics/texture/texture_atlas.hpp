@@ -10,7 +10,7 @@
 
 namespace ve::gfx {
     struct atlas_full_error : std::runtime_error {
-        using std::runtime_error::runtime_error;
+        explicit atlas_full_error(auto&&... args) : std::runtime_error(fwd(args)...) {}
     };
 
 
