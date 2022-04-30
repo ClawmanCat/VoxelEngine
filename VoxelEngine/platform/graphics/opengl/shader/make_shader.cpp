@@ -6,8 +6,25 @@
 namespace ve::gfx::opengl {
     struct specialization_constants { std::vector<GLuint> ids, values; };
 
-    specialization_constants get_specialization_constants(const shader_compilation_data& data) {
-        return {}; // TODO
+    specialization_constants get_specialization_constants(const shader_compilation_data& data, const shader_stage* stage) {
+        specialization_constants result;
+        auto& set_constants = data.settings.specialization_settings.constants;
+
+        for (const auto& constant : data.reflection.stages.at(stage).specialization_constants) {
+            if (auto it = set_constants.find(constant.name); it != set_constants.end()) {
+                // Yes, this is actually how OpenGL expects you to do this...
+                GLuint value = 0;
+                std::visit([&] <typename T> (const T& v) {
+                    static_assert(sizeof(T) <= sizeof(GLuint), "Illegal specialization constant type.");
+                    memcpy(&value, &v, sizeof(T));
+                }, it->second);
+
+                result.values.push_back(value);
+                result.ids.push_back((GLuint) constant.binding);
+            }
+        }
+
+        return result;
     }
 
 
@@ -42,14 +59,15 @@ namespace ve::gfx::opengl {
         validate_vertex_layout(vertex_type.name().cppstring(), vertex_layout, input_reflection.inputs);
 
         std::vector<GLuint> stages;
-        auto constants = get_specialization_constants(data);
-
         for (const auto& [stage, spirv] : data.spirv_blobs) {
+            auto constants     = get_specialization_constants(data, stage);
+            bool has_constants = !constants.ids.empty();
+
             GLuint id = glCreateShader(stage->opengl_type);
             VE_ASSERT(id, "Failed to create OpenGL shader object.");
 
             glShaderBinary(1, &id, GL_SHADER_BINARY_FORMAT_SPIR_V, spirv.data(), spirv.size() * sizeof(u32));
-            glSpecializeShader(id, "main", (GLuint) constants.values.size(), constants.ids.data(), constants.values.data());
+            glSpecializeShader(id, "main", (GLuint) constants.values.size(), has_constants ? constants.ids.data() : nullptr, has_constants ? constants.values.data() : nullptr);
             check_shader_errors<true>(id, GL_COMPILE_STATUS);
 
             stages.push_back(id);

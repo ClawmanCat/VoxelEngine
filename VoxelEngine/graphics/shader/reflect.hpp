@@ -49,6 +49,7 @@ namespace ve::gfx::reflect {
         std::vector<attribute> uniform_buffers;
         std::vector<attribute> storage_buffers;
         std::vector<attribute> push_constants;
+        std::vector<attribute> specialization_constants;
         std::vector<attribute> samplers;
     };
 
@@ -67,6 +68,9 @@ namespace ve::gfx::reflect {
         const auto& get_output_stage(void) const {
             return *ranges::find_if(stages, [](const auto& kv) { return kv.first->last; });
         }
+
+
+        friend std::ostream& operator<<(std::ostream& stream, const shader_reflection& reflection);
     };
 
 

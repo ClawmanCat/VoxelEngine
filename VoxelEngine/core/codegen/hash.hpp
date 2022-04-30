@@ -15,10 +15,13 @@
 
 namespace ve {
     namespace detail {
+        // In the case of fs::path, path::value_type is char, but dereferencing an iterator just returns another path.
+        template <typename T> using actual_value_type = typename std::iterator_traits<std::remove_cvref_t<decltype(std::cbegin(std::declval<T>()))>>::value_type;
+
         // Returns true if T::iterator::value_type == T.
         template <typename T> constexpr static bool iterates_itself = std::is_same_v<
             std::remove_cvref_t<T>,
-            typename std::iterator_traits<std::remove_cvref_t<decltype(std::cbegin(std::declval<T>()))>>::value_type
+            actual_value_type<T>
         >;
     }
 
@@ -50,8 +53,12 @@ struct std::hash<T> {
 
 // Allow hashing of containers.
 template <typename T> requires (
-    requires (const T t) { std::cbegin(t), std::cend(t); } && // Must be iterable
-    !ve::detail::iterates_itself<T> // Element type cannot be T, this would cause infinite recursion.
+    // Type must be iterable
+    requires (const T t) { std::cbegin(t), std::cend(t); } &&
+    // Element type cannot be T, this would cause infinite recursion.
+    !ve::detail::iterates_itself<T> &&
+    // Element itself must be hashable.
+    requires (const ve::detail::actual_value_type<T> v) { std::hash<ve::detail::actual_value_type<T>>{}(v); }
 ) struct std::hash<T> {
     constexpr std::size_t operator()(const T& value) const {
         std::size_t hash = 0;

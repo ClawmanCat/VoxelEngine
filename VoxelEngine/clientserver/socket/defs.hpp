@@ -5,6 +5,7 @@
 #include <VoxelEngine/event/subscribe_only_view.hpp>
 
 #include <boost/asio.hpp>
+#include <VoxelEngine/core/windows_header_cleanup.hpp>
 
 
 namespace ve::connection {

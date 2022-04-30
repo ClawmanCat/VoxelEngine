@@ -9,6 +9,9 @@
 
 namespace ve {
     namespace binding_error_handlers {
+        using handler_t = fn<void>;
+
+
         const static inline auto ignore = [] {};
 
         const static inline auto warn = [] {

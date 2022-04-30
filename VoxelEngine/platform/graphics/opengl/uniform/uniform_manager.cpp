@@ -56,7 +56,7 @@ namespace ve::gfx::opengl {
                 it->second.store_bytes(src.uniform_source->to_std140(src.current_value));
 
 
-                it->second.bind();
+                it->second.bind(uniform.binding);
                 already_stored.insert(uniform.name);
             }
         }

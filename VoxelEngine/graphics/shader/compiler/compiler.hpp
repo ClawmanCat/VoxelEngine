@@ -34,6 +34,9 @@ namespace ve::gfx {
         using location_list = vec_map<const gfxapi::shader_stage*, fs::path>;
 
 
+        shader_compiler(void);
+
+
         // Create a shader from a given list of shader stage source files.
         // 'dirs' parameter optionally specifies where the compiler should pretend the sources are located for the purpose of resolving include directives.
         shader_compilation_data compile(const source_list& sources, std::string_view name, const shader_compile_settings& settings, const location_list& dirs = {});

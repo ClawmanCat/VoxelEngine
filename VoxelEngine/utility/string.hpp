@@ -281,4 +281,34 @@ namespace ve {
     inline std::string to_uppercase(std::string_view s) {
         return s | views::transform(char_toupper) | ranges::to<std::string>;
     }
+
+
+    inline auto make_indenter(std::ostream& target) {
+        return [&target, indent = 0] (i32 delta = 0, bool print_now = true) mutable {
+            indent += delta;
+            if (print_now) target << std::string((std::size_t) indent, ' ');
+        };
+    }
+
+
+    template <typename Indenter>
+    inline auto make_scoped_kv_formatter(std::string_view key, std::ostream& stream, Indenter& indenter) {
+        struct formatter {
+            std::ostream* stream_ptr;
+            Indenter* indenter_ptr;
+
+            formatter(std::ostream* stream_ptr, Indenter* indenter_ptr, std::string_view key) : stream_ptr(stream_ptr), indenter_ptr(indenter_ptr) {
+                (*indenter_ptr)();
+                (*stream_ptr) << "[" << key << "] {\n";
+                (*indenter_ptr)(+4, false);
+            }
+
+            ~formatter(void) {
+                (*indenter_ptr)(-4);
+                (*stream_ptr) << "}\n";
+            }
+        };
+
+        return formatter { &stream, &indenter, key };
+    }
 }

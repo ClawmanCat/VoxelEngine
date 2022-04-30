@@ -126,7 +126,7 @@ namespace ve::gfx {
             if (auto it = shaders.find(hash); it != shaders.end()) return it->second;
 
 
-            shader_compilation_data new_data;
+            shader_compilation_data new_data = data;
             new_data.settings = std::move(full_settings);
 
             auto [it, success] = shaders.emplace(

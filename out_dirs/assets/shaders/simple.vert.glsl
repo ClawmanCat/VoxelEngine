@@ -1,6 +1,5 @@
 #version 430
 
-#include "utility/preprocessor.util.glsl"
 #include "structs/camera.util.glsl"
 #include "structs/vertex.util.glsl"
 

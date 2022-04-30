@@ -29,7 +29,7 @@ namespace ve::gfx::opengl::window_helpers {
     }
 
 
-     static bool is_present_mode_supported(present_mode_t mode) {
+    inline bool is_present_mode_supported(present_mode_t mode) {
         return ranges::contains(get_supported_present_modes(), mode);
     }
 }

@@ -8,7 +8,7 @@
 #define GLM_SWIZZLE_RGBA
 #define GLM_FORCE_SIZE_T_LENGTH
 
-#if VE_GRAPHICS_API == vulkan
+#ifdef VE_GRAPHICS_API_VULKAN
     #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif
 

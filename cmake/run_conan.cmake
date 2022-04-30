@@ -46,6 +46,8 @@ function(run_conan profile)
 
     set(target_settings "${CMAKE_SOURCE_DIR}/dependencies/profiles/${os}_${configuration}.conansettings")
 
+
+    # Install dependencies.
     if (EXISTS ${target_settings})
         file(READ ${target_settings} additional_command_settings)
         conan_command(install -b missing -g cmake -if ./out/conan/ -pr ${profile} ${additional_command_settings} ./dependencies/)
@@ -53,9 +55,6 @@ function(run_conan profile)
         conan_command(install -b missing -g cmake -if ./out/conan/ -pr ${profile} ./dependencies/)
     endif()
 
-
-    # Install dependencies.
-    conan_command(install -b missing -g cmake -if ./out/conan/ -pr ${profile} ${additional_command_settings} ./dependencies/)
     include("${CMAKE_SOURCE_DIR}/out/conan/conanbuildinfo.cmake")
 
 

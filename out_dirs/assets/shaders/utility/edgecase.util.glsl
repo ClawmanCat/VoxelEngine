@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utility/math.util.glsl"
+
 
 // Returns f is f is nonzero, or epsilon otherwise. Used to prevent division by zero.
 float unzero(float f) {

@@ -86,7 +86,13 @@ namespace ve::gfx::opengl {
                 "screen_quad.g_input.glsl", "pbr_lighting.frag.glsl"
             );
 
-            auto bloom_blur_shader = get_shader(
+            auto bloom_blur_shader_h = get_shader(
+                meta::type_wrapper<vertex_types::no_vertex>{},
+                "gaussian",
+                "screen_quad.g_input.glsl", "gaussian.frag.glsl"
+            );
+
+            auto bloom_blur_shader_v = get_shader(
                 meta::type_wrapper<vertex_types::no_vertex>{},
                 "gaussian",
                 "screen_quad.g_input.glsl", "gaussian.frag.glsl"
@@ -115,7 +121,7 @@ namespace ve::gfx::opengl {
                             pass.modify_attachment("bloom", [] (auto& a) { a.tex_filter = texture_filter::LINEAR; });
                         }),
 
-                    renderpass_definition { bloom_blur_shader, name_transforms::rename_one { "bloom", "tex" } }
+                    renderpass_definition { bloom_blur_shader_h, name_transforms::rename_one { "bloom", "tex" } }
                         | then([] (auto& pass) {
                             pass.add_indirect_input(1, "position");
                             pass.add_color_attachment("bloom");
@@ -123,7 +129,7 @@ namespace ve::gfx::opengl {
                             pass.size_transform = size_transforms::rescale { 0.33 };
                         }),
 
-                    renderpass_definition { bloom_blur_shader, name_transforms::rename_one { "bloom", "tex" } }
+                    renderpass_definition { bloom_blur_shader_v, name_transforms::rename_one { "bloom", "tex" } }
                         | then([] (auto& pass) {
                             pass.add_indirect_input(1, "position");
                             pass.add_color_attachment("bloom");
@@ -141,10 +147,8 @@ namespace ve::gfx::opengl {
             );
 
             move_into(std::move(renderpasses), geometry_pass, lighting_pass, bloom_blur_passes[0], bloom_blur_passes[1], postprocessing_pass);
-
-
-            bloom_blur_passes[0]->template set_uniform_value<u32>("direction", GAUSSIAN_HORIZONTAL);
-            bloom_blur_passes[1]->template set_uniform_value<u32>("direction", GAUSSIAN_VERTICAL);
+            bloom_blur_passes[0]->set_uniform_value<u32>("direction", GAUSSIAN_HORIZONTAL);
+            bloom_blur_passes[1]->set_uniform_value<u32>("direction", GAUSSIAN_VERTICAL);
         }
 
 

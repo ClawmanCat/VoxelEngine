@@ -16,7 +16,7 @@
 
 
 // Glew must be included before gl.h, but it is included somewhere in the project. (Probably from SDL.)
-#if VE_GRAPHICS_API == opengl
+#ifdef VE_GRAPHICS_API_OPENGL
     #include <gl/glew.h>
 #endif
 

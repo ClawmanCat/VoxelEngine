@@ -1,5 +1,7 @@
 *
 
+!symgen_filters/
+!symgen_filters/*
 !README.md
 !*.py
 

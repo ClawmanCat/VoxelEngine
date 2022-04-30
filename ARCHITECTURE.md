@@ -1,14 +1,24 @@
-# ARCHITECTURE.md
+# ![Logo](./out_dirs/assets/meta/logo_small.png) ARCHITECTURE.md
 This file contains some basic information about what components make up the engine and where to find them.  
 It is meant as a help for people new to this codebase, who wish to understand and/or make changes to the code.  
 
 
-### Global Layout
-This repository contains three main subprojects: the engine itself can be found in `./VoxelEngine`, a small demonstrator game for the engine can be found in `./VEDemoGame` and a demonstrator plugin for said game can be found in `./VEDemoPlugin`.  
-The engine is statically linked into the game and the two form a shared library which can be launched using the VELauncher application (`./VELauncher`).  
-Any plugins are automatically loaded at runtime from the plugin directory.
+### Global Layout & Build System
+The repository contains multiple subprojects: the engine itself can be found in `./VoxelEngine`, a small demonstrator game for the engine can be found in `./VEDemoGame` and a demonstrator plugin for said game can be found in `./VEDemoPlugin`. 
+A launcher to invoke the game can be found in `./VELauncher`.  
 
-![Component Linking](./out_dirs/assets/meta/component_linking.png)
+| ![Component Linking](./out_dirs/assets/meta/component_linking.png) |
+|---|
+| Fig 1. Subcomponents of the VoxelEngine project. |
+
+The engine itself is provided in the form of a CMake Object Library. This is similar to a normal static library, except for the fact that we can reference symbols from the game in the engine.  
+The sub-folder `./VEEngineSettings` provides the ability for the game to set compile-time engine settings from game code, as if it were a header-only library. 
+Headers in this folder are included in every engine translation unit, but the translation units of the settings folder itself are compiled as part of the game.
+
+On Windows, some extra effort must be made to prevent exceeding the 64K DLL symbol export limit, which would occur if `CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS` was used.  
+The [SymbolGenerator tool](https://github.com/ClawmanCat/SymbolGenerator) (downloaded into the `./tools` folder when CMake is run) is invoked after compilation (but before linking),
+and scans all `.obj` files for symbols to export according to the filters defined in `symgen.filter`.
+Any symbols found by this tool are converted to `.def` files which are used to create the game DLL.
 
 Assets, such as textures, shaders and noise functions are kept in the `out_dirs` folder and should be copied to the engine binary directory when it is built (This can be done automatically using the `COPY_OUT_DIRS` CMake target or using `tools/copy_out_dirs.py`).
 This setup will probably be changed in the future.
@@ -16,6 +26,10 @@ This setup will probably be changed in the future.
 Other notable top-level directories of this repository are `./cmake`, which contains all cmake-related utilities, 
 `./dependencies` which contains the information Conan needs to manage the engine's dependencies and conanfiles for engine dependencies that do not provide one themselves.
 (This does not mean you have to set up these packages yourself: they are made available on a Conan server hosted specifically for this project.)
+
+###### Testing
+The engine provides CTest unit tests in the `./VoxelEngine/tests` folder. If CMake is invoked with `-DENABLE_TESTING=ON`, these tests are built. 
+Each test takes the place of the game in the engine subcomponent diagram (Fig. 1). This means that the contents of `VEEngineSettings` are not used when building tests.
 
 
 ### Entity Component System (`./VoxelEngine/ecs`)

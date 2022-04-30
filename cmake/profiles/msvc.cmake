@@ -26,7 +26,7 @@ function(load_compiler_profile)
 
     # Disable warnings in external libraries.
     add_compile_options(/experimental:external)
-    add_compile_options(/experimental:W0)
+    add_compile_options(/external:W0)
 
     # Enable extra warnings.
     add_compile_options(/W4)

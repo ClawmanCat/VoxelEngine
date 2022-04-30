@@ -61,7 +61,7 @@ namespace ve::gfx {
                 switch (current_token) {
                     case UBO:      replacement_string = cat("layout(std140, binding = ", binding, ") uniform "); break;
                     case SSBO:     replacement_string = cat("layout(std430, binding = ", binding, ") buffer  "); break;
-                    case CONSTANT: replacement_string = cat("layout(constant_id = ", binding, ") "); break;
+                    case CONSTANT: replacement_string = cat("layout(constant_id = ", binding, ") const "); break;
                     default:       VE_UNREACHABLE;
                 }
 

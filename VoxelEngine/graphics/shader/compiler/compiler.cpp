@@ -1,9 +1,16 @@
 #include <VoxelEngine/graphics/shader/compiler/compiler.hpp>
+#include <VoxelEngine/graphics/shader/preprocessor/constant_reflection.hpp>
 #include <VoxelEngine/utility/io/file_io.hpp>
 #include <VoxelEngine/utility/raii.hpp>
 
 
 namespace ve::gfx {
+    shader_compiler::shader_compiler(void) {
+        // SPIRV-Reflect currently cannot reflect over specialization constants, so we have to do it ourselves.
+        add_preprocessor(make_shared<constant_reflection_preprocessor>("ve.impl.constant_reflection", priority::LOWEST - 1));
+    }
+
+
     shader_compilation_data shader_compiler::compile(const source_list& sources, std::string_view name, const shader_compile_settings& settings, const location_list& dirs) {
         auto profiler_msg = cat("Compile shader ", name);
         VE_PROFILE_FN(profiler_msg.c_str());
@@ -32,6 +39,14 @@ namespace ve::gfx {
 
         result.reflection = reflect::generate_reflection(std::string { name }, result.spirv_blobs);
         result.settings   = settings;
+
+
+        // Get reflection from constant_reflection_preprocessor.
+        auto& constant_reflection = context.template get_object<typename constant_reflection_preprocessor::attribute_map>("ve.constant_reflect.attribs");
+        for (auto&& [stage, values] : constant_reflection) {
+            result.reflection.stages[stage].specialization_constants = std::move(values);
+        }
+
 
         return result;
     }
