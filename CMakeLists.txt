@@ -33,6 +33,8 @@ add_compile_definitions(NOGDI)
 # Not supported on Windows with Clang on Windows as of 14/07/2021
 add_compile_definitions(BOOST_ASIO_DISABLE_STD_COROUTINE)
 add_compile_definitions(_SILENCE_CLANG_COROUTINE_MESSAGE)
+# Whether or not this flag is set by default seems to differ by platform, causing many issues by randomly changing the signature of absl methods.
+add_compile_definitions(ABSL_OPTION_USE_STD_STRING_VIEW=1)
 
 
 # Install Dependencies
