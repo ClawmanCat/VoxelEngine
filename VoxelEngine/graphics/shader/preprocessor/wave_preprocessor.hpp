@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/then.hpp>
 #include <VoxelEngine/graphics/shader/preprocessor/shader_preprocessor.hpp>
 
 #include <boost/wave.hpp>
@@ -43,6 +44,16 @@ namespace ve::gfx {
             for (const auto& action : context_actions) action(*wave_ctx, src, context);
 
 
+            // Apply provided preprocessor directives.
+            for (const auto& [k, v] : context.template get_object<const shader_compile_settings*>("ve.compile_settings")->preprocessor_definitions) {
+                std::string macro_string = k;
+                if (!v.empty()) macro_string += "=";
+                macro_string += v;
+
+                wave_ctx->add_macro_definition(macro_string, true);
+            }
+
+
             std::stringstream result;
 
             try {
@@ -52,15 +63,23 @@ namespace ve::gfx {
                 const auto& name  = context.template get_object<std::string>("ve.filename");
                 const auto* stage = context.template get_object<const gfxapi::shader_stage*>("ve.shader_stage");
 
-
                 // Boost stores the actual message in .description(), even though they provide a .what().
                 throw std::runtime_error { cat(
                     "Failed to preprocess ", stage->name, " stage of shader ", name, ":\n",
                     e.description(), "\n\n",
                     "Note: error occurred here:\n",
-                    get_error_location(result.str()), " <<< HERE"
+                    get_error_location(src, wave_ctx->get_main_pos().get_line()), " <<< HERE"
                 ) };
             }
+        }
+
+
+        std::size_t hash(void) const override {
+            // Context actions cannot be effectively compared, so just hash each instance by its address.
+            // This may cause some unnecessary recompilation, but at least it won't give any false negatives.
+            std::size_t hash = 0;
+            for (const auto& action : context_actions) ve::hash_combine(hash, &action);
+            return hash;
         }
 
 
@@ -109,13 +128,18 @@ namespace ve::gfx {
         }
 
 
-        static std::string get_error_location(std::string_view src, std::size_t lines = 10) {
+        static std::string get_error_location(std::string_view src, std::size_t error_line, std::size_t lines = 8) {
             auto error_location = split(src, "\n");
+            if (error_location.empty()) return "<EMPTY FILE>";
 
-            if (error_location.empty()) error_location.push_back("<EMPTY FILE>");
-            if (error_location.size() > lines) error_location.erase(error_location.begin(), error_location.end() - lines);
 
-            return cat_range_with(error_location, "\n");
+            error_location = error_location
+                | views::drop(error_line - lines)
+                | views::take(lines)
+                | ranges::to<std::vector>;
+
+
+            return cat_range_with(error_location, "\n") | then([] (auto& str) { str.pop_back(); });
         }
     };
 }

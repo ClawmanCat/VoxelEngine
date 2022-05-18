@@ -40,4 +40,27 @@ namespace ve::gfx {
             return name;
         }
     };
+
+
+    // Simple wrapper around a set of textures to make them into a uniform sampler.
+    struct named_texture_array : public uniform_sampler {
+        texture_list textures;
+        std::string name;
+
+
+        named_texture_array(texture_list textures, std::string name) :
+            textures(std::move(textures)),
+            name(std::move(name))
+        {}
+
+
+        texture_list get_uniform_textures(void) const override {
+            return textures;
+        }
+
+
+        std::string get_uniform_name(void) const override {
+            return name;
+        }
+    };
 }

@@ -16,7 +16,7 @@
 namespace ve {
     // TODO: Support joystick and controller input events.
     // TODO: Handle double clicking.
-    class input_manager : public simple_event_dispatcher<false> {
+    class input_manager : public simple_event_dispatcher<> {
     public:
         using custom_event_handler = std::function<void(const SDL_Event&)>;
 

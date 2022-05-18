@@ -19,6 +19,8 @@ namespace ve::gfx {
 
         using shader_preprocessor::shader_preprocessor;
         void operator()(std::string& src, arbitrary_storage& context) const override;
+
+        std::size_t hash(void) const override { return type_hash<autobinding_preprocessor>(); /* No internal state. */ }
     private:
         static void eat_whitespace(std::string_view& sv, std::size_t& counter);
         static std::string_view eat_word(std::string_view& sv, std::size_t& counter);

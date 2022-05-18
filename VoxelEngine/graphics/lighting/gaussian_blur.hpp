@@ -5,6 +5,10 @@
 
 
 namespace ve::gfx {
+    constexpr inline u32 GAUSSIAN_HORIZONTAL = 0;
+    constexpr inline u32 GAUSSIAN_VERTICAL   = 1;
+
+
     template <std::size_t WeightLimit = 16> struct gaussian_blur_data {
         constexpr static inline std::size_t weight_count_limit = WeightLimit;
 

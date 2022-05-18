@@ -6,7 +6,7 @@
 
 
 namespace ve::gfx::opengl {
-    void pipeline::assert_has_render_mixins(const render_context& ctx, const std::vector<std::string_view>& mixins) const {
+    void pipeline::assert_has_ecs_mixins(const render_context& ctx, const std::vector<std::string_view>& mixins) const {
         if (!mixin_checks_enabled) return;
 
 
@@ -15,7 +15,7 @@ namespace ve::gfx::opengl {
                 false,
                 "This pipeline requires ", missing_mixin, " as part of the renderer, but it was not present.\n",
                 "Note: to use the pipeline without an associated renderer, use pipeline.set_mixin_checks_enabled(false) ",
-                "to disable this check. In this case, you must provide all required uniform values manually."
+                "to disable this check. In this case, you must provide all required uniform and context values manually."
             );
         };
 
@@ -31,20 +31,24 @@ namespace ve::gfx::opengl {
     }
 
 
-    void single_pass_pipeline::draw(const draw_data& data) {
-        VE_PROFILE_FN();
+    const renderer_mixins::render_mixin_base* pipeline::get_ecs_mixin_impl(const render_context& ctx, std::string_view name) {
+        if (const auto* mixins = ctx.template try_get_object<renderer_mixins::mixin_list_t>("ve.render_mixins"); mixins) {
+            if (auto it = mixins->find(name); it != mixins->end()) {
+                return it->second;
+            }
 
-        if (!get_target()->requires_rendering_this_frame()) return;
+            return nullptr;
+        }
+
+        return nullptr;
+    }
 
 
+    void single_pass_pipeline::draw(const pipeline_draw_data& data, overridable_function_tag) {
         raii_tasks on_destruct;
 
-        data.ctx->pipelines.push(this);
-        on_destruct.add_task([&] { data.ctx->pipelines.pop(); });
         data.ctx->renderpass = this;
         on_destruct.add_task([&] { data.ctx->renderpass = nullptr; });
-        data.ctx->uniform_state.push_uniforms(this);
-        on_destruct.add_task([&] { data.ctx->uniform_state.pop_uniforms(); });
 
 
         shader->bind(*data.ctx);
@@ -53,6 +57,16 @@ namespace ve::gfx::opengl {
 
 
         for (const auto& buffer : data.buffers) buffer->draw(*data.ctx);
+    }
+
+
+    void single_pass_pipeline::set_shader(shared<class shader> shader) {
+        VE_ASSERT(
+            shader->get_category() == this->get_type(),
+            "Cannot replace pipeline shader of type ", this->get_type(), " with a ", shader->get_category(), " shader."
+        );
+
+        this->shader = std::move(shader);
     }
 
 
@@ -74,5 +88,7 @@ namespace ve::gfx::opengl {
 
         gl_toggles[settings.depth_testing](GL_DEPTH_TEST);
         gl_toggles[settings.depth_clamp](GL_DEPTH_CLAMP);
+
+        std::invoke(settings.blend_function);
     }
 }

@@ -49,7 +49,7 @@ template <typename Dispatcher> test_result test_dispatcher(void) {
         do_n_threaded(
             [&] {
                 for (const auto& p : ve::priorities) {
-                    d.template add_handler<Event>(handler<Dispatcher> { p }, p);
+                    d.template add_raw_handler<Event>(handler<Dispatcher> { p }, p);
                 }
             },
             num_handlers_per_priority

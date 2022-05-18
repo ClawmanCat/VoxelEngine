@@ -57,7 +57,7 @@ namespace ve {
         // Connection will dispatch events after every tick of the client.
         c.store_object(
             "ve.connection.connection_update_handler",
-            c.add_handler([connection] (const instance_post_tick_event& e) {
+            c.add_raw_handler([connection] (const instance_post_tick_event& e) {
                 connection->update();
             })
         );
@@ -65,7 +65,7 @@ namespace ve {
 
         // Once we receive the remote's ID, create the connection.
         // This will occur after this method has exited, but the client is immovable, so taking its address shouldn't be an issue.
-        connection->add_one_time_handler([connection, &c] (const connection::message_received_event& e) {
+        connection->add_one_time_raw_handler([connection, &c] (const connection::message_received_event& e) {
             auto span      = make_message_unignored(e.message);
             auto remote_id = serialize::from_bytes<instance_id>(span);
 
@@ -109,7 +109,7 @@ namespace ve {
         // Connection will dispatch events after every tick of the server.
         s.store_object(
             "ve.connection.connection_update_handler",
-            s.add_handler([connection] (const instance_post_tick_event& e) {
+            s.add_raw_handler([connection] (const instance_post_tick_event& e) {
                 connection->update();
             })
         );
@@ -117,14 +117,14 @@ namespace ve {
 
         // When a connection is made, send out our ID and wait for the remote to do the same.
         // After this has been done, the message handler can be created.
-        connection->add_handler([connection, &s] (const connection::session_start_event& e) {
+        connection->add_raw_handler([connection, &s] (const connection::session_start_event& e) {
             auto session = connection->get_session(e.session);
 
-            session->add_one_time_handler([session, &s] (const connection::message_received_event& e) mutable {
+            session->add_one_time_raw_handler([session, &s] (const connection::message_received_event& e) mutable {
                 auto span      = make_message_unignored(e.message);
                 auto remote_id = serialize::from_bytes<instance_id>(span);
 
-                session->add_handler([remote_id, &s] (const connection::session_end_event& e) {
+                session->add_raw_handler([remote_id, &s] (const connection::session_end_event& e) {
                     s.remove_client_connection(remote_id);
                 });
 

@@ -5,9 +5,34 @@ const float pi = 3.14159265;
 // Sufficiently small number to prevent division by zero.
 const float epsilon = 1e-6;
 
+float positive_infinity = uintBitsToFloat(0x7F800000);
+float negative_infinity = uintBitsToFloat(0xFF800000);
+
 
 float scale(float value, vec2 from, vec2 to) {
     return (((value - from.x) * (to.y - to.x)) / (from.y - from.x)) + to.x;
+}
+
+
+float distance2(vec2 x, vec2 y) {
+    vec2 delta = y - x;
+    return dot(delta, delta);
+}
+
+
+float distance2(vec3 x, vec3 y) {
+    vec3 delta = y - x;
+    return dot(delta, delta);
+}
+
+
+float length2(vec2 x) {
+    return distance2(vec2(0), x);
+}
+
+
+float length2(vec3 x) {
+    return distance2(vec3(0), x);
 }
 
 

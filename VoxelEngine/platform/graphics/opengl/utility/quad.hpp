@@ -8,7 +8,7 @@
 
 namespace ve::gfx::opengl {
     // 6 empty vertices used to render a quad in g_input shaders.
-    static shared<vertex_buffer> g_input_quad(void) {
+    inline shared<vertex_buffer> g_input_quad(void) {
         static auto i = [] {
             auto result = unindexed_vertex_buffer<vertex_types::no_vertex>::create();
             result->store_vertices(std::vector(6, vertex_types::no_vertex { }));
@@ -20,9 +20,9 @@ namespace ve::gfx::opengl {
     };
 
 
-    // Create a new draw_data, equivalent to the provided one but using the g_input_quad as VBO.
-    inline typename pipeline::draw_data draw_data_to_g_input(const typename pipeline::draw_data& data) {
-        return typename pipeline::draw_data {
+    // Create a new pipeline_draw_data, equivalent to the provided one but using the g_input_quad as VBO.
+    inline pipeline_draw_data draw_data_to_g_input(const pipeline_draw_data& data) {
+        return pipeline_draw_data {
             .buffers         = { g_input_quad().get() },
             .ctx             = data.ctx
         };

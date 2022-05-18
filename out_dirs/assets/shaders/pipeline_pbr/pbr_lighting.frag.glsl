@@ -3,6 +3,7 @@
 #include "utility/pbr.util.glsl"
 #include "utility/math.util.glsl"
 #include "utility/edgecase.util.glsl"
+#include "utility/sampler_array.util.glsl"
 #include "structs/camera.util.glsl"
 #include "structs/light.util.glsl"
 #include "structs/bloom.util.glsl"
@@ -58,7 +59,6 @@ void main() {
     vec3 total_radiance = vec3(0.0);
     for (uint i = 0; i < light_data.num_populated_lights; ++i) {
         Light light = light_data.lights[i];
-
 
         // Direction from which the fragment is hit by the light.
         vec3 light_on_fragment = normalize(light.position - l_position.xyz);

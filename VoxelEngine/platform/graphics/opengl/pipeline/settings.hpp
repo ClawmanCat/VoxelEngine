@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/blend.hpp>
 
 #include <gl/glew.h>
 
@@ -39,8 +40,9 @@ namespace ve::gfx::opengl {
         } cull_direction = cull_direction_t::COUNTER_CLOCKWISE;
 
 
-        float line_width    = 1.0f;
-        bool  depth_testing = true;
-        bool  depth_clamp   = true;
+        float    line_width     = 1.0f;
+        bool     depth_testing  = true;
+        bool     depth_clamp    = true;
+        fn<void> blend_function = blend_functions::normal;
     };
 }

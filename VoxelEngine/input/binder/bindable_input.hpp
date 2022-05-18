@@ -44,7 +44,7 @@ namespace ve {
         }
 
         template <typename... Events> static std::vector<event_handler_id_t> register_types(auto handler) {
-            return { input_manager::instance().template add_handler<Events>(handler)... };
+            return { input_manager::instance().template add_raw_handler<Events>(handler)... };
         }
 
         template <typename... Events> static void unregister_types(const std::vector<event_handler_id_t>& handlers) {

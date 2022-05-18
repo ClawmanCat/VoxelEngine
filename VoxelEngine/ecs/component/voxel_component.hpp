@@ -49,15 +49,15 @@ namespace ve {
 
 
         void on_component_added_wrapped(registry& owner, entt::entity entity) {
-            on_chunk_load = space->add_handler([this] (const voxel::chunk_loaded_event& e) {
+            on_chunk_load = space->add_raw_handler([this] (const voxel::chunk_loaded_event& e) {
                 broadcast_message(chunk_load_message { .where = e.chunkpos, .data = e.chunk->get_chunk_data() });
             });
 
-            on_chunk_unload = space->add_handler([this] (const voxel::chunk_unloaded_event& e) {
+            on_chunk_unload = space->add_raw_handler([this] (const voxel::chunk_unloaded_event& e) {
                 broadcast_message(chunk_unload_message { .where = e.chunkpos });
             });
 
-            on_voxel_set = space->add_handler([this] (const voxel::voxel_changed_event& e) {
+            on_voxel_set = space->add_raw_handler([this] (const voxel::voxel_changed_event& e) {
                 broadcast_message(set_voxel_message { .where = e.where, .data = e.new_value });
             });
         }

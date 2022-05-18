@@ -1,5 +1,8 @@
 #version 430
 
+// TODO: Remove this!
+#define NO_BLOOM
+
 #include "utility/pbr.util.glsl"
 #include "structs/light.util.glsl"
 #include "structs/bloom.util.glsl"

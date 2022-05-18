@@ -107,7 +107,7 @@ test_result illegal_action_doesnt_leak_data(void) {
     // Send fake message to change component & await response.
     bool received_response = false;
 
-    client.get_server_connection()->add_handler(
+    client.get_server_connection()->add_raw_handler(
         ve::core_message_types::MSG_UNDO_COMPONENT,
         [&] (const ve::undo_component_message& value) { received_response = true; }
     );

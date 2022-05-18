@@ -28,6 +28,8 @@ namespace ve::gfx {
             virtual void progress(std::string&, arbitrary_storage&) = 0;
             // Invoked after a source file is fully parsed.
             virtual void reset(void) {}
+            // Can be used to compare state machines to reduce recompilations. Default is to hash the object address.
+            virtual std::size_t hash(void) const { return hash_of(this); }
 
         protected:
             // Returns the state the source file was in before any state machines in the current preprocessor were invoked.
@@ -64,6 +66,7 @@ namespace ve::gfx {
 
         explicit directive_preprocessor(std::string name, u16 priority = priority::NORMAL);
         void operator()(std::string& src, arbitrary_storage& context) const override;
+        std::size_t hash(void) const override;
 
 
         void add_directive(std::string key, std::function<std::string(std::string)> action);

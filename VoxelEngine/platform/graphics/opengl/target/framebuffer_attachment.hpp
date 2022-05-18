@@ -9,7 +9,7 @@
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/texture_cube_map.hpp>
 
-#include <gl/glew.h>
+#include <GL/glew.h>
 
 
 namespace ve::gfx::opengl {

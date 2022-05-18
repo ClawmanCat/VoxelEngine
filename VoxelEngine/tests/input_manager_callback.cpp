@@ -15,12 +15,12 @@ test_result test_main(void) {
 
 
     for (auto [i, key] : keys | ve::views::enumerate) {
-        ve::input_manager::instance().add_handler([&, i = i] (const ve::key_down_event& e) {
+        ve::input_manager::instance().add_raw_handler([&, i = i] (const ve::key_down_event& e) {
             if (e.new_state.key != keys[i]) return;
             if (std::exchange(down[i], true) || pressed[i]) result |= VE_TEST_FAIL("Key down handler was called twice.");
         });
 
-        ve::input_manager::instance().add_handler([&, i = i] (const ve::key_up_event& e) {
+        ve::input_manager::instance().add_raw_handler([&, i = i] (const ve::key_up_event& e) {
             if (e.new_state.key != keys[i]) return;
             if (!std::exchange(down[i], false))  result |= VE_TEST_FAIL("Key up handler was called before key down handler.");
             if (std::exchange(pressed[i], true)) result |= VE_TEST_FAIL("Key up handler was called twice.");

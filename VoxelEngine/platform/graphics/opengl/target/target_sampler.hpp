@@ -2,7 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/graphics/uniform/uniform_sampler.hpp>
-#include <VoxelEngine/platform/graphics/opengl/pipeline/target.hpp>
+#include <VoxelEngine/platform/graphics/opengl/target/target.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
 
 

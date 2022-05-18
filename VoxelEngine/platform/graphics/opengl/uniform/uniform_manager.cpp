@@ -91,7 +91,7 @@ namespace ve::gfx::opengl {
                     VE_ASSERT(texture_unit < texture_limit, "Attempt to bind too many textures. Hardware limits exceeded.");
 
                     glActiveTexture(GL_TEXTURE0 + texture_unit);
-                    glBindTexture(GL_TEXTURE_2D, texture->get_id());
+                    glBindTexture(texture->get_gl_type(), texture->get_id());
 
 
                     // spirv_reflect seems to provide no way to query the locations of all but the first sampler in an array.

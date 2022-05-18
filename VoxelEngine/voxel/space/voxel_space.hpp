@@ -42,7 +42,7 @@ namespace ve::voxel {
 
     class voxel_space :
         public tile_provider<voxel_space>,
-        public subscribe_only_view<simple_event_dispatcher<false>>,
+        public subscribe_only_view<simple_event_dispatcher<>>,
         public std::enable_shared_from_this<voxel_space>
     {
     public:

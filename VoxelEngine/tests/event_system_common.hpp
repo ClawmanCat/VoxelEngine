@@ -9,15 +9,15 @@ using namespace ve::defs;
 
 // List of different event dispatcher types used for testing.
 using dispatcher_types = ve::meta::pack<
-    ve::simple_event_dispatcher<false, u16, false>,
-    ve::simple_event_dispatcher<false, u16, true>,
-    ve::simple_event_dispatcher<true,  u16, false>,
-    ve::simple_event_dispatcher<true,  u16, true>,
+    ve::simple_event_dispatcher<false, false, u16>,
+    ve::simple_event_dispatcher<false, true,  u16>,
+    ve::simple_event_dispatcher<true,  false, u16>,
+    ve::simple_event_dispatcher<true,  true,  u16>,
 
-    ve::delayed_event_dispatcher<false, u16, false>,
-    ve::delayed_event_dispatcher<false, u16, true>,
-    ve::delayed_event_dispatcher<true,  u16, false>,
-    ve::delayed_event_dispatcher<true,  u16, true>
+    ve::delayed_event_dispatcher<false, false, u16>,
+    ve::delayed_event_dispatcher<false, true,  u16>,
+    ve::delayed_event_dispatcher<true,  false, u16>,
+    ve::delayed_event_dispatcher<true,  true,  u16>
 >;
 
 
@@ -66,7 +66,7 @@ inline std::vector<typename Dispatcher::handler_id> add_handlers(Dispatcher& d, 
         Events::foreach([&] <typename Event> {
             invoker(
                 [&] {
-                    auto id = d.template add_handler<Event>(handler);
+                    auto id = d.template add_raw_handler<Event>(handler);
 
                     {
                         std::unique_lock lock { mtx };

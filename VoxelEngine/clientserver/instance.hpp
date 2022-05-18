@@ -17,9 +17,6 @@ namespace ve {
     class instance;
 
 
-    struct overridable_function_tag {};
-
-
     class instance_registry {
     public:
         static instance_registry& instance(void);

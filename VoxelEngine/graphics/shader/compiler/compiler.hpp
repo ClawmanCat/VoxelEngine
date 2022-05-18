@@ -27,6 +27,7 @@ namespace ve::gfx {
 
     // Compiles shader sources to SPIRV binaries.
     // The resulting shader_compilation_data can be used with gfxapi::make_shader to construct the actual shader.
+    // Note: this class is not thread-safe, even if the set of preprocessors remains unchanged.
     class shader_compiler {
     public:
         using source_list   = vec_map<const gfxapi::shader_stage*, std::string>;

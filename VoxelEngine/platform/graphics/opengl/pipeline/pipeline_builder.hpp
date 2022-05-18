@@ -2,7 +2,7 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
-#include <VoxelEngine/platform/graphics/opengl/pipeline/target_sampler.hpp>
+#include <VoxelEngine/platform/graphics/opengl/target/target_sampler.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/renderpass_transforms.hpp>
 
 

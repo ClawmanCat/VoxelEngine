@@ -17,3 +17,6 @@ set_target_properties(VEDemoPlugin PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_
 
 
 generate_include_header(VEDemoPlugin core core.hpp)
+
+
+target_compile_definitions(VEDemoPlugin PRIVATE "VE_BUILD_PLUGIN=1")

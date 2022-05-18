@@ -16,6 +16,9 @@ namespace ve::gfx {
         VE_PROFILE_FN(profiler_msg.c_str());
 
 
+        VE_LOG_DEBUG(cat("Compiling shader ", name, "..."));
+
+
         shader_compilation_data result;
 
         arbitrary_storage context = settings.preprocessor_context;
@@ -114,10 +117,16 @@ namespace ve::gfx {
 
 
         std::string filename = io::get_filename_from_multi_extension(path);
-        auto on_error = [&] (std::string_view current_state) {
+        auto on_error = [&] (std::string_view current_state, std::string_view details = "") {
             fs::path dump_path = io::paths::PATH_LOGS / cat(filename, stage->file_extension);
             io::write_text(dump_path, split(source, "\n"));
-            VE_LOG_ERROR(cat("Shader compilation for shader ", name, " failed. Dumping ", current_state, " shader source code to ", dump_path));
+
+
+            VE_LOG_ERROR(cat(
+                "Shader compilation for shader ", name, " failed:\n",
+                details.empty() ? "No further information." : details, "\n\n",
+                "Dumping ", current_state, " shader source code to ", dump_path
+            ));
         };
 
 
@@ -130,6 +139,7 @@ namespace ve::gfx {
         ctx.store_object<std::string>("ve.filename", filename);
         ctx.store_object<fs::path>("ve.filepath", fs::absolute(path));
         ctx.store_object<const gfxapi::shader_stage*>("ve.shader_stage", stage);
+        ctx.store_object<const shader_compile_settings*>("ve.compile_settings", &settings);
 
         std::string previous_state;
         std::size_t pass = 0;
@@ -141,8 +151,13 @@ namespace ve::gfx {
             for (const auto& preprocessor : preprocessors) {
                 try {
                     std::invoke(*preprocessor, source, ctx);
+                } catch (const std::exception& e) {
+                    auto msg = cat("Error while preprocessing for preprocessor ", preprocessor->get_name(), ":\n", e.what());
+                    on_error("partially preprocessed", msg);
+                    throw;
                 } catch (...) {
-                    on_error("partially preprocessed");
+                    auto msg = cat("Error while preprocessing for preprocessor ", preprocessor->get_name(), ": no further information.");
+                    on_error("partially preprocessed", msg);
                     throw;
                 }
             }
@@ -151,8 +166,10 @@ namespace ve::gfx {
         } while (previous_state != source && pass < settings.preprocessor_recursion_limit);
 
         if (previous_state != source) {
-            on_error("partially_preprocessed");
-            throw std::runtime_error(cat("Failed to preprocess ", stage->name, " for shader ", filename, ": maximum recursion depth exceeded."));
+            auto msg = cat("Failed to preprocess ", stage->name, " for shader ", filename, ": maximum recursion depth exceeded.");
+
+            on_error("partially_preprocessed", msg);
+            throw std::runtime_error(msg);
         };
 
 
@@ -161,8 +178,10 @@ namespace ve::gfx {
         auto result = compiler.CompileGlslToSpv(source, stage->shaderc_type, filename.c_str(), *settings.compiler_options);
 
         if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-            on_error("preprocessed");
-            throw std::runtime_error(cat("Failed to compile ", stage->name, " for shader ", filename, ":\n", result.GetErrorMessage()));
+            auto msg = cat("Failed to compile ", stage->name, " for shader ", filename, ":\n", result.GetErrorMessage());
+
+            on_error("preprocessed", msg);
+            throw std::runtime_error(msg);
         }
 
         return SPIRV { result.begin(), result.end() };

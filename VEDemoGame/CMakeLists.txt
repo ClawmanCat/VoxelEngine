@@ -18,3 +18,6 @@ create_symbol_filter_impl(
     "${CMAKE_SOURCE_DIR}/VoxelEngine/symgen.filter"
     "${PROJECT_BINARY_DIR}/VoxelEngine/CMakeFiles/VoxelEngine.dir"
 )
+
+
+target_compile_definitions(VEDemoGame PRIVATE "VE_BUILD_GAME=1")

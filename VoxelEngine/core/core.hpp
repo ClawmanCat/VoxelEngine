@@ -21,6 +21,7 @@
 #include <VoxelEngine/core/codegen/wrap_container.hpp>
 #include <VoxelEngine/core/includes.hpp>
 #include <VoxelEngine/core/legacy.hpp>
+#include <VoxelEngine/core/overridable_fn_tag.hpp>
 #include <VoxelEngine/core/platform.hpp>
 #include <VoxelEngine/core/preprocessor.hpp>
 #include <VoxelEngine/core/profiler.hpp>

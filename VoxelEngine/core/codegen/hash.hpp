@@ -27,7 +27,9 @@ namespace ve {
 
 
     template <typename T> constexpr inline std::size_t hash_of(const T& value) {
-        return std::hash<T>{}(value);
+        // For some reason the hash-member overload of std::hash is not detected here.
+        if constexpr (requires { value.hash(); }) return value.hash();
+        else return std::hash<T>{}(value);
     }
 
     // Drop-in replacement for boost::hash_combine. Prevents boost from complaining that boost::hash isn't defined

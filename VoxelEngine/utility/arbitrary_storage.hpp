@@ -25,6 +25,21 @@ namespace ve {
         }
 
 
+        template <typename T>
+        T& store_or_replace_object(std::string name, T value) {
+            auto hash = [&] {
+                if constexpr (requires (T t) { std::hash<T>{}(t); }) {
+                    static_assert(!std::is_same_v<T, fs::path>, "A");
+                    return hash_of(value);
+                }
+                else return std::size_t { 0 };
+            }();
+
+            auto [it, was_newly_inserted] = storage.insert_or_assign(std::move(name), value_t { std::move(value), hash });
+            return std::any_cast<T&>(it->second.value);
+        }
+
+
         void remove_object(std::string_view name) {
             storage.erase(name);
         }
@@ -46,6 +61,25 @@ namespace ve {
         template <typename T>
         const T& get_object(std::string_view name) const {
             return std::any_cast<const T&>(storage.at(name).value);
+        }
+
+
+        template <typename T>
+        T* try_get_object(std::string_view name) {
+            return has_object(name) ? &get_object<T>(name) : nullptr;
+        }
+
+
+        template <typename T>
+        const T* try_get_object(std::string_view name) const {
+            return has_object(name) ? &get_object<T>(name) : nullptr;
+        }
+
+
+        // Note: unlike get_object, this method copies the value out of the storage if it exists!
+        template <typename T>
+        T object_or(std::string_view name, T&& default_value) const {
+            return has_object(name) ? get_object<T>(name) : fwd(default_value);
         }
 
 

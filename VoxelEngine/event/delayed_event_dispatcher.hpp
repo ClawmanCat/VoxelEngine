@@ -2,9 +2,8 @@
 
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/utility/thread/dummy_mutex.hpp>
-#include <VoxelEngine/utility/traits/function_traits.hpp>
 #include <VoxelEngine/utility/algorithm.hpp>
-#include <VoxelEngine/event/event_handler_id.hpp>
+#include <VoxelEngine/event/dispatcher.hpp>
 
 #include <ctti/type_id.hpp>
 
@@ -12,32 +11,45 @@
 
 
 namespace ve {
-    template <
-        bool Cancellable = true,
-        typename Priority = u16,
-        bool Threadsafe = false
-    > class delayed_event_dispatcher {
+    // An event handler that collects events internally and dispatches them all at once when dispatch_events is called.
+    // Events of the same type are dispatched in the order they were added and are not interleaved with events of different types.
+    // The order in which different event types are dispatched is not specified.
+    // The event handler can optionally be made threadsafe and cancellable. If the dispatcher is made cancellable,
+    // event handlers should return true if the event is considered handled and should not be dispatched further.
+    // Recursive usage of the event handler is allowed: event handlers may themselves dispatch new events,
+    // and may add or remove event handlers.
+    // If a new event is recursively received while another event is being dispatched, the new event is dispatched
+    // during the same call to dispatch_events, after all previously added events.
+    // If event handlers are added or removed while the dispatcher is dispatching events of the type handled by the handler,
+    // the addition or removal of the handler is delayed until the dispatcher finishes doing so.
+    // If the handler is added or removed while the dispatcher is dispatching a different type of event, or is not dispatching
+    // any events, the addition or removal is processed immediately.
+    template <bool Threadsafe = false, bool Cancellable = false, typename Priority = u16>
+    class delayed_event_dispatcher : public dispatcher<
+        delayed_event_dispatcher<Threadsafe, Cancellable, Priority>,
+        default_handler_for<Cancellable>::template type,
+        Priority
+    > {
     public:
         using delayed_event_dispatcher_tag = void;
-        using handler_id = event_handler_id_t;
-        using priority_t = Priority;
-        using lock_t     = std::conditional_t<Threadsafe, std::recursive_mutex, dummy_mutex>;
+        using base_t        = typename delayed_event_dispatcher::dispatcher_base_t;
+        using lock_t        = std::conditional_t<Threadsafe, std::recursive_mutex, dummy_mutex>;
+        using self_t        = typename base_t::self_t;
+        using raw_handler   = typename base_t::raw_handler;
+        using handler_token = typename base_t::handler_token;
+        using priority_t    = typename base_t::priority_t;
+
+        template <typename Event> using handler_t = typename base_t::template handler_t<Event>;
 
         constexpr static bool is_cancellable = Cancellable;
         constexpr static bool is_threadsafe  = Threadsafe;
 
 
         delayed_event_dispatcher(void) = default;
-        ve_immovable(delayed_event_dispatcher);
-
-        
-        // Cancelling handlers should return true to cancel event dispatching.
-        template <typename Event>
-        using handler_t = std::function<std::conditional_t<Cancellable, bool, void>(const Event&)>;
         
         
         template <typename Event>
-        handler_id add_handler(handler_t<Event> handler, Priority p = Priority(0)) {
+        handler_token add_handler(handler_t<Event> handler, Priority p = Priority(0)) {
             std::lock_guard lock { mtx };
 
             auto action = [this, handler = std::move(handler), p, id = next_id] () mutable {
@@ -58,21 +70,12 @@ namespace ve {
             if (currently_dispatched == ctti::unnamed_type_id<Event>()) pending_actions.emplace_back(std::move(action));
             else action();
             
-            return next_id++;
-        }
-
-
-        // Deduce event type from function signature
-        template <
-            typename Fn,
-            typename Event = meta::nth_argument_base<Fn, 0>
-        > handler_id add_handler(Fn&& handler, Priority p = Priority(0)) {
-            return add_handler<Event>(fwd(handler), p);
+            return handler_token { meta::type_wrapper<Event>{}, next_id++, this };
         }
 
 
         template <typename Event>
-        handler_id add_one_time_handler(handler_t<Event> handler, Priority p = Priority(0)) {
+        handler_token add_one_time_handler(handler_t<Event> handler, Priority p = Priority(0)) {
             std::lock_guard lock { mtx };
 
             auto wrapping_handler = [this, id = next_id, handler = std::move(handler)] (const Event& event) mutable {
@@ -82,19 +85,10 @@ namespace ve {
 
             return add_handler<Event>(std::move(wrapping_handler), p);
         }
-
-
-        // Deduce event type from function signature
-        template <
-            typename Fn,
-            typename Event = meta::nth_argument_base<Fn, 0>
-        > handler_id add_one_time_handler(Fn&& handler, Priority p = Priority(0)) {
-            return add_one_time_handler<Event>(fwd(handler), p);
-        }
         
         
         template <typename Event>
-        void remove_handler(handler_id id) {
+        void remove_handler(raw_handler id) {
             std::lock_guard lock { mtx };
 
             auto action = [this, id] {
@@ -182,12 +176,12 @@ namespace ve {
             virtual ~handler_data_base(void) = default;
             virtual void add(void* event) = 0;
             virtual void invoke(void) = 0;
-            virtual void erase(handler_id id) = 0;
+            virtual void erase(raw_handler id) = 0;
             virtual bool empty(void) const = 0;
         };
         
         template <typename Event> struct handler_data : handler_data_base {
-            vec_map<Priority, std::vector<std::pair<handler_id, handler_t<Event>>>> handlers;
+            vec_map<Priority, std::vector<std::pair<raw_handler, handler_t<Event>>>> handlers;
             std::vector<Event> events;
             std::vector<std::function<void(void)>>& pending_actions;
 
@@ -225,7 +219,7 @@ namespace ve {
                 events.clear();
             }
             
-            void erase(handler_id id) override {
+            void erase(raw_handler id) override {
                 auto check = [&](Priority p) {
                     if (auto it = handlers.find(p); it != handlers.end()) {
                         auto& handlers_for_p = it->second;
@@ -259,7 +253,7 @@ namespace ve {
         
         hash_map<ctti::type_index, unique<handler_data_base>> handlers;
         hash_set<ctti::type_index> handlers_with_events;
-        handler_id next_id = 0;
+        raw_handler next_id = 0;
         mutable lock_t mtx;
 
         std::optional<ctti::type_index> currently_dispatched;

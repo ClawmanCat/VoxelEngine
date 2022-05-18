@@ -5,7 +5,7 @@
 #include <VoxelEngine/graphics/presentation/present_mode.hpp>
 #include <VoxelEngine/platform/graphics/opengl/context/api_context.hpp>
 #include <VoxelEngine/platform/graphics/opengl/presentation/window_helpers.hpp>
-#include <VoxelEngine/platform/graphics/opengl/pipeline/target.hpp>
+#include <VoxelEngine/platform/graphics/opengl/target/target.hpp>
 
 
 namespace ve::gfx {

@@ -3,7 +3,7 @@
 #include <VoxelEngine/core/core.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/renderpass_transforms.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
-#include <VoxelEngine/platform/graphics/opengl/pipeline/target_sampler.hpp>
+#include <VoxelEngine/platform/graphics/opengl/target/target_sampler.hpp>
 
 
 namespace ve::gfx::opengl {
@@ -11,10 +11,10 @@ namespace ve::gfx::opengl {
     // and the first stage takes its input from the final stage (Except on the first iteration). This process is repeated 'count' times.
     // 'name_transform' can be used to map outputs from one stage to uniform samplers in the next one.
     // After the last render operation completes, uniform values are restored to the values they had before this method was invoked.
-    // The uniform 'ping_pong_iteration' is provided for shaders to retrieve the current iteration.
+    // The uniform 'uint ping_pong_iteration' is provided for shaders to retrieve the current iteration.
     inline void ping_pong_render(
         std::vector<shared<pipeline>> pipelines,
-        const pipeline::draw_data& data,
+        const pipeline_draw_data& data,
         std::size_t count = 2,
         std::function<std::string(std::string_view)> name_transform = name_transforms::identity { }
     ) {

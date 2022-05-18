@@ -75,8 +75,12 @@ namespace demo_game {
         game::texture_manager = make_shared<ve::gfx::texture_manager<>>();
 
 
-        auto simple_pipeline = make_shared<single_pass_pipeline>(game::window->get_canvas(), shader_cache::instance().get_or_load<simple_vertex>("simple"));
-        auto pbr_pipeline    = pbr_pipeline::create(game::window->get_canvas());
+        auto simple_pipeline = make_shared<single_pass_pipeline>(
+            game::window->get_canvas(),
+            shader_cache::instance().get_or_load<simple_vertex>(ve::io::paths::PATH_SHADERS / "pipeline_simple", "simple")
+        );
+
+        auto pbr_pipeline = pbr_pipeline::create(game::window->get_canvas());
 
         std::tuple pipelines {
             std::tuple { simple_pipeline, simple_render_tag {} },
@@ -121,7 +125,7 @@ namespace demo_game {
 
 
         // Update the camera when the window is resized.
-        input_manager::instance().add_handler([] (const window_resized_event& e) {
+        input_manager::instance().add_raw_handler([] (const window_resized_event& e) {
             if (e.window == game::window.get()) {
                 auto size = vec2f { e.new_size };
                 game::camera.set_aspect_ratio(size.x / size.y);
@@ -178,7 +182,7 @@ namespace demo_game {
         connect_remote(*game::client, remote_address, 6969);
 
         auto socket_connection = game::client->get_object<shared<connection::socket_client>>("ve.connection");
-        socket_connection->add_handler([] (const connection::session_error_event& e) {
+        socket_connection->add_raw_handler([] (const connection::session_error_event& e) {
             thread_pool::instance().invoke_on_thread([e] {
                 auto msg = "An error occurred in the connection with the server. The connection was terminated.\n"s + e.error.message();
 
@@ -282,7 +286,7 @@ namespace demo_game {
         static hash_map<instance_id, shared<voxel::entity_loader<>>> entity_loaders;
         const static voxel::tilepos range { 3 };
 
-        game::server->add_handler([&w] (const instance_connected_event& e) {
+        game::server->add_raw_handler([&w] (const instance_connected_event& e) {
             auto& p = game::server->store_static_entity(player { *game::server, e.remote });
             game::server_logger.info(cat("Player ", e.remote, " connected to the server."));
 
@@ -292,7 +296,7 @@ namespace demo_game {
         });
 
         // Remove player entity when a client disconnects from the server.
-        game::server->add_handler([&w] (const instance_disconnected_event& e) {
+        game::server->add_raw_handler([&w] (const instance_disconnected_event& e) {
             auto it = entity_loaders.find(e.remote);
             w.voxel.get_space()->remove_chunk_loader(it->second);
             entity_loaders.erase(it);
