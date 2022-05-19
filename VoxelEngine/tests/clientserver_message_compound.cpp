@@ -23,7 +23,7 @@ test_result test_main(void) {
 
     std::size_t callback_invoke_count = 0;
 
-    client.get_server_connection()->add_raw_handler(
+    client.get_server_connection()->add_handler(
         "ve.test.test_message",
         [&] (const test_message& msg) {
             if (msg.text != "This is a test message.") result |= VE_TEST_FAIL("Received message had incorrect contents.");
