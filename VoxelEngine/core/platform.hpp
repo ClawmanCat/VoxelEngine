@@ -45,3 +45,15 @@
 #else
     #error "Unsupported compiler detected! Please use MSVC, Clang or GCC."
 #endif
+
+
+// IDE
+#if defined(__INTELLISENSE__) || defined(__JETBRAINS_IDE__) || defined(IDE_PASS)
+    #define VE_IDE_PASS
+
+    #define VE_IDE_ONLY(...) __VA_ARGS__
+    #define VE_NO_IDE_ONLY(...)
+#else
+    #define VE_IDE_ONLY(...)
+    #define VE_NO_IDE_ONLY(...) __VA_ARGS__
+#endif

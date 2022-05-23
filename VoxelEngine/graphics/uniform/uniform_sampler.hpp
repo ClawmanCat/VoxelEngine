@@ -63,4 +63,53 @@ namespace ve::gfx {
             return name;
         }
     };
+
+
+    // Can be used to create a sampler while the object to be sampled is not yet ready.
+    // Note: construction of name cannot be delayed, since it is required as a key when storing the sampler.
+    struct delayed_sampler : public uniform_sampler {
+        std::string name;
+        std::function<shared<uniform_sampler>(void)> constructor;
+        mutable shared<uniform_sampler> wrapped = nullptr;
+
+
+        delayed_sampler(std::string name, std::function<shared<uniform_sampler>(void)> constructor) :
+            name(std::move(name)),
+            constructor(std::move(constructor))
+        {}
+
+
+        texture_list get_uniform_textures(void) const override {
+            if (!wrapped) [[unlikely]] wrapped = constructor();
+            return wrapped->get_uniform_textures();
+        }
+
+
+        std::string get_uniform_name(void) const override {
+            return name;
+        }
+    };
+
+
+    // Wraps another uniform sampler and renames it.
+    struct renaming_sampler : public uniform_sampler {
+        std::string name;
+        shared<uniform_sampler> wrapped;
+
+
+        explicit renaming_sampler(std::string name, shared<uniform_sampler> wrapped) :
+            name(std::move(name)),
+            wrapped(std::move(wrapped))
+        {}
+
+
+        texture_list get_uniform_textures(void) const override {
+            return wrapped->get_uniform_textures();
+        }
+
+
+        std::string get_uniform_name(void) const override {
+            return name;
+        }
+    };
 }

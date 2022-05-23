@@ -18,7 +18,7 @@ namespace ve::gfx {
     };
 
 
-    inline std::vector<float> make_gaussian_weights(std::size_t count, float stddev) {
+    inline std::vector<float> make_gaussian_weights(std::size_t count, float stddev = 2.0f) {
         auto gaussian = [] (float x, float sigma) {
             float a = 1.0f / std::sqrt(2.0f * constants::f32_pi * sigma * sigma);
             float b = std::exp(-((x * x) / (2.0f * sigma * sigma)));

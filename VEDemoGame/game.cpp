@@ -75,12 +75,12 @@ namespace demo_game {
         game::texture_manager = make_shared<ve::gfx::texture_manager<>>();
 
 
-        auto simple_pipeline = make_shared<single_pass_pipeline>(
+        auto simple_pipeline = single_pass_pipeline::create(
             game::window->get_canvas(),
             shader_cache::instance().get_or_load<simple_vertex>(ve::io::paths::PATH_SHADERS / "pipeline_simple", "simple")
         );
 
-        auto pbr_pipeline = pbr_pipeline::create(game::window->get_canvas());
+        auto pbr_pipeline = pbr_pipeline_with_mixins<pipeline_bloom_mixin>::create(game::window->get_canvas(), "PBR");
 
         std::tuple pipelines {
             std::tuple { simple_pipeline, simple_render_tag {} },

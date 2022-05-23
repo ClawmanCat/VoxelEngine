@@ -21,7 +21,7 @@ SampledT Name##_or(SamplerT samplers[Size], uint index, AccessT uv, SampledT def
             Size,                                                                                   \
             VE_IMPL_SAMPLE_ARRAY_MACRO,                                                             \
             _                                                                                       \
-        );                                                                                          \
+        )                                                                                           \
     }                                                                                               \
                                                                                                     \
     return default_value;                                                                           \

@@ -29,7 +29,7 @@ namespace ve::gfx::opengl {
     }
 
 
-    void pbr_pipeline::setup_renderpasses(void) {
+    void pbr_pipeline::setup_pipeline(void) {
         VE_PROFILE_FN();
 
 
@@ -37,17 +37,17 @@ namespace ve::gfx::opengl {
 
 
         auto geometry_pass_shader = get_shader<vertex_types::material_vertex_3d>(
-            "pbr_geometry",
+            "ve.pbr_geometry",
             "pipeline_pbr/pbr.vert.glsl", "pipeline_pbr/pbr_geometry.frag.glsl"
         );
 
         auto lighting_pass_shader = get_shader<vertex_types::no_vertex>(
-            "pbr_lighting",
+            "ve.pbr_lighting",
             "pipeline_common/screen_quad.g_input.glsl", "pipeline_pbr/pbr_lighting.frag.glsl"
         );
 
         auto postprocessing_pass_shader = get_shader<vertex_types::no_vertex>(
-            "pbr_postprocessing",
+            "ve.pbr_postprocessing",
             "pipeline_common/screen_quad.g_input.glsl", "pipeline_pbr/pbr_postprocessing.frag.glsl"
         );
 
@@ -76,9 +76,15 @@ namespace ve::gfx::opengl {
 
         dispatch_event(pbr_pipeline_pre_build_stages_event { .pipeline = this, .renderpass_defs = &renderpass_defs });
         auto renderpasses = build_pipeline(renderpass_defs, get_target());
-        dispatch_event(pbr_pipeline_post_build_stages_event { .pipeline = this, .renderpasses = &renderpasses });
 
-        for (const auto& ptr : renderpasses) pipeline_stages.push_back(ptr.get());
+        auto renderpasses_base = renderpasses
+            | views::transform([] (auto& ptr) { return std::static_pointer_cast<pipeline>(ptr); })
+            | ranges::to<std::vector>;
+
+        dispatch_event(pbr_pipeline_post_build_stages_event { .pipeline = this, .renderpasses = &renderpasses_base });
+
+
+        for (const auto& ptr : renderpasses) pipeline_stages.push_back(ptr);
         move_into(std::move(renderpasses), geometry_pass, lighting_pass, postprocessing_pass);
 
         dispatch_event(pbr_pipeline_post_build_event { .pipeline = this });

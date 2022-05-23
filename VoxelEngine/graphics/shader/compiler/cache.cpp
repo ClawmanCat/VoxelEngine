@@ -44,8 +44,11 @@ namespace ve::gfx {
 
         preprocessor->add_include_path(io::paths::PATH_SHADERS);
         preprocessor->add_context_action([] (auto& wave_ctx, auto& src, auto& ve_ctx) {
-            std::string filepath = ve_ctx.template get_object<fs::path>("ve.filepath").remove_filename().string();
-            wave_ctx.add_include_path(filepath.c_str());
+            // If the shader came from a file, add its directory as an include path.
+            if (const auto* path = ve_ctx.template try_get_object<fs::path>("ve.filepath"); path) {
+                std::string path_string = fs::path { *path }.remove_filename().string();
+                wave_ctx.add_include_path(path_string.c_str());
+            }
         });
 
         compiler.add_preprocessor(std::move(preprocessor));

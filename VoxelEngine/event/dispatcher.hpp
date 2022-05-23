@@ -29,7 +29,7 @@ namespace ve {
         using dispatcher_base_t = dispatcher<Derived, Handler, Priority>;
         using self_t            = Derived;
         using raw_handler       = event_handler_id_t;
-        using handler_token     = event_handler_token<self_t>;
+        using handler_token     = event_handler_token;
         using priority_t        = Priority;
 
 
@@ -145,4 +145,10 @@ namespace ve {
             return VE_CRTP_CALL(Derived, has_pending_events);
         }
     };
+
+
+    #define ve_impl_using_dispatcher_fns(base)  \
+    using base::add_handler;                    \
+    using base::add_one_time_handler;           \
+    using base::remove_handler;
 }

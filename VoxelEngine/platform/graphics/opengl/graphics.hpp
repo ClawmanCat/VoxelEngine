@@ -8,11 +8,13 @@
 #include <VoxelEngine/platform/graphics/opengl/context/render_context.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/blend.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/category.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/mixins/mixin_bloom.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/mixins/pipeline_mixin.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/mixins/pipeline_mixin_base.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pbr_pipeline.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline_builder.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline_events.hpp>
-#include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline_features.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/renderpass_transforms.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/settings.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/utility.hpp>

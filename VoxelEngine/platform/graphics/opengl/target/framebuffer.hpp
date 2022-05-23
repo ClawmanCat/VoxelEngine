@@ -114,6 +114,15 @@ namespace ve::gfx::opengl {
         }
 
 
+        framebuffer_attachment& get_attachment(std::string_view name) {
+            return attachments.at(name);
+        }
+
+        const framebuffer_attachment& get_attachment(std::string_view name) const {
+            return attachments.at(name);
+        }
+
+
         VE_GET_VAL(id);
         VE_GET_CREF(attachments);
         VE_GET_CREF(texture_validator);

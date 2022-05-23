@@ -46,6 +46,7 @@ namespace ve {
 
 
         delayed_event_dispatcher(void) = default;
+        ve_impl_using_dispatcher_fns(base_t);
         
         
         template <typename Event>

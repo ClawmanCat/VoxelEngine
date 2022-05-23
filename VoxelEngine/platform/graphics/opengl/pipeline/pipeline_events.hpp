@@ -41,7 +41,7 @@ namespace ve::gfx::opengl {
 
     struct pbr_pipeline_post_build_stages_event {
         const class pipeline* pipeline;
-        std::vector<shared<single_pass_pipeline>>* renderpasses;
+        std::vector<shared<class pipeline>>* renderpasses;
     };
 
 

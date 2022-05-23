@@ -15,7 +15,7 @@
 
 
 // In debug mode we often want the exception to not be intercepted, so we can see the point where it was thrown.
-#ifndef VE_DEBUGx
+#ifndef VE_DEBUG
     #define VE_LOG_UNCAUGHT_ERRORS
 #endif
 

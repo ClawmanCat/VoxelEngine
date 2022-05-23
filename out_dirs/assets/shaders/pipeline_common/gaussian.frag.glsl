@@ -10,7 +10,6 @@ UBO U_GaussianData { GaussianData data; };
 UBO U_GaussianDirection { uint direction; };
 
 uniform sampler2D tex;
-uniform sampler2D position;
 
 in NO_VERTEX_BLOCK vertex;
 out vec4 color;
@@ -20,10 +19,8 @@ out vec4 color;
 // and direction = GAUSSIAN_VERTICAL for the second pass, or vice versa.
 // This shader should be used in conjunction with screen_quad.g_input.glsl as its vertex shader.
 void main() {
-    float depth = texture(position, vertex.uv).w;
+    vec2 delta = vec2(1.0 / textureSize(tex, 0)) * data.range;
 
-    // Divide by 1 - distance, otherwise the distance between sample points would get larger and larger with distance.
-    vec2 delta = (1.0 / textureSize(tex, 0)) * (data.range * (1 - depth));
     vec4 color_rgba = texture(tex, vertex.uv);
     vec3 color_rgb  = color_rgba.rgb * data.weights[0];
 

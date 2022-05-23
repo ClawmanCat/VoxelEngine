@@ -132,7 +132,7 @@ namespace ve::renderer_mixins {
     template <typename System> class bloom_mixin : public render_mixin_base, public system_mixin<bloom_mixin<System>, System> {
     public:
         bloom_mixin(void) : render_mixin_base("ve.bloom_mixin") {
-            set_blur_weights(gfx::make_gaussian_weights(6, 0.75f));
+            set_blur_weights(gfx::make_gaussian_weights(5, 2.0f));
         }
 
 
@@ -145,6 +145,9 @@ namespace ve::renderer_mixins {
         void before_system_update(System& self, registry& owner, View view, nanoseconds dt) {
             self.get_pipeline()->template set_uniform_value<gfx::bloom_data>(bloom_uniform_name, bloom_data);
             self.get_pipeline()->template set_uniform_value<gfx::gaussian_blur_data<>>(blur_uniform_name, blur_data);
+
+            self.get_ctx().template store_or_replace_object<u32>("ve.bloom_mixin.num_bloom_passes", num_bloom_passes);
+            self.get_ctx().template store_or_replace_object<float>("ve.bloom_mixin.scale_factor", scale_factor);
         }
 
 
@@ -172,14 +175,20 @@ namespace ve::renderer_mixins {
         std::vector<float> get_blur_weights(void) const {
             return { blur_data.weights.begin(), blur_data.weights.begin() + blur_data.populated_weights };
         }
+
     private:
         gfx::bloom_data bloom_data = gfx::bloom_data { };
         gfx::gaussian_blur_data<> blur_data = gfx::gaussian_blur_data<> { };
+        u32 num_bloom_passes = 4;
+        float scale_factor = 0.5f;
+
         std::string bloom_uniform_name = "U_BloomData";
         std::string blur_uniform_name = "U_GaussianData";
 
     public:
         VE_GET_SET_CREF(bloom_uniform_name);
         VE_GET_SET_CREF(blur_uniform_name);
+        VE_GET_SET_VAL(num_bloom_passes);
+        VE_GET_SET_VAL(scale_factor);
     };
 }

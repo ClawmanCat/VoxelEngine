@@ -13,7 +13,7 @@
 UBO U_Camera { Camera camera; };
 UBO U_Lighting { LightingData light_data; };
 
-#ifndef NO_BLOOM
+#ifdef F_ENABLE_BLOOM
     UBO U_BloomData { BloomData bloom_data; };
 #endif
 
@@ -30,7 +30,7 @@ in NO_VERTEX_BLOCK vertex;
 out vec4 l_position;
 out vec4 l_color;
 
-#ifndef NO_BLOOM
+#ifdef F_ENABLE_BLOOM
     out vec4 l_bloom;
 #endif
 
@@ -99,7 +99,7 @@ void main() {
         total_radiance;
 
 
-    #ifndef NO_BLOOM
+    #ifdef F_ENABLE_BLOOM
         float brightness = dot(l_color.rgb, bloom_data.luma_conversion_weights);
         l_bloom = vec4(l_color.rgb * brightness, 1.0);
     #endif

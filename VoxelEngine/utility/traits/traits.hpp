@@ -5,6 +5,7 @@
 #pragma once
 
 #include <VoxelEngine/utility/traits/always_false.hpp>
+#include <VoxelEngine/utility/traits/any_of.hpp>
 #include <VoxelEngine/utility/traits/bind.hpp>
 #include <VoxelEngine/utility/traits/const_as.hpp>
 #include <VoxelEngine/utility/traits/dont_deduce.hpp>

@@ -3,6 +3,7 @@
 #include <VoxelEngine/platform/graphics/opengl/context/render_context.hpp>
 #include <VoxelEngine/ecs/system/system_renderer_mixins.hpp>
 #include <VoxelEngine/utility/algorithm.hpp>
+#include <VoxelEngine/utility/string.hpp>
 
 
 namespace ve::gfx::opengl {

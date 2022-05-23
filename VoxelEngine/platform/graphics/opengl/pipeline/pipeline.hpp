@@ -6,10 +6,11 @@
 #include <VoxelEngine/event/subscribe_only_view.hpp>
 #include <VoxelEngine/platform/graphics/opengl/shader/shader.hpp>
 #include <VoxelEngine/platform/graphics/opengl/uniform/uniform_storage.hpp>
-#include <VoxelEngine/platform/graphics/opengl/pipeline/settings.hpp>
 #include <VoxelEngine/platform/graphics/opengl/target/target.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/settings.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/category.hpp>
 #include <VoxelEngine/platform/graphics/opengl/pipeline/pipeline_events.hpp>
+#include <VoxelEngine/platform/graphics/opengl/pipeline/mixins/pipeline_mixin_base.hpp>
 
 
 namespace ve::renderer_mixins {
@@ -18,7 +19,7 @@ namespace ve::renderer_mixins {
 
 
 namespace ve::gfx::opengl {
-    template <typename Derived, typename Pipeline> class pipeline_mixin_base;
+    template <typename Derived, typename Pipeline> class pipeline_mixin;
 
     class vertex_buffer;
     struct render_context;
@@ -32,15 +33,15 @@ namespace ve::gfx::opengl {
 
     class pipeline : public uniform_storage, public subscribe_only_view<simple_event_dispatcher<>> {
     public:
-        explicit pipeline(const pipeline_category_t* type, shared<render_target> target) :
-            type(type), target(std::move(target))
+        ve_shared_only(pipeline, const pipeline_category_t* type, shared<render_target> target, std::string name) :
+            type(type), target(std::move(target)), name(std::move(name))
         {}
+
 
         virtual ~pipeline(void) = default;
 
 
-        // While this method is overridable, the method you want to override is probably the protected 2-argument one.
-        virtual void draw(const pipeline_draw_data& data) {
+        void draw(const pipeline_draw_data& data) {
             VE_PROFILE_FN();
 
 
@@ -63,7 +64,7 @@ namespace ve::gfx::opengl {
             dispatch_event(pipeline_post_draw_event { .pipeline = this, .draw_data = &data });
         }
     protected:
-        template <typename Derived, typename Pipeline> friend class pipeline_mixin_base;
+        template <typename Derived, typename Pipeline> friend class pipeline_mixin;
 
 
         // Overridable overload of draw. Override this method to add actual rendering functionality to the pipeline.
@@ -88,11 +89,13 @@ namespace ve::gfx::opengl {
         const pipeline_category_t* type;
         shared<render_target> target;
         bool mixin_checks_enabled = false;
+        std::string name;
 
     public:
         VE_GET_VAL(type);
         VE_GET_SET_CREF(target);
         VE_GET_SET_VAL(mixin_checks_enabled);
+        VE_GET_SET_CREF(name);
     };
 
 
@@ -102,9 +105,23 @@ namespace ve::gfx::opengl {
         using pipeline::draw;
 
 
-        single_pass_pipeline(shared<render_target> target, shared<class shader> shader, pipeline_settings settings = {})
-            : pipeline(shader->get_category(), std::move(target)), settings(std::move(settings)), shader(std::move(shader))
+        ve_derived_shared_only(
+            single_pass_pipeline,
+            pipeline,
+            shared<render_target> target,
+            shared<class shader> shader,
+            std::optional<std::string> name = std::nullopt,
+            pipeline_settings settings = {}
+        ) :
+            pipeline(
+                shader->get_category(),
+                std::move(target),
+                name ? *name : shader->get_reflection().name
+            ),
+            settings(std::move(settings)),
+            shader(std::move(shader))
         {}
+
 
         void draw(const pipeline_draw_data& data, overridable_function_tag) override;
         void set_shader(shared<class shader> shader);
@@ -116,5 +133,34 @@ namespace ve::gfx::opengl {
         shared<class shader> shader;
 
         void bind_settings(void);
+    };
+
+
+    template <template <typename Pipeline> typename... Mixins>
+    class single_pass_pipeline_with_mixins : public single_pass_pipeline, public pipeline_mixin_base<single_pass_pipeline_with_mixins, Mixins...> {
+    public:
+        ve_derived_shared_only(
+            single_pass_pipeline_with_mixins,
+            (pipeline_mixin_base, single_pass_pipeline),
+            shared<render_target> target,
+            shared<class shader> shader,
+            std::optional<std::string> name = std::nullopt,
+            pipeline_settings settings = {}
+        ) :
+            single_pass_pipeline(std::move(target), std::move(shader), std::move(name), settings)
+        {}
+    };
+
+
+    class multipass_pipeline : public pipeline {
+    public:
+        ve_derived_shared_only(multipass_pipeline, pipeline, const pipeline_category_t* type, shared<render_target> target, std::string name) :
+            pipeline(type, std::move(target), std::move(name))
+        {}
+
+        using pipeline::draw;
+
+        virtual std::vector<shared<pipeline>>& get_stages(void) = 0;
+        virtual const std::vector<shared<pipeline>>& get_stages(void) const = 0;
     };
 }

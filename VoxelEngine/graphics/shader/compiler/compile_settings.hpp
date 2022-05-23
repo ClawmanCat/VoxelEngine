@@ -42,11 +42,8 @@ namespace ve::gfx {
         const shaderc::CompileOptions* compiler_options;
         arbitrary_storage preprocessor_context;
         std::vector<shared<shader_preprocessor>> additional_preprocessors;
-        std::size_t preprocessor_recursion_limit = 32;
         shader_specialize_settings specialization_settings;
-
-        // If this value is nullptr, the pipeline category is deduced automatically from the shader stages.
-        const gfxapi::pipeline_category_t* pipeline_type = nullptr;
+        const gfxapi::pipeline_category_t* pipeline_type = &gfxapi::pipeline_category::RASTERIZATION;
 
         // Definitions are visible to each preprocessor (they are added to the preprocessor context), which can decide to either apply them or not.
         tree_map<std::string, std::string> preprocessor_definitions;
@@ -58,7 +55,6 @@ namespace ve::gfx {
             // shaderc doesn't expose the values of any settings, so the best we can do is compare pointers.
             hash_combine(result, compiler_options);
             hash_combine(result, preprocessor_context);
-            hash_combine(result, preprocessor_recursion_limit);
             hash_combine(result, specialization_settings);
             hash_combine(result, pipeline_type);
 

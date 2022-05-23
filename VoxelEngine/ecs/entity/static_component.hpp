@@ -43,7 +43,7 @@ namespace ve::detail {
 
 // Some IDEs seem to struggle with the macro below, so just pretend it doesn't exist during the IDE pass.
 // Note: for parsers like Clangd, you should pass IDE_PASS manually to disable this section.
-#if defined(__INTELLISENSE__) || defined(__JETBRAINS_IDE__) || defined(IDE_PASS)
+#ifdef VE_IDE_PASS
     #define VE_COMPONENT(name) name
     #define VE_COMPONENT_FN(name) name
 #else

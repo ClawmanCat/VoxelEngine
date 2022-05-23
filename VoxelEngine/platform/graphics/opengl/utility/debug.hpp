@@ -7,6 +7,13 @@
 
 
 namespace ve::gfx::opengl {
+    const inline std::vector<GLuint> muted_messages {
+        131222,
+        131186,
+        131154
+    };
+
+
     inline void GLAPIENTRY opengl_logging_callback(
         GLenum source,
         GLenum type,
@@ -16,6 +23,9 @@ namespace ve::gfx::opengl {
         const GLchar* message,
         const void* data
     ) {
+        if (ranges::contains(muted_messages, message_id)) return;
+
+
         #define ve_impl_gl_msg_source(source) case GL_DEBUG_SOURCE_##source: source_string = #source; break;
 
         std::string_view source_string;

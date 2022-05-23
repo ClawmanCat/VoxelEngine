@@ -311,4 +311,36 @@ namespace ve {
 
         return formatter { &stream, &indenter, key };
     }
+
+
+    inline std::string escape_chars(std::string_view str, std::string_view chars) {
+        std::string result;
+        result.reserve(str.size());
+
+        for (char ch : str) {
+            if (ranges::contains(chars, ch)) {
+                result += '\\';
+            }
+
+            result += ch;
+        }
+
+        return result;
+    }
+
+
+    inline std::string unescape_chars(std::string_view str, std::string_view chars) {
+        std::string result;
+        result.reserve(str.size());
+
+        for (auto [i, ch] : str | views::enumerate) {
+            if (ch == '\\' && str.size() > i + 1 && ranges::contains(chars, str[i + 1])) {
+                continue;
+            }
+
+            result += ch;
+        }
+
+        return result;
+    }
 }

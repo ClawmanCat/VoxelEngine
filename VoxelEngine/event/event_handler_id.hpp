@@ -11,15 +11,15 @@ namespace ve {
 
     // RAII-token for event handlers.
     // Event handler is automatically removed from the event dispatcher when the token is destroyed.
-    template <typename Dispatcher> class event_handler_token {
+    class event_handler_token {
     public:
         event_handler_token(void) = default;
         event_handler_token(const event_handler_token&) = delete;
         event_handler_token& operator=(const event_handler_token&) = delete;
 
 
-        template <typename Event> event_handler_token(meta::type_wrapper<Event>, typename Dispatcher::raw_handler id, Dispatcher* dispatcher)
-            : data(data_t { id, dispatcher, make_remove_handler_fn<Event>() })
+        template <typename Event, typename Dispatcher> event_handler_token(meta::type_wrapper<Event>, event_handler_id_t id, Dispatcher* dispatcher)
+            : data(data_t { id, dispatcher, make_remove_handler_fn<Event, Dispatcher>() })
         {}
 
 
@@ -28,6 +28,8 @@ namespace ve {
         event_handler_token& operator=(event_handler_token&& other) {
             destroy_token();
             std::swap(data, other.data);
+
+            return *this;
         }
 
 
@@ -44,7 +46,7 @@ namespace ve {
         };
 
 
-        typename Dispatcher::raw_handler extract_id(void) {
+        event_handler_id_t extract_id(void) {
             VE_DEBUG_ASSERT(data, "Cannot extract ID from empty handler RAII object.");
             return std::exchange(data, std::nullopt)->id;
         }
@@ -52,23 +54,17 @@ namespace ve {
         bool has_value(void) const { return data.has_value(); }
     private:
         struct data_t {
-            typename Dispatcher::raw_handler id;
-            Dispatcher* dispatcher;
-            fn<void, Dispatcher*, typename Dispatcher::raw_handler> call_remove_handler;
+            event_handler_id_t id;
+            void* dispatcher;
+            fn<void, void*, event_handler_id_t> call_remove_handler;
         };
 
         std::optional<data_t> data;
 
 
-        void assert_immovable(void) {
-            // Cannot do this as a requires clause since the dispatcher type will likely be incomplete when this template is specialized.
-            static_assert(meta::is_immovable_v<Dispatcher>, "Cannot create RAII token for movable dispatcher type.");
-        }
-
-
-        template <typename Event> static auto make_remove_handler_fn(void) {
-            return [] (Dispatcher* dispatcher, typename Dispatcher::raw_handler id) {
-                dispatcher->template remove_handler<Event>(id);
+        template <typename Event, typename Dispatcher> static auto make_remove_handler_fn(void) {
+            return [] (void* dispatcher, event_handler_id_t id) {
+                ((Dispatcher*) dispatcher)->template remove_handler<Event>(id);
             };
         }
     };

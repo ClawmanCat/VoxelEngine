@@ -40,7 +40,7 @@ namespace ve::gfx {
 
 
         void operator()(std::string& src, arbitrary_storage& context) const override {
-            auto wave_ctx = workaround_137(src, context);
+            auto wave_ctx = context_construct_workarounds(src, context);
             for (const auto& action : context_actions) action(*wave_ctx, src, context);
 
 
@@ -60,7 +60,7 @@ namespace ve::gfx {
                 for (const auto& token : *wave_ctx) result << token.get_value();
                 src = result.str();
             } catch (const boost::wave::preprocess_exception& e) {
-                const auto& name  = context.template get_object<std::string>("ve.filename");
+                const auto& name  = context.template get_object<std::string>("ve.name");
                 const auto* stage = context.template get_object<const gfxapi::shader_stage*>("ve.shader_stage");
 
                 // Boost stores the actual message in .description(), even though they provide a .what().
@@ -71,6 +71,9 @@ namespace ve::gfx {
                     get_error_location(src, wave_ctx->get_main_pos().get_line()), " <<< HERE"
                 ) };
             }
+
+
+            post_invocation_workarounds(src, context);
         }
 
 
@@ -108,10 +111,16 @@ namespace ve::gfx {
         std::vector<context_action> context_actions;
 
 
-        // Fix issues related to https://github.com/boostorg/wave/issues/137
-        // This should be removed when Boost 1.79 is released.
-        // Note that because of this, all shaders currently have to end with a newline character.
-        static unique<wave_context> workaround_137(std::string& src, arbitrary_storage& context) {
+        // Wave will generate line directives from the provided name. Unless the name matches this specific string,
+        // it will assume it is a path and blindly prepend the working directory since it is not an absolute path.
+        // To prevent this, simply use this as the filename and replace it before we return.
+        const static inline std::string fake_filename = "<Unknown>";
+
+
+        // Boost.Wave has some issues that need to be taken care of before the context is constructed. Notably:
+        // - https://github.com/boostorg/wave/issues/137 (This is fixed in Boost 1.79, currently all shaders must end with a newline.)
+        // - Incorrect paths get inserted with #line directives for shaders that have a dot in their name.
+        static unique<wave_context> context_construct_workarounds(std::string& src, arbitrary_storage& context) {
             static_assert(
                 BOOST_VERSION_NUMBER_MINOR(BOOST_VERSION) < 79,
                 "This issue has been fixed in Boost 1.79 and this code should be replaced once its released."
@@ -120,11 +129,33 @@ namespace ve::gfx {
             src += '\n'; // Previous stage(s) may strip final newline.
 
             // Boost is preventing this value from being directly returnable through some non-copyable bullshittery, even though RVO should apply.
-            auto wave_ctx = make_unique<wave_context>(src.begin(), src.end(), context.get_object<std::string>("ve.filename").c_str());
+            auto wave_ctx = make_unique<wave_context>(src.begin(), src.end(), fake_filename.c_str());
             wave_ctx->set_language(boost::wave::enable_long_long(wave_ctx->get_language()));
             wave_ctx->set_language(boost::wave::enable_variadics(wave_ctx->get_language()));
 
             return wave_ctx;
+        }
+
+
+        // Replace any references to the fake filename that were created earlier.
+        static void post_invocation_workarounds(std::string& src, arbitrary_storage& context) {
+            std::string replacement_name;
+
+            if (const auto* path = context.try_get_object<fs::path>("ve.filepath"); path) {
+                replacement_name = path->string();
+            } else {
+                replacement_name = cat(
+                    "[",
+                    context.get_object<const gfxapi::shader_stage*>("ve.shader_stage")->name,
+                    " ",
+                    context.get_object<std::string>("ve.name"),
+                    "]"
+                );
+            }
+
+            // Cannot have any backslashes in the replacement string without escaping them.
+            replacement_name = replace_substring(replacement_name, "\\", "\\\\");
+            src = replace_substring(src, fake_filename, replacement_name);
         }
 
 
