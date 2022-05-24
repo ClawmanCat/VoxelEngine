@@ -34,12 +34,12 @@ test_result test_main(void) {
     };
 
     auto socket_server = server.template get_object<ve::shared<ve::connection::socket_server>>("ve.connection");
-    socket_server->add_handler<ve::connection::instance_error_event>(handler);
-    socket_server->add_handler<ve::connection::session_error_event>(handler);
+    socket_server->add_raw_handler<ve::connection::instance_error_event>(handler);
+    socket_server->add_raw_handler<ve::connection::session_error_event>(handler);
 
     auto socket_client = client.template get_object<ve::shared<ve::connection::socket_client>>("ve.connection");
-    socket_client->add_handler<ve::connection::instance_error_event>(handler);
-    socket_client->add_handler<ve::connection::session_error_event>(handler);
+    socket_client->add_raw_handler<ve::connection::instance_error_event>(handler);
+    socket_client->add_raw_handler<ve::connection::session_error_event>(handler);
 
 
     using SyncedComponents = ve::meta::pack<test_component_1, test_component_2>;

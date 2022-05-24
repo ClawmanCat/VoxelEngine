@@ -54,7 +54,7 @@ template <typename Dispatcher> struct recursive_insert_handler {
     operator()(const Event& event) const {
         ++Event::counter;
 
-        d->template add_handler<Event>(recursive_insert_handler { d });
+        d->template add_raw_handler<Event>(recursive_insert_handler { d });
         if constexpr (Dispatcher::is_cancellable) return false;
     }
 };
@@ -86,7 +86,7 @@ template <typename Dispatcher> test_result test_recursive_insert(void) {
 template <typename Dispatcher> struct recursive_erase_handler {
     Dispatcher* d;
 
-    std::vector<typename Dispatcher::handler_id>* ids;
+    std::vector<typename Dispatcher::raw_handler>* ids;
     std::size_t index;
 
     template <typename Event>
@@ -109,12 +109,12 @@ template <typename Dispatcher> test_result test_recursive_erase(void) {
 
     VE_LOG_INFO(ve::cat("Testing ", ctti::nameof<Dispatcher>()));
 
-    std::vector<typename Dispatcher::handler_id> handlers;
+    std::vector<typename Dispatcher::raw_handler> handlers;
 
     event_types::foreach([&, i = 0ull] <typename Event> () mutable {
         do_singlethreaded(
             [&] {
-                auto id = d.template add_handler<Event>(
+                auto id = d.template add_raw_handler<Event>(
                     recursive_erase_handler<Dispatcher> { &d, &handlers, i++ }
                 );
 

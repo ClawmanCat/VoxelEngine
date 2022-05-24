@@ -85,6 +85,13 @@ namespace ve::gfx {
     }
 
 
+    std::size_t directive_preprocessor::hash(void) const {
+        std::size_t result = 0;
+        for (const auto& dsm : directives) hash_combine(result, dsm);
+        return result;
+    }
+
+
     void directive_preprocessor::add_directive(std::string key, std::function<std::string(std::string)> action) {
         struct machine : directive_state_machine {
             std::string key;

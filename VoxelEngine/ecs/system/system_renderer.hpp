@@ -51,7 +51,7 @@ namespace ve {
 
 
             // TODO: Prevent having to do this copy each update, allow the pipeline to accept the view or something similar?
-            static thread_local gfxapi::pipeline::draw_data data { .ctx = &ctx };
+            static thread_local gfxapi::pipeline_draw_data data { .ctx = &ctx };
             auto clear_on_exit = raii_function { no_op, [&] { data.buffers.clear(); } };
 
 

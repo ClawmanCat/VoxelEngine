@@ -1,7 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/platform/graphics/opengl/pipeline/framebuffer.hpp>
+#include <VoxelEngine/platform/graphics/opengl/target/framebuffer.hpp>
 
 
 namespace ve::gfx::opengl {

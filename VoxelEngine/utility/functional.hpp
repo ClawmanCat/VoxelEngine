@@ -30,19 +30,19 @@ namespace ve {
     };
     
 
-    // Returns a predicate that copies and returns the pre-provided value.
+    // Returns a function that copies and returns the pre-provided value.
     template <typename T> constexpr inline auto produce(T&& value) {
         return [value = fwd(value)](auto&&...) { return value; };
     }
 
 
-    // Returns a predicate that constructs T from its given arguments.
+    // Returns a function that constructs T from its given arguments.
     template <typename T> constexpr inline auto construct(void) {
         return [](auto&&... args) { return T { fwd(args)... }; };
     }
 
 
-    // Returns a predicate that casts its argument to the given type.
+    // Returns a function that casts its argument to the given type.
     template <typename T> constexpr inline auto cast(void) {
         return [](auto&& arg) { return static_cast<T>(arg); };
     }
@@ -62,14 +62,20 @@ namespace ve {
         return [member = member](meta::maybe_const<Cls> auto& object) { return object.*member; };
     }
     
+    
+    // Returns a function equal to the provided function, but returning void.
+    template <typename Fn> constexpr inline auto discard_result(Fn&& fn) {
+        return [fn = fwd(fn)] (auto&&... args) { std::invoke(fn, fwd(args)...); };
+    }
+    
 
-    // Returns a predicate that checks if the given field is equal to the given value.
+    // Returns a function that checks if the given field is equal to the given value.
     template <typename Cls, typename T> constexpr inline auto equal_on(mem_var<Cls, T> member, auto&& val) {
         return [val = fwd(val), member = member](const Cls& o) { return o.*member == val; };
     }
 
 
-    // Returns a predicate that checks if invoking the given member with the given arguments returns a result equal to the given value.
+    // Returns a function that checks if invoking the given member with the given arguments returns a result equal to the given value.
     template <typename Cls, typename T, typename... Args>
     constexpr inline auto equal_on(mem_fn<Cls, T, Args...> member, auto&& val, Args&&... args) {
         return [val = fwd(val), member = member, ...args = fwd(args)](const Cls& o) { return (o.*member)(args...) == val; };

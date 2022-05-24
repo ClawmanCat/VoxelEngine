@@ -31,7 +31,7 @@ test_result test_with_connection_method(
     std::atomic_uint64_t received_on_server = 0, received_on_client = 0;
 
 
-    auto server_handler = server->add_handler([&](const ve::instance_connected_event& event) {
+    auto server_handler = server->add_raw_handler([&](const ve::instance_connected_event& event) {
         server->get_client_connection(event.remote)->add_handler(
             "ve.test.test_message",
             [&](const test_message& msg) {
@@ -43,11 +43,11 @@ test_result test_with_connection_method(
     });
 
 
-    std::vector<ve::client::handler_id> client_handlers;
+    std::vector<ve::client::raw_handler> client_handlers;
     client_handlers.reserve(clients.size());
 
     for (auto& client : clients) {
-        client_handlers.push_back(client->add_handler([&](const ve::instance_connected_event& event) {
+        client_handlers.push_back(client->add_raw_handler([&](const ve::instance_connected_event& event) {
             client->get_server_connection()->add_handler(
                 "ve.test.test_message",
                 [&](const test_message& msg) {

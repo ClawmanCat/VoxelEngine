@@ -4,8 +4,7 @@
 
 
 namespace ve::detail {
-    // This just calls VE_ASSERT. For some reason calling it from the header leads to it not being able to see
-    // ve::cat, even if it is included here directly.
+    // Wrapper around VE_ASSERT that can be called by ENTT.
     extern void entt_assert_override(bool cond, const char* msg);
 }
 

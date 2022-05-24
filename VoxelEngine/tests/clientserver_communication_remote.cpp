@@ -28,14 +28,14 @@ test_result test_main(void) {
         [&] (ve::client& c, ve::server& s) {
             if (active_connections == 0) {
                 error_types::foreach([&] <typename T> {
-                    s.template add_handler<T>(log_error<T>);
+                    s.template add_raw_handler<T>(log_error<T>);
                 });
 
                 ve::host_server(s, 12000);
             }
 
             error_types::foreach([&] <typename T> {
-                c.template add_handler<T>(log_error<T>);
+                c.template add_raw_handler<T>(log_error<T>);
             });
 
             ve::connect_remote(c, "127.0.0.1", 12000);

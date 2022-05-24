@@ -60,7 +60,7 @@ namespace ve::gfx::opengl {
         using buffer_handle = u32;
 
 
-        ve_shared_only(compound_vertex_buffer) :
+        ve_derived_shared_only(compound_vertex_buffer, vertex_buffer) :
             vertex_buffer(ctti::type_id<Vertex>(), ctti::type_id<Index>())
         {}
 
@@ -102,7 +102,7 @@ namespace ve::gfx::opengl {
     template <typename Vertex> requires has_vertex_layout<Vertex>
     class unindexed_vertex_buffer : public vertex_buffer {
     public:
-        ve_shared_only(unindexed_vertex_buffer) :
+        ve_derived_shared_only(unindexed_vertex_buffer, vertex_buffer) :
             vertex_buffer(ctti::type_id<Vertex>()),
             vbo(GL_ARRAY_BUFFER)
         {}
@@ -171,7 +171,7 @@ namespace ve::gfx::opengl {
     template <typename Vertex, typename Index> requires meta::pack<u8, u16, u32>::template contains<Index>
     class indexed_vertex_buffer : public unindexed_vertex_buffer<Vertex> {
     public:
-        ve_shared_only(indexed_vertex_buffer) :
+        ve_derived_shared_only(indexed_vertex_buffer, unindexed_vertex_buffer) :
             unindexed_vertex_buffer<Vertex>(),
             ebo(GL_ELEMENT_ARRAY_BUFFER)
         {

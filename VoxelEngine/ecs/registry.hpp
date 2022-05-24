@@ -33,7 +33,7 @@ namespace ve {
 
 
     // The registry is responsible for storing entities, components and systems.
-    class registry : public subscribe_only_view<simple_event_dispatcher<false>> {
+    class registry : public subscribe_only_view<simple_event_dispatcher<>> {
     public:
         using system_id = u32;
 

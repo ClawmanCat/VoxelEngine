@@ -11,12 +11,38 @@
     else return false;                                                                  \
 }()
 
+#define ve_eval_if_valid_c(...)                                                         \
+[&] {                                                                                   \
+    if constexpr (requires { __VA_ARGS__; }) return __VA_ARGS__;                        \
+    else return false;                                                                  \
+}()
+
 
 // Only evaluates the condition if cond is true, otherwise returns false.
 #define ve_eval_if_cond(cond, ...)                                                      \
 [] {                                                                                    \
     if constexpr (cond) return __VA_ARGS__;                                             \
     else return false;                                                                  \
+}()
+
+#define ve_eval_if_cond_c(cond, ...)                                                    \
+[&] {                                                                                   \
+    if constexpr (cond) return __VA_ARGS__;                                             \
+    else return false;                                                                  \
+}()
+
+
+// Evaluates X if cond is true, otherwise evaluates Y.
+#define ve_eval_if_else(cond, X, Y)                                                     \
+[] {                                                                                    \
+    if constexpr (cond) return X;                                                       \
+    else return Y;                                                                      \
+}()
+
+#define ve_eval_if_else_c(cond, X, Y)                                                   \
+[&] {                                                                                   \
+    if constexpr (cond) return X;                                                       \
+    else return Y;                                                                      \
 }()
 
 

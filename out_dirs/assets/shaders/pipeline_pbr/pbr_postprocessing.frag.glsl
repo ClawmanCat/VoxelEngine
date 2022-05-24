@@ -8,7 +8,7 @@
 
 UBO U_Lighting { LightingData light_data; };
 
-#ifndef NO_BLOOM
+#ifdef F_ENABLE_BLOOM
     UBO U_BloomData { BloomData bloom_data; };
     uniform sampler2D l_bloom;
 #endif
@@ -23,7 +23,7 @@ out vec4 color;
 
 void main() {
     // Apply Bloom.
-    #ifndef NO_BLOOM
+    #ifdef F_ENABLE_BLOOM
         vec3 bloom = texture(l_bloom, vertex.uv).rgb * bloom_data.bloom_intensity;
     #else
         vec3 bloom = vec3(0.0, 0.0, 0.0);

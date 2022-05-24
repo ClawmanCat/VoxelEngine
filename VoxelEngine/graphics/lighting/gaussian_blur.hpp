@@ -5,6 +5,10 @@
 
 
 namespace ve::gfx {
+    constexpr inline u32 GAUSSIAN_HORIZONTAL = 0;
+    constexpr inline u32 GAUSSIAN_VERTICAL   = 1;
+
+
     template <std::size_t WeightLimit = 16> struct gaussian_blur_data {
         constexpr static inline std::size_t weight_count_limit = WeightLimit;
 
@@ -14,7 +18,7 @@ namespace ve::gfx {
     };
 
 
-    inline std::vector<float> make_gaussian_weights(std::size_t count, float stddev) {
+    inline std::vector<float> make_gaussian_weights(std::size_t count, float stddev = 2.0f) {
         auto gaussian = [] (float x, float sigma) {
             float a = 1.0f / std::sqrt(2.0f * constants::f32_pi * sigma * sigma);
             float b = std::exp(-((x * x) / (2.0f * sigma * sigma)));

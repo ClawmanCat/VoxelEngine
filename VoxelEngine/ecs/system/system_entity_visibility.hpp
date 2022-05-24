@@ -69,11 +69,11 @@ namespace ve {
                 "Registry must be part of an instance in order to use a synchronization system."
             );
 
-            entity_destroyed_handler = owner.add_handler([&] (const entity_destroyed_event& e) {
+            entity_destroyed_handler = owner.add_raw_handler([&] (const entity_destroyed_event& e) {
                 if (!destroyed_entities.contains(e.entity)) destroyed_entities.emplace(e.entity);
             });
 
-            remote_disconnected_handler = owner.add_handler([&] (const instance_disconnected_event& e) {
+            remote_disconnected_handler = owner.add_raw_handler([&] (const instance_disconnected_event& e) {
                 storage.erase(e.remote);
             });
 

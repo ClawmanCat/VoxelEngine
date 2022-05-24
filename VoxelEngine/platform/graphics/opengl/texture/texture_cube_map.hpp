@@ -57,6 +57,8 @@ namespace ve::gfx::opengl {
         ) :
             texture_base(texture_type::TEXTURE_CUBE_MAP, size, fmt, mipmap_levels, filter, wrap)
         {
+            VE_DEBUG_ASSERT(size.x == size.y, "Cube map textures must be square (Provided size is ", size, ").");
+
             glTexStorage2D((GLenum) get_gl_type(), (GLsizei) mipmap_levels, fmt.pixel_format, (GLsizei) size.x, (GLsizei) size.y);
             regenerate_mipmaps_bound();
         }

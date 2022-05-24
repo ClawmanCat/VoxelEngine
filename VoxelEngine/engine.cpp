@@ -89,7 +89,7 @@ namespace ve {
         SDL_SetMainReady();
         SDL_Init(SDL_INIT_EVERYTHING);
 
-        input_manager::instance().add_handler(
+        input_manager::instance().add_raw_handler(
             [](const exit_requested_event&) { engine::exit(); },
             priority::LOWEST // Give the game the opportunity to handle this event first.
         );

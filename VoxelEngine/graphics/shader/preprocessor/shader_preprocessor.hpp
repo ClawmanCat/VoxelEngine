@@ -14,6 +14,7 @@ namespace ve::gfx {
         // Performs some transform on the shader source code.
         // Context can be used to pass data between preprocessor stages.
         virtual void operator()(std::string& src, arbitrary_storage& context) const = 0;
+        virtual std::size_t hash(void) const = 0;
 
         VE_GET_VAL(priority);
         VE_GET_CREF(name);

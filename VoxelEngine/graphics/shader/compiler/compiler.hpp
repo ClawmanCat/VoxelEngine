@@ -27,6 +27,7 @@ namespace ve::gfx {
 
     // Compiles shader sources to SPIRV binaries.
     // The resulting shader_compilation_data can be used with gfxapi::make_shader to construct the actual shader.
+    // Note: this class is not thread-safe, even if the set of preprocessors remains unchanged.
     class shader_compiler {
     public:
         using source_list   = vec_map<const gfxapi::shader_stage*, std::string>;
@@ -38,8 +39,8 @@ namespace ve::gfx {
 
 
         // Create a shader from a given list of shader stage source files.
-        // 'dirs' parameter optionally specifies where the compiler should pretend the sources are located for the purpose of resolving include directives.
-        shader_compilation_data compile(const source_list& sources, std::string_view name, const shader_compile_settings& settings, const location_list& dirs = {});
+        // 'locations' parameter optionally specifies where the compiler should pretend the sources are located for the purpose of resolving include directives and error messages.
+        shader_compilation_data compile(const source_list& sources, std::string_view name, const shader_compile_settings& settings, const location_list& locations = {});
         // Create a shader from all shader sources in the given directory with the given name.
         shader_compilation_data compile(const fs::path& directory, std::string_view name, const shader_compile_settings& settings);
         // Create a shader from the provided shader source files.
@@ -57,10 +58,11 @@ namespace ve::gfx {
         tree_set<shared<shader_preprocessor>, comparator> preprocessors;
 
 
+        // Note: path may be nullptr if the shader didn't come from a file.
         SPIRV create_blob(
             std::string_view name,
             std::string source,
-            const fs::path& path,
+            const fs::path* path,
             const gfxapi::shader_stage* stage,
             const shader_compile_settings& settings,
             arbitrary_storage& ctx

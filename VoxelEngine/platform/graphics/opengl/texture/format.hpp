@@ -29,13 +29,15 @@ namespace ve::gfx::opengl {
     };
 
 
+    // Note: it is perfectly valid to define new texture formats outside this array, these are simply some common formats.
     constexpr inline auto texture_formats = make_array<texture_format>(
         texture_format { "R8",       GL_RED,             GL_UNSIGNED_BYTE, GL_R8,                  1,  8,  { 8,  0,  0,  0  } },
         texture_format { "RG8",      GL_RG,              GL_UNSIGNED_BYTE, GL_RG8,                 2,  16, { 8,  8,  0,  0  } },
         texture_format { "RGB8",     GL_RGB,             GL_UNSIGNED_BYTE, GL_RGB8,                3,  24, { 8,  8,  8,  0  } },
         texture_format { "RGBA8",    GL_RGBA,            GL_UNSIGNED_BYTE, GL_RGBA8,               4,  32, { 8,  8,  8,  8  } },
         texture_format { "DEPTH32F", GL_DEPTH_COMPONENT, GL_FLOAT,         GL_DEPTH_COMPONENT32F,  1,  32, { 32, 0,  0,  0  } },
-        texture_format { "RGBA32F",  GL_RGBA,            GL_FLOAT,         GL_RGBA32F,             4,  32, { 32, 32, 32, 32 } }
+        texture_format { "RGBA32F",  GL_RGBA,            GL_FLOAT,         GL_RGBA32F,             4,  32, { 32, 32, 32, 32 } },
+        texture_format { "R32F",     GL_RED,             GL_FLOAT,         GL_R32F,                1,  32, { 32, 0,  0,  0  } }
     );
 
 
@@ -44,4 +46,5 @@ namespace ve::gfx::opengl {
     constexpr inline const auto& texture_format_RGBA8    = texture_formats[3];
     constexpr inline const auto& texture_format_DEPTH32F = texture_formats[4];
     constexpr inline const auto& texture_format_RGBA32F  = texture_formats[5];
+    constexpr inline const auto& texture_format_GRAY32F  = texture_formats[6];
 }

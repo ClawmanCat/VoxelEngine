@@ -3,6 +3,7 @@
 #include "utility/pbr.util.glsl"
 #include "utility/math.util.glsl"
 #include "utility/edgecase.util.glsl"
+#include "utility/sampler_array.util.glsl"
 #include "structs/camera.util.glsl"
 #include "structs/light.util.glsl"
 #include "structs/bloom.util.glsl"
@@ -12,7 +13,7 @@
 UBO U_Camera { Camera camera; };
 UBO U_Lighting { LightingData light_data; };
 
-#ifndef NO_BLOOM
+#ifdef F_ENABLE_BLOOM
     UBO U_BloomData { BloomData bloom_data; };
 #endif
 
@@ -29,7 +30,7 @@ in NO_VERTEX_BLOCK vertex;
 out vec4 l_position;
 out vec4 l_color;
 
-#ifndef NO_BLOOM
+#ifdef F_ENABLE_BLOOM
     out vec4 l_bloom;
 #endif
 
@@ -58,7 +59,6 @@ void main() {
     vec3 total_radiance = vec3(0.0);
     for (uint i = 0; i < light_data.num_populated_lights; ++i) {
         Light light = light_data.lights[i];
-
 
         // Direction from which the fragment is hit by the light.
         vec3 light_on_fragment = normalize(light.position - l_position.xyz);
@@ -99,7 +99,7 @@ void main() {
         total_radiance;
 
 
-    #ifndef NO_BLOOM
+    #ifdef F_ENABLE_BLOOM
         float brightness = dot(l_color.rgb, bloom_data.luma_conversion_weights);
         l_bloom = vec4(l_color.rgb * brightness, 1.0);
     #endif

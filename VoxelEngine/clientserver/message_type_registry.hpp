@@ -30,7 +30,7 @@ namespace ve {
     struct message_type_registered_event { const message_type* type; };
 
 
-    class message_type_registry : public subscribe_only_view<simple_event_dispatcher<false>> {
+    class message_type_registry : public subscribe_only_view<simple_event_dispatcher<>> {
     public:
         template <typename T>
         const message_type& register_type(std::string name, bool is_core = false) {

@@ -43,6 +43,35 @@ namespace ve::gfx::opengl {
                 else return std::string { sv };
             }
         };
+
+
+        // Performs multiple renaming functions in the order they are provided.
+        struct all : public std::vector<std::function<std::string(std::string_view)>> {
+            using std::vector<std::function<std::string(std::string_view)>>::vector;
+
+            std::string operator()(std::string_view sv) const {
+                std::string result { sv };
+                for (const auto& fn : *this) result = fn(result);
+                return result;
+            }
+        };
+
+
+        // Equivalent to all, but returns the result of the first transform that changed the name.
+        struct first_effective : public std::vector<std::function<std::string(std::string_view)>> {
+            using std::vector<std::function<std::string(std::string_view)>>::vector;
+
+            std::string operator()(std::string_view sv) const {
+                std::string result { sv };
+
+                for (const auto& fn : *this) {
+                    result = fn(result);
+                    if (result != sv) break;
+                }
+
+                return result;
+            }
+        };
     }
 
 

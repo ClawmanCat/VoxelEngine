@@ -140,6 +140,7 @@ namespace ve::gfx {
 
         VE_GET_MREF(compiler);
         VE_GET_MREF(default_compile_options);
+        VE_GET_MREF(default_settings);
     private:
         shader_compiler compiler;
         hash_map<shader_cfg_hash, shared<gfxapi::shader>> shaders;
@@ -161,4 +162,13 @@ namespace ve::gfx {
             return it->second;
         }
     };
+
+
+    // Wrapper function for loading shaders from the cache, given a name and a set of files.
+    template <typename V> inline auto get_shader(const auto& name, const auto&... stages) {
+        return shader_cache::instance().template get_or_load<V>(
+            std::vector<fs::path>{ io::paths::PATH_SHADERS / stages... },
+            name
+        );
+    }
 }

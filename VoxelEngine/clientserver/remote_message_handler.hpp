@@ -13,7 +13,7 @@ namespace ve {
             message_handler(instance, remote_id),
             session(std::move(session))
         {
-            handler_id = this->session->add_handler([this] (const connection::message_received_event& e) {
+            handler_id = this->session->add_raw_handler([this] (const connection::message_received_event& e) {
                 on_message_received(e.message);
             });
         }

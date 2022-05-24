@@ -15,12 +15,13 @@
 #include <VoxelEngine/core/codegen/move.hpp>
 #include <VoxelEngine/core/codegen/mutator.hpp>
 #include <VoxelEngine/core/codegen/not_yet_implemented.hpp>
-#include <VoxelEngine/core/codegen/shared_only.hpp>
+#include <VoxelEngine/core/codegen/smart_ptr_only.hpp>
 #include <VoxelEngine/core/codegen/symbol_export.hpp>
 #include <VoxelEngine/core/codegen/unreachable.hpp>
 #include <VoxelEngine/core/codegen/wrap_container.hpp>
 #include <VoxelEngine/core/includes.hpp>
 #include <VoxelEngine/core/legacy.hpp>
+#include <VoxelEngine/core/overridable_fn_tag.hpp>
 #include <VoxelEngine/core/platform.hpp>
 #include <VoxelEngine/core/preprocessor.hpp>
 #include <VoxelEngine/core/profiler.hpp>

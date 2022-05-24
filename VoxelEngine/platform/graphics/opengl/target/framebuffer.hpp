@@ -4,11 +4,11 @@
 #include <VoxelEngine/utility/assert.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/texture.hpp>
 #include <VoxelEngine/platform/graphics/opengl/texture/format.hpp>
-#include <VoxelEngine/platform/graphics/opengl/pipeline/framebuffer_attachment.hpp>
+#include <VoxelEngine/platform/graphics/opengl/target/framebuffer_attachment.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/get.hpp>
 #include <VoxelEngine/platform/graphics/opengl/utility/reset_texture_bindings.hpp>
 
-#include <gl/glew.h>
+#include <GL/glew.h>
 #include <magic_enum.hpp>
 
 
@@ -114,6 +114,15 @@ namespace ve::gfx::opengl {
         }
 
 
+        framebuffer_attachment& get_attachment(std::string_view name) {
+            return attachments.at(name);
+        }
+
+        const framebuffer_attachment& get_attachment(std::string_view name) const {
+            return attachments.at(name);
+        }
+
+
         VE_GET_VAL(id);
         VE_GET_CREF(attachments);
         VE_GET_CREF(texture_validator);
@@ -159,10 +168,9 @@ namespace ve::gfx::opengl {
                     tex->set_parameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
                 }
 
-                glFramebufferTexture2D(
+                glFramebufferTexture(
                     GL_FRAMEBUFFER,
                     (GLenum) tmpl.attachment_type + attachment.attachment_index,
-                    GL_TEXTURE_2D,
                     tex->get_id(),
                     0
                 );

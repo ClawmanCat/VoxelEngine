@@ -26,7 +26,7 @@ namespace ve::connection {
     constexpr session_id invalid_session_id = max_value<session_id>;
 
 
-    struct dispatcher_t : public subscribe_only_view<delayed_event_dispatcher<false, u16, true>> {
+    struct dispatcher_t : public subscribe_only_view<delayed_event_dispatcher<true>> {
         friend class socket_session;
     };
 

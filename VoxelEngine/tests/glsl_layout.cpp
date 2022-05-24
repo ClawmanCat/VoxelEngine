@@ -239,7 +239,7 @@ test_result test_with_layout(std::string uniform_def, const T& object, std::stri
     auto context  = ve::gfxapi::render_context { };
 
     pipeline.set_uniform_value<T>(std::string { name }, object);
-    pipeline.draw(ve::gfxapi::pipeline::draw_data { .buffers = { vbo.get() }, .ctx = &context });
+    pipeline.draw(ve::gfxapi::pipeline_draw_data { .buffers = { vbo.get() }, .ctx = &context });
 
     auto texture = std::static_pointer_cast<ve::gfxapi::texture>(target->get_attachments().at("color").texture);
     auto result  = texture->read()[{ 1, 1 }];

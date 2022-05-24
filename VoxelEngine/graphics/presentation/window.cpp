@@ -37,7 +37,7 @@ namespace ve::gfx {
 
         // Clicking the close button simply triggers the event, but does not actually call SDL_DestroyWindow.
         // This is only an issue with multiple windows, as closing the final window triggers an SDL_QuitEvent anyway.
-        if (args.exit_button_closes_window) input_manager::instance().add_handler(
+        if (args.exit_button_closes_window) input_manager::instance().add_raw_handler(
             [this] (const window_closed_event& event) { if (event.window == this) close(); },
             priority::LOWEST
         );

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/then.hpp>
 #include <VoxelEngine/graphics/shader/preprocessor/shader_preprocessor.hpp>
 
 #include <boost/wave.hpp>
@@ -39,8 +40,18 @@ namespace ve::gfx {
 
 
         void operator()(std::string& src, arbitrary_storage& context) const override {
-            auto wave_ctx = workaround_137(src, context);
+            auto wave_ctx = context_construct_workarounds(src, context);
             for (const auto& action : context_actions) action(*wave_ctx, src, context);
+
+
+            // Apply provided preprocessor directives.
+            for (const auto& [k, v] : context.template get_object<const shader_compile_settings*>("ve.compile_settings")->preprocessor_definitions) {
+                std::string macro_string = k;
+                if (!v.empty()) macro_string += "=";
+                macro_string += v;
+
+                wave_ctx->add_macro_definition(macro_string, true);
+            }
 
 
             std::stringstream result;
@@ -49,18 +60,29 @@ namespace ve::gfx {
                 for (const auto& token : *wave_ctx) result << token.get_value();
                 src = result.str();
             } catch (const boost::wave::preprocess_exception& e) {
-                const auto& name  = context.template get_object<std::string>("ve.filename");
+                const auto& name  = context.template get_object<std::string>("ve.name");
                 const auto* stage = context.template get_object<const gfxapi::shader_stage*>("ve.shader_stage");
-
 
                 // Boost stores the actual message in .description(), even though they provide a .what().
                 throw std::runtime_error { cat(
                     "Failed to preprocess ", stage->name, " stage of shader ", name, ":\n",
                     e.description(), "\n\n",
                     "Note: error occurred here:\n",
-                    get_error_location(result.str()), " <<< HERE"
+                    get_error_location(src, wave_ctx->get_main_pos().get_line()), " <<< HERE"
                 ) };
             }
+
+
+            post_invocation_workarounds(src, context);
+        }
+
+
+        std::size_t hash(void) const override {
+            // Context actions cannot be effectively compared, so just hash each instance by its address.
+            // This may cause some unnecessary recompilation, but at least it won't give any false negatives.
+            std::size_t hash = 0;
+            for (const auto& action : context_actions) ve::hash_combine(hash, &action);
+            return hash;
         }
 
 
@@ -89,10 +111,16 @@ namespace ve::gfx {
         std::vector<context_action> context_actions;
 
 
-        // Fix issues related to https://github.com/boostorg/wave/issues/137
-        // This should be removed when Boost 1.79 is released.
-        // Note that because of this, all shaders currently have to end with a newline character.
-        static unique<wave_context> workaround_137(std::string& src, arbitrary_storage& context) {
+        // Wave will generate line directives from the provided name. Unless the name matches this specific string,
+        // it will assume it is a path and blindly prepend the working directory since it is not an absolute path.
+        // To prevent this, simply use this as the filename and replace it before we return.
+        const static inline std::string fake_filename = "<Unknown>";
+
+
+        // Boost.Wave has some issues that need to be taken care of before the context is constructed. Notably:
+        // - https://github.com/boostorg/wave/issues/137 (This is fixed in Boost 1.79, currently all shaders must end with a newline.)
+        // - Incorrect paths get inserted with #line directives for shaders that have a dot in their name.
+        static unique<wave_context> context_construct_workarounds(std::string& src, arbitrary_storage& context) {
             static_assert(
                 BOOST_VERSION_NUMBER_MINOR(BOOST_VERSION) < 79,
                 "This issue has been fixed in Boost 1.79 and this code should be replaced once its released."
@@ -101,7 +129,7 @@ namespace ve::gfx {
             src += '\n'; // Previous stage(s) may strip final newline.
 
             // Boost is preventing this value from being directly returnable through some non-copyable bullshittery, even though RVO should apply.
-            auto wave_ctx = make_unique<wave_context>(src.begin(), src.end(), context.get_object<std::string>("ve.filename").c_str());
+            auto wave_ctx = make_unique<wave_context>(src.begin(), src.end(), fake_filename.c_str());
             wave_ctx->set_language(boost::wave::enable_long_long(wave_ctx->get_language()));
             wave_ctx->set_language(boost::wave::enable_variadics(wave_ctx->get_language()));
 
@@ -109,13 +137,40 @@ namespace ve::gfx {
         }
 
 
-        static std::string get_error_location(std::string_view src, std::size_t lines = 10) {
+        // Replace any references to the fake filename that were created earlier.
+        static void post_invocation_workarounds(std::string& src, arbitrary_storage& context) {
+            std::string replacement_name;
+
+            if (const auto* path = context.try_get_object<fs::path>("ve.filepath"); path) {
+                replacement_name = path->string();
+            } else {
+                replacement_name = cat(
+                    "[",
+                    context.get_object<const gfxapi::shader_stage*>("ve.shader_stage")->name,
+                    " ",
+                    context.get_object<std::string>("ve.name"),
+                    "]"
+                );
+            }
+
+            // Cannot have any backslashes in the replacement string without escaping them.
+            replacement_name = replace_substring(replacement_name, "\\", "\\\\");
+            src = replace_substring(src, fake_filename, replacement_name);
+        }
+
+
+        static std::string get_error_location(std::string_view src, std::size_t error_line, std::size_t lines = 8) {
             auto error_location = split(src, "\n");
+            if (error_location.empty()) return "<EMPTY FILE>";
 
-            if (error_location.empty()) error_location.push_back("<EMPTY FILE>");
-            if (error_location.size() > lines) error_location.erase(error_location.begin(), error_location.end() - lines);
 
-            return cat_range_with(error_location, "\n");
+            error_location = error_location
+                | views::drop(error_line - lines)
+                | views::take(lines)
+                | ranges::to<std::vector>;
+
+
+            return cat_range_with(error_location, "\n") | then([] (auto& str) { str.pop_back(); });
         }
     };
 }

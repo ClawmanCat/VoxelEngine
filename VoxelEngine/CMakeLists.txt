@@ -66,3 +66,6 @@ foreach(dir ${BOOST_INCLUDE_DIRS})
         )
     endif()
 endforeach()
+
+
+target_compile_definitions(VoxelEngine PRIVATE "VE_BUILD_ENGINE=1")

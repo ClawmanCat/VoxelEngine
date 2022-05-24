@@ -14,7 +14,7 @@ namespace ve {
     template <typename Fn> struct then_t {
         Fn fn;
 
-        constexpr decltype(auto) operator()(auto& arg) const {
+        constexpr void operator()(auto& arg) const {
             std::invoke(fn, fwd(arg));
         }
     };

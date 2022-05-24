@@ -11,29 +11,27 @@ namespace ve::gfx {
     }
 
 
-    shader_compilation_data shader_compiler::compile(const source_list& sources, std::string_view name, const shader_compile_settings& settings, const location_list& dirs) {
+    shader_compilation_data shader_compiler::compile(const source_list& sources, std::string_view name, const shader_compile_settings& settings, const location_list& locations) {
         auto profiler_msg = cat("Compile shader ", name);
         VE_PROFILE_FN(profiler_msg.c_str());
+
+
+        VE_LOG_DEBUG(cat("Compiling shader ", name, "..."));
 
 
         shader_compilation_data result;
 
         arbitrary_storage context = settings.preprocessor_context;
-        context.store_object<const shader_compile_settings*>("ve.compile_settings", &settings);
-
-
-        auto get_path = [&] (const auto* stage) {
-            return dirs.empty() ? io::paths::PATH_SHADERS : dirs.at(stage);
-        };
+        context.store_or_replace_object<const shader_compile_settings*>("ve.compile_settings", &settings);
 
 
         for (const auto& [stage, source] : sources) {
-            auto path = get_path(stage) / cat(name, stage->file_extension);
+            auto path = locations.empty() ? nullptr : &locations.at(stage);
             auto blob = create_blob(name, source, path, stage, settings, context);
 
             result.spirv_blobs.emplace(stage, std::move(blob));
             result.glsl_sources.emplace(stage, source);
-            result.glsl_source_locations.emplace(stage, std::move(path));
+            result.glsl_source_locations.emplace(stage, path ? *path : fs::path { cat("/ve/fakepath/", name, stage->file_extension) });
         }
 
 
@@ -78,7 +76,7 @@ namespace ve::gfx {
             }
 
             sources.emplace(&*stage_it, cat_range_with(io::read_text(path), "\n"));
-            locations.emplace(&*stage_it, fs::path { path }.remove_filename());
+            locations.emplace(&*stage_it, fs::path { path });
         }
 
         return compile(sources, name, settings, locations);
@@ -104,7 +102,7 @@ namespace ve::gfx {
     SPIRV shader_compiler::create_blob(
         std::string_view name,
         std::string source,
-        const fs::path& path,
+        const fs::path* path,
         const gfxapi::shader_stage* stage,
         const shader_compile_settings& settings,
         arbitrary_storage& ctx
@@ -113,11 +111,16 @@ namespace ve::gfx {
         VE_PROFILE_FN(profiler_msg.c_str());
 
 
-        std::string filename = io::get_filename_from_multi_extension(path);
-        auto on_error = [&] (std::string_view current_state) {
-            fs::path dump_path = io::paths::PATH_LOGS / cat(filename, stage->file_extension);
+        auto on_error = [&] (std::string_view current_state, std::string_view details = "") {
+            fs::path dump_path = io::paths::PATH_LOGS / cat(name, stage->file_extension);
             io::write_text(dump_path, split(source, "\n"));
-            VE_LOG_ERROR(cat("Shader compilation for shader ", name, " failed. Dumping ", current_state, " shader source code to ", dump_path));
+
+
+            VE_LOG_ERROR(cat(
+                "Shader compilation for shader ", name, " failed:\n",
+                details.empty() ? "No further information." : details, "\n\n",
+                "Dumping ", current_state, " shader source code to ", dump_path
+            ));
         };
 
 
@@ -127,42 +130,41 @@ namespace ve::gfx {
             [&] { for (const auto& pp : settings.additional_preprocessors) preprocessors.erase(pp); }
         };
 
-        ctx.store_object<std::string>("ve.filename", filename);
-        ctx.store_object<fs::path>("ve.filepath", fs::absolute(path));
-        ctx.store_object<const gfxapi::shader_stage*>("ve.shader_stage", stage);
 
-        std::string previous_state;
-        std::size_t pass = 0;
+        if (path) ctx.store_or_replace_object<fs::path>("ve.filepath", fs::absolute(*path));
+        else ctx.remove_object("ve.filepath");
+
+        ctx.store_or_replace_object<std::string>("ve.name", std::string { name });
+        ctx.store_or_replace_object<const gfxapi::shader_stage*>("ve.shader_stage", stage);
+        ctx.store_or_replace_object<const shader_compile_settings*>("ve.compile_settings", &settings);
 
 
-        do {
-            previous_state = source;
-
-            for (const auto& preprocessor : preprocessors) {
-                try {
-                    std::invoke(*preprocessor, source, ctx);
-                } catch (...) {
-                    on_error("partially preprocessed");
-                    throw;
-                }
+        for (const auto& preprocessor : preprocessors) {
+            try {
+                std::invoke(*preprocessor, source, ctx);
+            } catch (const std::exception& e) {
+                auto msg = cat("Error while preprocessing for preprocessor ", preprocessor->get_name(), ":\n", e.what());
+                on_error("partially preprocessed", msg);
+                throw;
+            } catch (...) {
+                auto msg = cat("Error while preprocessing for preprocessor ", preprocessor->get_name(), ": no further information.");
+                on_error("partially preprocessed", msg);
+                throw;
             }
-
-            ++pass;
-        } while (previous_state != source && pass < settings.preprocessor_recursion_limit);
-
-        if (previous_state != source) {
-            on_error("partially_preprocessed");
-            throw std::runtime_error(cat("Failed to preprocess ", stage->name, " for shader ", filename, ": maximum recursion depth exceeded."));
-        };
+        }
 
 
         // Compile SPIRV.
         shaderc::Compiler compiler;
-        auto result = compiler.CompileGlslToSpv(source, stage->shaderc_type, filename.c_str(), *settings.compiler_options);
+        std::string name_str { name };
+
+        auto result = compiler.CompileGlslToSpv(source, stage->shaderc_type, name_str.c_str(), *settings.compiler_options);
 
         if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-            on_error("preprocessed");
-            throw std::runtime_error(cat("Failed to compile ", stage->name, " for shader ", filename, ":\n", result.GetErrorMessage()));
+            auto msg = cat("Failed to compile ", stage->name, " for shader ", name, ":\n", result.GetErrorMessage());
+
+            on_error("preprocessed", msg);
+            throw std::runtime_error(msg);
         }
 
         return SPIRV { result.begin(), result.end() };

@@ -17,7 +17,7 @@ namespace ve {
         };
 
 
-        using dispatcher_t = simple_event_dispatcher<false, u16, true>;
+        using dispatcher_t = simple_event_dispatcher<true>;
 
 
         engine(void) = delete;

@@ -9,15 +9,15 @@ using namespace ve::defs;
 
 // List of different event dispatcher types used for testing.
 using dispatcher_types = ve::meta::pack<
-    ve::simple_event_dispatcher<false, u16, false>,
-    ve::simple_event_dispatcher<false, u16, true>,
-    ve::simple_event_dispatcher<true,  u16, false>,
-    ve::simple_event_dispatcher<true,  u16, true>,
+    ve::simple_event_dispatcher<false, false, u16>,
+    ve::simple_event_dispatcher<false, true,  u16>,
+    ve::simple_event_dispatcher<true,  false, u16>,
+    ve::simple_event_dispatcher<true,  true,  u16>,
 
-    ve::delayed_event_dispatcher<false, u16, false>,
-    ve::delayed_event_dispatcher<false, u16, true>,
-    ve::delayed_event_dispatcher<true,  u16, false>,
-    ve::delayed_event_dispatcher<true,  u16, true>
+    ve::delayed_event_dispatcher<false, false, u16>,
+    ve::delayed_event_dispatcher<false, true,  u16>,
+    ve::delayed_event_dispatcher<true,  false, u16>,
+    ve::delayed_event_dispatcher<true,  true,  u16>
 >;
 
 
@@ -58,15 +58,15 @@ auto do_multithreaded = [](auto pred, std::size_t count, std::size_t num_threads
 
 
 template <typename Events, typename Dispatcher, typename Invoker, typename Handler>
-inline std::vector<typename Dispatcher::handler_id> add_handlers(Dispatcher& d, Handler& handler, std::size_t count, Invoker& invoker, bool profile = false) {
-    std::vector<typename Dispatcher::handler_id> result;
+inline std::vector<typename Dispatcher::raw_handler> add_handlers(Dispatcher& d, Handler& handler, std::size_t count, Invoker& invoker, bool profile = false) {
+    std::vector<typename Dispatcher::raw_handler> result;
     std::mutex mtx;
 
     auto impl = [&] {
         Events::foreach([&] <typename Event> {
             invoker(
                 [&] {
-                    auto id = d.template add_handler<Event>(handler);
+                    auto id = d.template add_raw_handler<Event>(handler);
 
                     {
                         std::unique_lock lock { mtx };
@@ -120,7 +120,7 @@ inline void dispatch_events(Dispatcher& d, std::size_t count, Invoker& invoker, 
 
 
 template <typename Events, typename Dispatcher, typename Invoker>
-inline void remove_handlers(Dispatcher& d, const std::vector<typename Dispatcher::handler_id>& handlers, Invoker& invoker, bool profile = false) {
+inline void remove_handlers(Dispatcher& d, const std::vector<typename Dispatcher::raw_handler>& handlers, Invoker& invoker, bool profile = false) {
     std::atomic_uint32_t i = 0;
 
     auto impl = [&] {
