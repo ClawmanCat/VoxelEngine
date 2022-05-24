@@ -162,5 +162,6 @@ namespace ve::gfx::opengl {
 
         virtual std::vector<shared<pipeline>>& get_stages(void) = 0;
         virtual const std::vector<shared<pipeline>>& get_stages(void) const = 0;
+        virtual void rebuild(void) = 0;
     };
 }

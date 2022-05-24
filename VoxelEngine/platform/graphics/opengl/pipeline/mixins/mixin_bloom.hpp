@@ -10,17 +10,17 @@
 #include <VoxelEngine/platform/graphics/opengl/utility/quad.hpp>
 
 
-#define ve_impl_invalidating_setter(name, ret_type, keep_existing)  \
-[[nodiscard]] ret_type get_##name(void) const { return name; }      \
-                                                                    \
-void set_##name(ret_type value) {                                   \
-    name = value;                                                   \
-    create_passes(keep_existing);                                   \
+#define ve_impl_invalidating_setter(name, ret_type, rebuild_passes, rebuild_pipeline)   \
+[[nodiscard]] ret_type get_##name(void) const { return name; }                          \
+                                                                                        \
+void set_##name(ret_type value) {                                                       \
+    name = value;                                                                       \
+    if constexpr (rebuild_passes) create_passes();                                      \
+    if constexpr (rebuild_pipeline) get_pipeline().rebuild();                           \
 }
 
 
 namespace ve::gfx::opengl {
-    // TODO: Some of the setters require rebuilding the entire pipeline, this is currently not handled.
     template <typename Pipeline>
     class pipeline_bloom_mixin : public pipeline_mixin<pipeline_bloom_mixin<Pipeline>, Pipeline> {
     public:
@@ -43,7 +43,7 @@ namespace ve::gfx::opengl {
 
             // Construct bloom passes after the rest of the pipeline is created.
             on_post_build_pipeline = get_pipeline().add_handler([this] (const pbr_pipeline_post_build_event& e) {
-                create_passes(false);
+                create_passes();
             });
 
             // Assert the pipeline is set up correctly to use bloom before drawing.
@@ -54,24 +54,25 @@ namespace ve::gfx::opengl {
 
 
         // Bloom settings. If using the bloom ECS mixin, these are set automatically.
-        ve_impl_invalidating_setter(num_bloom_passes, u32,   true);
-        ve_impl_invalidating_setter(scale_factor,     float, false);
+        ve_impl_invalidating_setter(num_bloom_passes, u32,   true, false);
+        ve_impl_invalidating_setter(scale_factor,     float, true, false);
 
         // Mutators for bloom shader settings. These should correspond to the used bloom shader.
-        ve_impl_invalidating_setter(bloom_luma_attachment, const std::string&, false);
-        ve_impl_invalidating_setter(bloom_luma_sampler,    const std::string&, false);
-        ve_impl_invalidating_setter(pixavg_texture_array,  const std::string&, false);
-        ve_impl_invalidating_setter(bloom_direction_ubo,   const std::string&, false);
+        ve_impl_invalidating_setter(bloom_luma_attachment, const std::string&, false, true);
+        ve_impl_invalidating_setter(bloom_luma_sampler,    const std::string&, true,  false);
+        ve_impl_invalidating_setter(pixavg_texture_array,  const std::string&, true,  false);
+        ve_impl_invalidating_setter(bloom_direction_ubo,   const std::string&, true,  false);
 
         // Mutators for where to sample inputs from for the bloom shader.
-        ve_impl_invalidating_setter(sample_luma_from, const std::string&, false);
-        ve_impl_invalidating_setter(luma_attachment,  const std::string&, false);
+        ve_impl_invalidating_setter(sample_luma_from, const std::string&, false, true);
+        ve_impl_invalidating_setter(luma_attachment,  const std::string&, false, true);
 
         // Mutators for where the bloom shader sends its results to.
-        ve_impl_invalidating_setter(write_bloom_to,          const std::string&, false);
-        ve_impl_invalidating_setter(bloom_output_attachment, const std::string&, false);
+        ve_impl_invalidating_setter(write_bloom_to,          const std::string&, false, true);
+        ve_impl_invalidating_setter(bloom_output_attachment, const std::string&, false, true);
 
         // Other accessors.
+        // Note: if the bloom ECS mixin is used, these will be set automatically.
         VE_GET_CREF(bloom_passes);
         VE_GET_CREF(merge_pass);
     private:
@@ -148,8 +149,8 @@ namespace ve::gfx::opengl {
 
 
 
-        void create_passes(bool keep_existing) {
-            if (!keep_existing) bloom_passes.clear();
+        void create_passes(void) {
+            bloom_passes.clear();
 
 
             auto gaussian_blur_shader = get_shader<vertex_types::no_vertex>(
@@ -163,8 +164,8 @@ namespace ve::gfx::opengl {
             );
 
 
-            auto luma_source     = get_external_pipeline(get_pipeline().get_stages(), sample_luma_from,     "luma input");
-            auto bloom_target    = get_external_pipeline(get_pipeline().get_stages(), write_bloom_to,       "luma output");
+            auto luma_source  = get_external_pipeline(get_pipeline().get_stages(), sample_luma_from,     "luma input");
+            auto bloom_target = get_external_pipeline(get_pipeline().get_stages(), write_bloom_to,       "luma output");
 
 
             std::vector<renderpass_definition> definitions;

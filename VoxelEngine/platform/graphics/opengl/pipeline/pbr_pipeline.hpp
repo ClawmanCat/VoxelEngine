@@ -30,6 +30,8 @@ namespace ve::gfx::opengl {
 
         virtual std::vector<shared<pipeline>>& get_stages(void) override { return pipeline_stages; }
         virtual const std::vector<shared<pipeline>>& get_stages(void) const override { return pipeline_stages; }
+
+        virtual void rebuild(void) override { setup_pipeline(); }
     private:
         void setup_pipeline(void);
 
