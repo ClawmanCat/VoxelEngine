@@ -1,12 +1,10 @@
-include(create_target)
+INCLUDE(create_target)
 
-create_target(
+
+CREATE_TARGET(
     VELauncher
-    EXECUTABLE
     0 0 1
-    # Dependencies:
+    EXECUTABLE COMPONENT
+    # Dependencies
     PRIVATE VEDemoGame
 )
-
-
-target_compile_definitions(VELauncher PRIVATE "VE_BUILD_LAUNCHER=1")

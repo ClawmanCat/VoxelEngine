@@ -9,16 +9,9 @@
     #define VE_RELEASE_ONLY(...) __VA_ARGS__
 #else
     #define VE_DEBUG
-    
+
     #define VE_DEBUG_ONLY(...) __VA_ARGS__
     #define VE_RELEASE_ONLY(...)
-#endif
-
-
-#ifdef VE_DEBUG
-    #define VE_IF_DEBUG_ELSE(If, Else) If
-#else
-    #define VE_IF_DEBUG_ELSE(If, Else) Else
 #endif
 
 
@@ -27,8 +20,10 @@
     #define VE_WINDOWS
 #elif defined(__linux__)
     #define VE_LINUX
+    #define VE_UNIX_LIKE
 #elif defined(__APPLE__)
     #define VE_APPLE
+    #define VE_UNIX_LIKE
 #endif
 
 
@@ -48,7 +43,7 @@
 
 
 // IDE
-#if defined(__INTELLISENSE__) || defined(__JETBRAINS_IDE__) || defined(IDE_PASS)
+#if defined(__INTELLISENSE__) || defined(__JETBRAINS_IDE__) || defined(VE_IDE_PASS)
     #define VE_IDE_PASS
 
     #define VE_IDE_ONLY(...) __VA_ARGS__

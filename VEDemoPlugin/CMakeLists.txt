@@ -1,22 +1,15 @@
-include(create_target)
-include(generate_include_header)
+INCLUDE(create_target)
+INCLUDE(create_include_header)
 
 
-create_target(
+CREATE_TARGET(
     VEDemoPlugin
-    SHARED
     0 0 1
-    # Dependencies:
+    SHARED PLUGIN
+    # Dependencies
     PUBLIC VEDemoGame
 )
 
-# Plugins should output into the plugin directory.
-set_target_properties(VEDemoPlugin PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/plugins/VEDemoPlugin")
-set_target_properties(VEDemoPlugin PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/plugins/VEDemoPlugin")
-set_target_properties(VEDemoPlugin PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/plugins/VEDemoPlugin")
 
-
-generate_include_header(VEDemoPlugin core core.hpp)
-
-
-target_compile_definitions(VEDemoPlugin PRIVATE "VE_BUILD_PLUGIN=1")
+# Generate single-include headers.
+CREATE_INCLUDE_HEADER(VEDemoPlugin core core.hpp)

@@ -1,346 +1,355 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/ecs/entt_include.hpp>
-#include <VoxelEngine/utility/math.hpp>
-#include <VoxelEngine/utility/functional.hpp>
-#include <VoxelEngine/utility/traits/is_type.hpp>
-#include <VoxelEngine/utility/traits/glm_traits.hpp>
+#include <VoxelEngine/utility/container/raii.hpp>
+#include <VoxelEngine/utility/meta/is_template.hpp>
+#include <VoxelEngine/utility/decompose/decompose.hpp>
 
-#include <boost/pfr.hpp>
-#include <ctti/type_id.hpp>
-#include <glm/gtc/matrix_access.hpp>
+#include <range/v3/all.hpp>
 
+#include <string>
+#include <string_view>
+#include <cctype>
+#include <concepts>
+#include <optional>
+#include <memory>
+#include <variant>
 #include <sstream>
+#include <format>
 
 
 namespace ve {
-    constexpr inline auto char_tolower = [](char ch) { return (char) std::tolower((unsigned char) ch); };
-    constexpr inline auto char_toupper = [](char ch) { return (char) std::toupper((unsigned char) ch); };
-    
-    
-    template <typename T> requires std::is_unsigned_v<T>
-    inline std::string to_hex_string(T value, bool prepend_zero_x = true, std::size_t length = sizeof(T) << 1) {
-        constexpr char chars[] = "0123456789ABCDEF";
-        
-        std::size_t offset = 2 * prepend_zero_x;
-        std::string result(length + offset, '0');
-        
-        for (std::size_t i = 0, j = 4 * (length - 1); i < length; i += 1, j -= 4) {
-            result[offset + i] = chars[(value >> j) & 0x0F];
+    // Forward declarations of all methods in this file.
+    template <typename T, bool PIF = true> [[nodiscard]] inline std::string to_string(const T& value);
+    [[nodiscard]] inline std::string cat(const auto&... values);
+    [[nodiscard]] inline std::string cat_with(const auto& separator, const auto&... values);
+    [[nodiscard]] inline std::string cat_range(const auto& range);
+    [[nodiscard]] inline std::string cat_range_with(const auto& separator, const auto& range);
+    [[nodiscard]] inline std::string to_uppercase(std::string_view src);
+    [[nodiscard]] inline std::string to_lowercase(std::string_view src);
+    template <std::unsigned_integral T> [[nodiscard]] inline std::string to_hex(T value, std::size_t width = 2 * sizeof(T));
+    template <std::integral T> [[nodiscard]] inline std::string thousand_separate(T value, std::string_view separator = "'");
+
+
+
+
+    namespace string_conversion_functions {
+        template <glm_vector T> inline std::string from_glm_vector(const T& value) {
+            return [&] <std::size_t... Is> (std::index_sequence<Is...>) {
+                return "["s + cat_with(", ", value[Is]...) + "]"s;
+            } (std::make_index_sequence<glm_traits<T>::size>());
         }
-        
-        if (prepend_zero_x) result[1] = 'x';
+
+
+        template <glm_matrix T> inline std::string from_glm_matrix(const T& value) {
+            return [&] <std::size_t... Is> (std::index_sequence<Is...>) {
+                return "["s + cat_with(", ", value[Is]...) + "]"s;
+            } (std::make_index_sequence<glm_traits<T>::width>());
+        }
+
+
+        template <glm_quaternion T> inline std::string from_glm_quat(const T& value) {
+            return [&] <std::size_t... Is> (std::index_sequence<Is...>) {
+                return "["s + cat_with(", ", value[Is]...) + "]"s;
+            } (std::make_index_sequence<4>());
+        }
+
+
+        template <std::derived_from<std::exception> T> inline std::string from_exception(const T& value) {
+            return std::format("[Exception {}] {{ {} }}", typename_of<T>(), value.what());
+        }
+
+
+        template <typename T> requires requires (T value) { std::cbegin(value), std::cend(value); }
+        inline std::string from_container(const T& value) {
+            return views::concat(
+                views::single('['),
+                value
+                    | views::transform([] (const auto& e) { return ve::to_string(e); })
+                    | views::intersperse(", ")
+                    | views::join,
+                views::single(']')
+            ) | ranges::to<std::string>;
+        }
+
+
+        // TODO: Print pointed-to type as well.
+        template <typename T> requires (
+            meta::is_template_v<std::optional, T>   ||
+            meta::is_template_v<std::unique_ptr, T> ||
+            meta::is_template_v<std::shared_ptr, T> ||
+            std::is_pointer_v<T>
+        ) inline std::string from_pointer(const T& value) {
+            const std::string pointed_value = bool(value) ? to_string(*value) : "NULL"s;
+            const std::string address       = to_hex(bool(value) ? (std::uintptr_t) std::addressof(*value) : 0);
+
+            std::string_view pointer_name;
+            if constexpr (meta::is_template_v<std::optional, T>)   pointer_name = "Optional";
+            if constexpr (meta::is_template_v<std::unique_ptr, T>) pointer_name = "Unique Pointer";
+            if constexpr (meta::is_template_v<std::shared_ptr, T>) pointer_name = "Shared Pointer";
+            if constexpr (std::is_pointer_v<T>)                    pointer_name = "Raw Pointer";
+
+            return std::format("[{} @ 0x{}] {{ {} }}", pointer_name, address, pointed_value);
+        }
+
+
+        template <typename T> requires meta::is_template_v<std::variant, T>
+        inline std::string from_variant(const T& value) {
+            auto visitor = [] <typename V> (const V& v) {
+                return std::format("[{} holding {}] {{ {} }}", typename_of<T>(), typename_of<V>(), to_string(v));
+            };
+
+            return std::visit(visitor, value);
+        }
+
+
+        template <typename T> requires requires (std::stringstream ss, T value) { ss << value; }
+        inline std::string from_streamable(const T& value) {
+            std::stringstream stream;
+            stream << value;
+
+            return stream.str();
+        }
+
+
+        template <decomposable T> inline std::string from_decomposable(const T& value) {
+            const auto members = decomposer_for_t<T>::reference_as_tuple(value);
+
+            return [&] <std::size_t... Is> (std::index_sequence<Is...>) {
+                std::string_view display_name = typename_of<T>();
+                if constexpr (meta::is_template_v<std::pair, T>)  display_name = "Pair";
+                if constexpr (meta::is_template_v<std::tuple, T>) display_name = "Tuple";
+
+                return std::format(
+                    "[{}] {{ {} }}",
+                    display_name,
+                    cat_with(", ", to_string(std::get<Is>(members))...)
+                );
+            } (std::make_index_sequence<std::tuple_size_v<decltype(members)>>());
+        }
+
+
+        template <typename T> inline std::string from_unconvertable(const T& value) {
+            return std::format("[{} @ 0x{}]", typename_of<T>(), to_hex((std::uintptr_t) std::addressof(value)));
+        }
+    }
+
+
+    /**
+     * Converts an object to a string using the first applicable converter in the string_conversion_functions namespace.
+     * In order, this method will attempt to perform the following conversions:
+     *  1. Direct conversion: objects that can be cast to a string will be cast to a string.
+     *  2. Member function: if one of the following member functions exists, it will be invoked (in the specified order):
+     *      to_string(), to_str(), to_cppstring(), string(), str(), cppstring()
+     *  3. Boolean: Booleans are converted to one of the string constants "true" or "false".
+     *  4. GLM Types: Vectors and quaternions are treated as containers (see below), matrices are treated as containers of vectors.
+     *  5. Exception Objects: Objects inheriting from std::exception are converted as [Exception <type>] { <e.what()> }.
+     *  6. Containers: Containers are printed by concatenating their elements into a comma-separated []-enclosed list.
+     *  7. Pointers: Pointers (both raw and smart) and optionals are converted as [<Pointer Type> \@ <Address>] { <to_string(*pointer) | NULL> }
+     *  8. Numeric Conversion: objects that can be converted using std::to_string will be converted in this way.
+     *  9. Variants: Variant types are converted as [<Variant Type> holding <Active Type>] { <to_string(active_type)> }
+     *  10. Streaming: Objects that can be streamed into a std::stringstream are streamed into one, before converting the stream to a string.
+     *  11. Decomposable Objects: Objects that can be decomposed into their elements are converted as [<Object Type>] { <to_string(members)...> }
+     *  12. Fallback: Print the address and type of the object as [<Object Type> \@ <Address>].
+     * @tparam PreventInfiniteRecursion If set to true, any object which invokes to_string on its own type again will be printed as ... the second time to prevent infinite recursion.
+     * @param value An object to convert to a string.
+     * @return A string representing the provided objects.
+     */
+    template <typename T, bool PreventInfiniteRecursion> [[nodiscard]] inline std::string to_string(const T& value) {
+        namespace scf = string_conversion_functions;
+
+
+        static thread_local bool invoked = false;
+        on_scope_exit on_exit { [&] { invoked = false; } };
+
+        if constexpr (PreventInfiniteRecursion) {
+            if (std::exchange(invoked, true)) [[unlikely]] return "...";
+        }
+
+
+        if constexpr      (requires { (std::string) value;           }) return (std::string) value;
+        else if constexpr (requires { value.to_string();             }) return value.to_string();
+        else if constexpr (requires { value.to_str();                }) return value.to_str();
+        else if constexpr (requires { value.to_cppstring();          }) return value.to_cppstring();
+        else if constexpr (requires { value.string();                }) return value.string();
+        else if constexpr (requires { value.str();                   }) return value.str();
+        else if constexpr (requires { value.cppstring();             }) return value.cppstring();
+        else if constexpr (std::is_same_v<T, bool>                    ) return value ? "true" : "false";
+        else if constexpr (requires { scf::from_glm_vector(value);   }) return scf::from_glm_vector(value);
+        else if constexpr (requires { scf::from_glm_matrix(value);   }) return scf::from_glm_matrix(value);
+        else if constexpr (requires { scf::from_glm_quat(value);     }) return scf::from_glm_quat(value);
+        else if constexpr (requires { scf::from_exception(value);    }) return scf::from_exception(value);
+        else if constexpr (requires { scf::from_container(value);    }) return scf::from_container(value);
+        else if constexpr (requires { scf::from_pointer(value);      }) return scf::from_pointer(value);
+        else if constexpr (requires { std::to_string(value);         }) return std::to_string(value);
+        else if constexpr (requires { scf::from_variant(value);      }) return scf::from_variant(value);
+        else if constexpr (requires { scf::from_streamable(value);   }) return scf::from_streamable(value);
+        else if constexpr (requires { scf::from_decomposable(value); }) return scf::from_decomposable(value);
+        else return scf::from_unconvertable(value);
+    }
+
+
+    /**
+     * Converts all elements of 'values' to strings using @ref to_string then concatenates them into a single string.
+     * @param values The values to convert and concatenate.
+     * @return A concatenated string containing the string representations of 'values'.
+     */
+    [[nodiscard]] inline std::string cat(const auto&... values) {
+        return (to_string(values) + ... + "");
+    }
+
+
+    /**
+     * Equivalent to @ref cat but a separator is added between each pair of elements.
+     * @param separator The separator to insert between the provided values.
+     * @param values The values to convert and concatenate.
+     * @return A concatenated string containing the string representations of 'values' separated by 'separator'.
+     */
+    [[nodiscard]] inline std::string cat_with(const auto& separator, const auto&... values) {
+        std::string separator_string = to_string(separator);
+
+        std::string joined_string = ([&] (const auto& v) { return to_string(v) + separator; }(values) + ... + "");
+        joined_string.resize(joined_string.size() - bool(sizeof...(values)) * separator_string.length());
+
+        return joined_string;
+    }
+
+
+    /**
+     * Converts all elements of 'range' to strings using @ref to_string then concatenates them into a single string.
+     * @param range A range of values to convert and concatenate.
+     * @return A concatenated string containing the string representations of the elements of 'range'.
+     */
+    [[nodiscard]] inline std::string cat_range(const auto& range) {
+        return range
+            | views::transform([&] (const auto& v) { return to_string(v); })
+            | views::join
+            | ranges::to<std::string>;
+    }
+
+
+    /**
+     * Equivalent to @ref cat_range but a separator is added between each pair of elements.
+     * @param separator The separator to insert between the provided values.
+     * @param range A range of values to convert and concatenate.
+     * @return A concatenated string containing the string representations of the elements of 'range' separated by 'separator'.
+     */
+    [[nodiscard]] inline std::string cat_range_with(const auto& separator, const auto& range) {
+        const std::string sep_string = to_string(separator);
+
+        return range
+           | views::transform([] (const auto& v) { return to_string(v); })
+           | views::intersperse(sep_string)
+           | views::join
+           | ranges::to<std::string>;
+    }
+
+
+    /**
+     * Converts the provided string to uppercase.
+     * @param src A string to convert.
+     * @return The provided string with all lowercase letters replaced with their uppercase variants.
+     */
+    [[nodiscard]] inline std::string to_uppercase(std::string_view src) {
+        return src | views::transform((fn<int, int>) std::toupper) | ranges::to<std::string>;
+    }
+
+
+    /**
+     * Converts the provided string to lowercase.
+     * @param src A string to convert.
+     * @return The provided string with all uppercase letters replaced with their lowercase variants.
+     */
+    [[nodiscard]] inline std::string to_lowercase(std::string_view src) {
+        return src | views::transform((fn<int, int>) std::tolower) | ranges::to<std::string>;
+    }
+
+
+    /**
+     * Converts a number to an uppercase string containing its hexadecimal representation.
+     * @param value The number to convert.
+     * @param width The number of characters in the resulting string.
+     *  Using more characters than required for the provided number will pad the string with zeroes.
+     *  Using less characters than required for the provided number will cut off the higher-significant digits of the number.
+     * @return An uppercase hexadecimal representation of the provided string.
+     */
+    template <std::unsigned_integral T> [[nodiscard]] inline std::string to_hex(T value, std::size_t width) {
+        constexpr std::string_view chars = "0123456789ABCDEF";
+
+        // Assure we always have an even number of chars since we decode each byte into a pair of chars.
+        const std::size_t buffer_size = (width & 1) ? width + 1 : width;
+        std::string result(buffer_size, '0');
+
+        // For every byte starting at the LSB, decode into two chars and insert starting at the end of the string.
+        // 'i' counts the number of hex digits, not the number of bytes.
+        for (std::size_t i = 0; i < width; i += 2) {
+            result[buffer_size - i - 1] = chars[(value >> (4 * i + 0)) & 0x0F];
+            result[buffer_size - i - 2] = chars[(value >> (4 * i + 4)) & 0x0F];
+        }
+
+        // If for some reason width is an odd number, we have to erase one of the chars of the most significant byte.
+        if (width & 1) [[unlikely]] result.erase(0, 1);
         return result;
     }
 
 
-    inline std::string to_hex_string(std::span<const u8> value, bool prepend_zero_x = true) {
-        constexpr char chars[] = "0123456789ABCDEF";
+    /**
+     * Converts the provided number to a string with the provided thousand-separator inserted.
+     * @param value The number to convert to a string.
+     * @param separator The thousand-separator to insert while converting the number.
+     * @return The string representation of value with the provided thousand-separator grouping every set of 3 digits.
+     */
+    template <std::integral T> [[nodiscard]] inline std::string thousand_separate(T value, std::string_view separator) {
+        std::string result = std::to_string(value);
+        if (result.empty()) return result;
 
-        std::size_t offset = 2 * prepend_zero_x;
-        std::string result(2 * value.size() + offset, '0');
-
-        for (std::size_t i = 0; i < value.size(); ++i) {
-            result[2 * i + 0 + offset] = chars[(value[i] & 0xF0) >> 4];
-            result[2 * i + 1 + offset] = chars[(value[i] & 0x0F) >> 0];
+        std::size_t distance_to_sep = 0;
+        for (std::size_t i = result.size() - 1; i > 0; --i) {
+            if (std::isdigit(result[i - 1])) {
+                if (++distance_to_sep == 3) {
+                    result.insert(i, separator);
+                    distance_to_sep = 0;
+                }
+            } else break;
         }
 
-        if (prepend_zero_x) result[1] = 'x';
         return result;
     }
-    
-    
-    template <typename T, bool CalledInternally = false>
-    inline std::string to_string(const T& value) {
-        // If T can be converted to a string, convert it.
-        if      constexpr (requires (T t) { std::to_string(t); }) return std::to_string(value);
-        else if constexpr (requires (T t) { (std::string) t;   }) return (std::string) value;
-        else if constexpr (requires (T t) { std::string { t }; }) return std::string { value };
-        else if constexpr (requires (T t) { t.to_string();     }) return value.to_string();
-        else if constexpr (requires (T t) { t.string();        }) return value.string();
-        else if constexpr (requires (T t) { t.cppstring();     }) return value.cppstring();
 
-        // If T is an entity, print its ID.
-        else if constexpr (std::is_same_v<T, entt::entity>) {
-            return "[Entity "s + to_string(entt::to_integral(value)) + "]";
-        }
 
-        // If T is a GLM vector print its elements.
-        else if constexpr (meta::glm_traits<T>::is_vector) {
-            std::string result = "["s + std::to_string(value[0]);
+    /**
+     * Finds the largest possible SI suffix for the given number and returns a pair [remainder, suffix].
+     * E.g. converts 10'300 to [10.3 'K'], 1'000'000.5 to [1.0000005, 'M'], 1e9 to [1, 'G'] etc.
+     * Numbers in the range (-1000, 1000) are returned unchanged with a space as their suffix.
+     * @param value A number to convert
+     * @return A pair [remainder, si_suffix] representing the given number.
+     */
+    template <numeric T> [[nodiscard]] constexpr inline std::pair<double, char> make_si_suffixed(T value) {
+        constexpr std::string_view suffixes = " KMGTPEZYRQ";
 
-            for (std::size_t i = 1; i < meta::glm_traits<T>::num_rows; ++i) {
-                result += ", ";
-                result += std::to_string(value[i]);
+        if constexpr (std::is_signed_v<T>) {
+            if (value < 0) {
+                auto [v, s] = make_si_suffixed((std::make_unsigned_t<T>) std::abs(value));
+                return { -v, s };
             }
-
-            result += "]";
-            return result;
         }
 
-        // If T is a GLM vector print its rows.
-        else if constexpr (meta::glm_traits<T>::is_matrix) {
-            std::string result = "["s;
-
-            for (std::size_t i = 0; i < meta::glm_traits<T>::num_rows; ++i) {
-                if (i > 0) result += ", ";
-                result += to_string(glm::column(value, i));
-            }
-
-            result += "]";
-            return result;
-        }
-
-        // If T is bool, print true or false.
-        else if constexpr (std::is_same_v<T, bool>) {
-            return value ? "true" : "false";
-        }
-
-        // If T is an exception, return the exception message.
-        else if constexpr (std::is_base_of_v<std::exception, T>) {
-            return value.what();
-        }
-
-        // If T is a container, concatenate each element.
-        else if constexpr (requires (T t) { std::cbegin(t), std::cend(t); }) {
-            std::string result = "[";
-
-            for (const auto& [i, elem] : value | views::enumerate) {
-                if (i > 0) result += ", ";
-                result += to_string(elem);
-            }
-
-            result += "]";
-            return result;
-        }
-        
-        // If T is streamable, stream it, then convert the stream to a string.
-        else if constexpr (!std::is_pointer_v<T> && requires (T t, std::stringstream s) { s << t; }) {
-            std::stringstream s;
-            s << value;
-            return s.str();
-        }
-    
-        // If T is trivial, print the values of its fields.
-        // TODO: Replace with decomposer.
-        else if constexpr (std::is_aggregate_v<T>) {
-            std::string result = "[";
-
-            boost::pfr::for_each_field(value, [&, i = 0] (const auto& f) mutable {
-                if (i++ > 0) result += ", ";
-                result += to_string(f);
-            });
-
-            result += "]";
-            return result;
-        }
-        
-        // If T is a pointer, print its type and address and the string representation of the contained value.
-        else if constexpr (std::is_pointer_v<T>) {
-            using deref_t = std::remove_cvref_t<std::remove_pointer_t<T>>;
-            
-            auto object_string  = value ? to_string<deref_t, true>(*value) : "NULL";
-            auto type_string    = ctti::nameof<deref_t>().cppstring();
-            auto address_string = to_hex_string((std::size_t) value);
-            
-            std::string result = "[Pointer to "s + type_string + " @ " + address_string + "]";
-            if (!object_string.empty()) result += (": "s + object_string);
-            
-            return result;
-        }
-        
-        // Fallback option: print the type and address of the object.
-        // Don't print anything if we're being called from the pointer string conversion,
-        // as that will already print this info.
-        else {
-            if constexpr (CalledInternally) return "";
-            
-            else {
-                auto type_string    = ctti::nameof<T>().cppstring();
-                auto address_string = to_hex_string((std::size_t) std::addressof(value));
-            
-                return "["s + type_string + " @ " + address_string + "]";
-            }
-        }
-    }
-    
-    
-    template <typename... Ts> inline std::string cat(const Ts&... objects) {
-        return (to_string(objects) + ...);
-    }
-
-
-    template <typename... Ts> inline std::string cat_with(const std::string& separator, const Ts&... objects) {
-        auto result = ([&](auto&& arg) { return to_string(arg) + separator; }(objects) + ...);
-        result.resize(result.length() - separator.length());
-        
-        return result;
-    }
-
-
-    template <ranges::range Rng>
-    inline std::string cat_range(const Rng& range) {
-        std::string result;
-        for (const auto& str : range | views::transform(ve_wrap_callable(to_string))) result += str;
-        return result;
-    }
-
-
-    template <ranges::range Rng>
-    inline std::string cat_range_with(const Rng& range, const std::string& separator) {
-        std::string result;
-        for (const auto& str : range | views::transform(ve_wrap_callable(to_string)) | views::intersperse(separator)) result += str;
-        return result;
-    }
-
-
-    // Splits the provided string into multiple lines by inserting \n characters, assuring no line is longer than max_length.
-    // The string can only be split after characters in the separator list.
-    // If there is no character from the separator list to split the string on, the string is split at exactly max_length.
-    inline std::string limit_line_length(const std::string& src, std::size_t max_length, const std::string& separators = " \n") {
-        // Finds the last separator in the range [current, limit) or returns limit if no separator exists.
-        auto find_next_sep = [&] (std::size_t current, std::size_t limit) -> std::size_t {
-            for (std::size_t i = limit; i > current && i < src.size(); --i) {
-                if (separators.find(src[i]) != std::string::npos) return i + 1;
-            }
-
-            return std::min(limit, src.size());
-        };
-
-
-        std::string result;
-        result.reserve(src.length() + (src.length() / max_length) + 1);
-
-
-        std::size_t current = 0;
-        while (current < src.size()) {
-            std::size_t next = find_next_sep(current, current + max_length);
-
-            result.append(src.begin() + current, src.begin() + next);
-            if (next < src.size()) result.push_back('\n');
-
-            current = next;
-        }
-
-
-        return result;
-    }
-    
-    
-    inline std::string replace_substring(std::string_view source, std::string_view find, std::string_view replace_with) {
-        std::string result;
-        
-        while (source.length() > 0) {
-            if (source.starts_with(find)) {
-                result += replace_with;
-                source.remove_prefix(find.length());
+        T previous;
+        for (std::size_t suffix = 0; suffix < suffixes.length(); ++suffix) {
+            if (value < 1e3) {
+                return { (double) value, suffixes[suffix] };
             } else {
-                result += source[0];
-                source.remove_prefix(1);
+                previous = std::exchange(value, value / 1e3);
             }
         }
-        
-        return result;
+
+        return { previous, suffixes.back() };
     }
 
 
-    inline std::vector<std::string> split(std::string_view source, std::string_view delimiter) {
-        std::vector<std::string> result;
-
-        std::size_t pos = std::string_view::npos;
-        while (pos = source.find(delimiter), pos != std::string_view::npos) {
-            pos += delimiter.length();
-
-            result.emplace_back(source.begin(), source.begin() + pos);
-            source.remove_prefix(pos);
-        }
-
-        if (!result.empty()) result.emplace_back(source);
-        return result;
-    }
-    
-    
-    inline std::string to_sentence_case(std::string_view s) {
-        std::string result { s };
-        
-        if (!result.empty()) {
-            result[0] = char_toupper(result[0]);
-            for (auto& ch : result | views::drop(1)) ch = char_tolower(ch);
-        }
-        
-        return result;
-    }
-    
-    
-    inline std::string to_lowercase(std::string_view s) {
-        return s | views::transform(char_tolower) | ranges::to<std::string>;
-    }
-    
-    
-    inline std::string to_uppercase(std::string_view s) {
-        return s | views::transform(char_toupper) | ranges::to<std::string>;
-    }
-
-
-    inline auto make_indenter(std::ostream& target) {
-        return [&target, indent = 0] (i32 delta = 0, bool print_now = true) mutable {
-            indent += delta;
-            if (print_now) target << std::string((std::size_t) indent, ' ');
-        };
-    }
-
-
-    template <typename Indenter>
-    inline auto make_scoped_kv_formatter(std::string_view key, std::ostream& stream, Indenter& indenter) {
-        struct formatter {
-            std::ostream* stream_ptr;
-            Indenter* indenter_ptr;
-
-            formatter(std::ostream* stream_ptr, Indenter* indenter_ptr, std::string_view key) : stream_ptr(stream_ptr), indenter_ptr(indenter_ptr) {
-                (*indenter_ptr)();
-                (*stream_ptr) << "[" << key << "] {\n";
-                (*indenter_ptr)(+4, false);
-            }
-
-            ~formatter(void) {
-                (*indenter_ptr)(-4);
-                (*stream_ptr) << "}\n";
-            }
-        };
-
-        return formatter { &stream, &indenter, key };
-    }
-
-
-    inline std::string escape_chars(std::string_view str, std::string_view chars) {
-        std::string result;
-        result.reserve(str.size());
-
-        for (char ch : str) {
-            if (ranges::contains(chars, ch)) {
-                result += '\\';
-            }
-
-            result += ch;
-        }
-
-        return result;
-    }
-
-
-    inline std::string unescape_chars(std::string_view str, std::string_view chars) {
-        std::string result;
-        result.reserve(str.size());
-
-        for (auto [i, ch] : str | views::enumerate) {
-            if (ch == '\\' && str.size() > i + 1 && ranges::contains(chars, str[i + 1])) {
-                continue;
-            }
-
-            result += ch;
-        }
-
-        return result;
+    /** Invokes @ref make_si_suffixed and constructs a string from the result by concatenating the digits and the suffix. */
+    template <numeric T> [[nodiscard]] inline std::string make_si_suffixed_string(T value, std::size_t digits) {
+        const auto [number, suffix] = make_si_suffixed(value);
+        return std::format("{0:.{1}f}{2}", number, digits, suffix);
     }
 }

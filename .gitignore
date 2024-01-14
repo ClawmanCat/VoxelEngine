@@ -1,14 +1,12 @@
 out/
+tmp/
+tools/
+docs/doxygen/
 
 .idea/
 .vs/
 .vscode/
 
-old/
-OLD/
-wip/
-WIP/
 cmake.lock
 diff.txt
-
 !.gitignore

@@ -1,48 +1,55 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
-#include <VoxelEngine/utility/arg_parser.hpp>
-#include <VoxelEngine/event/simple_event_dispatcher.hpp>
-#include <VoxelEngine/dependent/dependent_info.hpp>
+
+#include <vector>
+#include <string>
 
 
 namespace ve {
+    /** Class to manage the global state of the engine. */
     class engine {
     public:
-        const static inline game_info info {
-            .display_name = "VoxelEngine",
-            .description  = { "Game engine for voxel-based games." },
-            .authors      = { "ClawmanCat" },
-            .version      = { VOXELENGINE_VERSION_MAJOR, VOXELENGINE_VERSION_MINOR, VOXELENGINE_VERSION_PATCH }
-        };
+        enum engine_state { UNINITIALIZED, INITIALIZING, RUNNING, STOP_REQUESTED, UNINITIALIZED_STOP_REQUESTED, STOPPING, STOPPED };
 
 
-        using dispatcher_t = simple_event_dispatcher<true>;
+        VE_SERVICE(engine);
 
 
-        engine(void) = delete;
-        
-        enum class state { UNINITIALIZED, INITIALIZING, RUNNING, EXITING, EXITED };
-        
-        [[noreturn]] static void main(i32 argc, char** argv);
-        static void exit(i32 code = 0, bool immediate = false);
+        /**
+         * Starts the game engine. This function returns if engine::stop is called.
+         * @param args Command line arguments.
+         */
+        void start(std::vector<std::string> args);
 
-        
-        VE_GET_STATIC_CREF(arguments);
-        VE_GET_STATIC_VAL(engine_state);
-        VE_GET_SET_STATIC_VAL(tick_count);
-        VE_GET_STATIC_MREF(event_dispatcher);
+
+        /**
+         * Causes the current invocation of engine::start to return after finishing the current tick.
+         * After returning, the engine is in an uninitialized state, essentially as it was before calling engine::start.
+         */
+        void stop(void);
+
+
+        /**
+         * Stops the engine and exits the program with the given exit code, either immediately or after the current tick.
+         * Note that this will not cause engine::start to return. If this is the desired behaviour, use engine::stop instead.
+         * @param exit_code Exit code to exit the program with. Non-zero exit codes should indicate some error occurred.
+         * @param immediate If true, the program will exit before returning from this function. If false, it will exit after finishing the current tick.
+         */
+        void exit(i32 exit_code = EXIT_SUCCESS, bool immediate = false);
+
+
+        VE_GET_CREFS(arguments);
+        VE_GET_VALS(state, exit_code);
     private:
-        static inline arg_parser arguments = arg_parser { };
-        static inline state engine_state   = state::UNINITIALIZED;
-        static inline u64 tick_count       = 0;
-        static inline i32 exit_code        = -1;
-        static inline bool profiler_active = false;
+        engine_state state = UNINITIALIZED;
+        std::vector<std::string> arguments = { };
+        std::optional<i32> exit_code = std::nullopt;
 
-        static inline dispatcher_t event_dispatcher = {};
-        
-        static void init(void);
-        static void loop(void);
-        [[noreturn]] static void immediate_exit(void);
+        void engine_init(void);
+        void engine_loop(void);
+        void engine_exit(void);
+
+        void set_state(engine_state state);
     };
 }

@@ -1,0 +1,13 @@
+FUNCTION(SET_COMPATIBILITY_FLAGS)
+    MESSAGE(STATUS "Enabling standard-conformance flags for MSVC.")
+
+    ADD_COMPILE_OPTIONS(/permissive-)
+    ADD_COMPILE_OPTIONS(/volatile:iso)
+    ADD_COMPILE_OPTIONS(/Zc:preprocessor)
+    ADD_COMPILE_OPTIONS(/Zc:__cplusplus)
+    ADD_COMPILE_OPTIONS(/Zc:externConstexpr)
+    ADD_COMPILE_OPTIONS(/Zc:throwingNew)
+    ADD_COMPILE_OPTIONS(/Zc:templateScope)
+    ADD_COMPILE_OPTIONS(/EHsc)
+    ADD_COMPILE_OPTIONS(/utf-8)
+ENDFUNCTION()

@@ -1,44 +1,33 @@
 #pragma once
 
 #include <VoxelEngine/core/core.hpp>
+#include <VoxelEngine/utility/on_program_start.hpp>
 
 #include <filesystem>
-#include <array>
 
 
 namespace ve::io::paths {
-    namespace detail {
-        inline std::vector<fs::path>& get_registered_paths(void) {
-            static std::vector<fs::path> paths;
-            return paths;
-        }
-        
-        struct registering_path : fs::path {
-            template <typename... Args>
-            registering_path(Args&&... args) : fs::path(fwd(args)...) {
-                get_registered_paths().push_back(*this);
-            }
+    namespace fs = std::filesystem;
+
+
+    const inline fs::path ROOT_DIR      = fs::absolute(fs::current_path());
+    const inline fs::path PATH_LOGS     = ROOT_DIR / "logs";
+    const inline fs::path PATH_SETTINGS = ROOT_DIR / "cfg";
+    const inline fs::path PATH_PLUGINS  = ROOT_DIR / "plugins";
+    const inline fs::path PATH_ASSETS   = ROOT_DIR / "assets";
+    const inline fs::path PATH_SHADERS  = PATH_ASSETS / "shaders";
+    const inline fs::path PATH_TEXTURES = PATH_ASSETS / "textures";
+    const inline fs::path PATH_SOUNDS   = PATH_ASSETS / "sounds";
+    const inline fs::path PATH_PROFILER = PATH_LOGS / "profiler";
+
+
+    VE_ON_PROGRAM_START(assure_paths_exist, [] {
+        const std::array required_paths {
+            PATH_LOGS, PATH_SETTINGS, PATH_PLUGINS, PATH_ASSETS, PATH_SHADERS, PATH_TEXTURES, PATH_SOUNDS
+            VE_DEBUG_ONLY(,)
+            VE_DEBUG_ONLY(PATH_PROFILER)
         };
-    }
-    
-    
-    using path = detail::registering_path;
-    
-    const inline path ROOT_DIR                              = fs::absolute(fs::current_path());
-    const inline path PATH_LOGS                             = ROOT_DIR / "logs/";
-    const inline path PATH_SETTINGS                         = ROOT_DIR / "cfg/";
-    const inline path PATH_PLUGINS                          = ROOT_DIR / "plugins/";
-    const inline path PATH_ENGINE_DATA                      = ROOT_DIR / "data/";
-    const inline path PATH_ASSETS                           = ROOT_DIR / "assets/";
-    const inline path PATH_SHADERS                          = PATH_ASSETS / "shaders/";
-    const inline path PATH_TEXTURES                         = PATH_ASSETS / "textures/";
-    const inline path PATH_SOUNDS                           = PATH_ASSETS / "sounds/";
-    const inline path PATH_NOISE                            = PATH_ASSETS / "noise/";
-    const inline path PATH_TILE_TEXTURES                    = PATH_TEXTURES / "tiles/";
-    const inline path PATH_ENTITY_TEXTURES                  = PATH_TEXTURES / "entities/";
-    
-    
-    inline const std::vector<fs::path>& get_registered_paths(void) {
-        return detail::get_registered_paths();
-    }
+
+        for (const auto& path : required_paths) fs::create_directories(path);
+    });
 }

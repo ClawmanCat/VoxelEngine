@@ -1,8 +1,0 @@
--y ve
--no
-    .*lambda_\d+.*
-    .*dynamic\satexit\sdestructor.*
-    .*dynamic\sinitializer.*
-    .*RTTI\sBase\sClass\sDescriptor.*
-    ve::thread_pool::invoke_on_thread.*
-    ve::gfx::directive_preprocessor::add_directive.*

@@ -4,4 +4,3 @@
 
 #pragma once
 
-#include <VEDemoPlugin/core/api.hpp>

@@ -1,179 +1,128 @@
 #include <VoxelEngine/engine.hpp>
-#include <VoxelEngine/engine_events.hpp>
-#include <VoxelEngine/utility/assert.hpp>
-#include <VoxelEngine/utility/io/paths.hpp>
-#include <VoxelEngine/utility/thread/thread_pool.hpp>
-#include <VoxelEngine/clientserver/instance.hpp>
-#include <VoxelEngine/dependent/plugin_registry.hpp>
 #include <VoxelEngine/dependent/game_callbacks.hpp>
-#include <VoxelEngine/graphics/presentation/window_registry.hpp>
-#include <VoxelEngine/input/input_manager.hpp>
-
-#include <SDL.h>
-#include <boost/exception/exception.hpp>
-#include <boost/exception/diagnostic_information.hpp>
-
-
-// In debug mode we often want the exception to not be intercepted, so we can see the point where it was thrown.
-#ifndef VE_DEBUG
-    #define VE_LOG_UNCAUGHT_ERRORS
-#endif
+#include <VoxelEngine/utility/container/container_utils.hpp>
+#include <VoxelEngine/utility/services/logger.hpp>
 
 
 namespace ve {
-    [[noreturn]] void engine::main(i32 argc, char** argv) {
-        engine::arguments.feed((std::size_t) argc, (const char**) argv);
+    void engine::start(std::vector<std::string> args) {
+        arguments = std::move(args);
 
 
-        #ifdef VE_LOG_UNCAUGHT_ERRORS
-        try {
-        #endif
-            while (true) {
-                switch (engine::engine_state) {
-                    case engine::state::UNINITIALIZED:
-                        engine::init();
-                        break;
-                    case engine::state::RUNNING:
-                        engine::loop();
-                        break;
-                    case engine::state::EXITING:
-                        engine::immediate_exit();
-                        break;
-                    default:
-                        throw std::runtime_error("Illegal engine state.");
-                }
+        while (true) {
+            switch (state) {
+                case engine::UNINITIALIZED:
+                    engine_init();
+                    break;
+                case engine::RUNNING:
+                    engine_loop();
+                    break;
+                case engine::STOP_REQUESTED:
+                    [[fallthrough]];
+                case engine::UNINITIALIZED_STOP_REQUESTED:
+                    engine_exit();
+                    break;
+                case engine::STOPPED:
+                    set_state(engine::UNINITIALIZED);
+                    return;
+                default:
+                    // TODO: Assert here!
+                    VE_UNREACHABLE;
             }
-        #ifdef VE_LOG_UNCAUGHT_ERRORS
-        } catch (const std::exception& e) {
-            VE_ASSERT(false, "Unhandled exception: ", e.what());
-        } catch (const boost::exception& e) {
-            VE_ASSERT(false, "Unhandled exception: ", boost::diagnostic_information(e));
-        } catch (...) {
-            VE_ASSERT(false, "Unhandled exception: no further information.");
         }
-        #endif
-        
-        engine::immediate_exit();
     }
-    
-    
-    void engine::exit(i32 code, bool immediate) {
-        engine::event_dispatcher.dispatch_event(engine_exit_requested_event { code });
 
-        engine::exit_code    = code;
-        engine::engine_state = engine::state::EXITING;
-        
-        if (immediate) engine::immediate_exit();
+
+    void engine::stop(void) {
+        if (state == engine::STOPPING) {
+            get_service<engine_logger>().warning("Engine stop requested while the engine was already stopping. Additional request will be ignored.");
+            return;
+        }
+
+        set_state(engine::STOP_REQUESTED);
+        get_service<engine_logger>().info("Engine stop requested.");
     }
-    
-    
-    void engine::init(void) {
-        VE_PROFILE_BEGIN();
-        VE_PROFILE_FN();
-
-        {
-            VE_PROFILE_FN("game::pre_init");
-            game_callbacks::pre_init();
-        }
 
 
-        engine::event_dispatcher.dispatch_event(engine_pre_init_event{});
-        engine::engine_state = engine::state::INITIALIZING;
+    void engine::exit(i32 exit_code, bool immediate) {
+        this->exit_code = exit_code;
 
 
-        for (const auto& path : io::paths::get_registered_paths()) {
-            fs::create_directories(path);
-        }
-
-
-        SDL_SetMainReady();
-        SDL_Init(SDL_INIT_EVERYTHING);
-
-        input_manager::instance().add_raw_handler(
-            [](const exit_requested_event&) { engine::exit(); },
-            priority::LOWEST // Give the game the opportunity to handle this event first.
+        get_service<engine_logger>().info(
+            "Program termination requested (With exit code: {}, immediate mode: {}).",
+            exit_code,
+            immediate
         );
 
 
-        {
-            VE_PROFILE_FN("Load Plugins");
-            plugin_registry::instance().scan_folder(io::paths::PATH_PLUGINS);
-            plugin_registry::instance().try_load_all_plugins(false);
+        switch (state) {
+            case UNINITIALIZED:
+                [[fallthrough]];
+            case INITIALIZING:
+                // Exit while engine was not initialized: stop but skip exit code.
+                state = engine::UNINITIALIZED_STOP_REQUESTED;
+                if (immediate) engine_exit();
+            case STOPPING:
+                // Exit while engine is already stopping: just set exit code so engine will exit after stopping.
+                get_service<engine_logger>().warning(
+                    "Engine termination was requested while the engine is already stopping. "
+                    "Engine will finish current stop procedure before exiting."
+                );
+
+                break;
+            default:
+                // Exit while the engine is running: stop normally.
+                state = engine::STOP_REQUESTED;
+                if (immediate) engine_exit();
         }
-
-
-        engine::engine_state = engine::state::RUNNING;
-        engine::event_dispatcher.dispatch_event(engine_post_init_event { });
-
-        {
-            VE_PROFILE_FN("game::post_init");
-            game_callbacks::post_init();
-        }
-
-        VE_PROFILE_END(io::paths::PATH_LOGS / "profile_init.opt");
     }
-    
-    
-    void engine::loop(void) {
-        if (!std::exchange(engine::profiler_active, true)) VE_PROFILE_BEGIN();
-        VE_PROFILE_FRAME("Engine Loop");
 
-        static nanoseconds last_dt = 1s / 60; // Provide some reasonable fake value for the first tick.
-        auto tick_begin = steady_clock::now();
 
-        {
-            VE_PROFILE_FN("game::pre_loop");
-            game_callbacks::pre_loop();
-        }
+    void engine::engine_init(void) {
+        game_callbacks::pre_init();
+        set_state(engine::INITIALIZING);
 
-        engine::event_dispatcher.dispatch_event(engine_pre_loop_event { engine::tick_count });
+        // TODO: Init here!
 
-        gfx::window_registry::instance().begin_frame();
-
-        input_manager::instance().update(engine::tick_count);
-        thread_pool::instance().execute_main_thread_tasks();
-        instance_registry::instance().update_all(last_dt);
-
-        gfx::window_registry::instance().end_frame();
-
-        engine::event_dispatcher.dispatch_event(engine_post_loop_event { engine::tick_count });
-
-        {
-            VE_PROFILE_FN("game::post_loop");
-            game_callbacks::post_loop();
-        }
-
-        ++engine::tick_count;
-        last_dt = time_since(tick_begin);
+        set_state(engine::RUNNING);
+        game_callbacks::post_init();
     }
-    
-    
-    [[noreturn]] void engine::immediate_exit(void) {
-        if (profiler_active) VE_PROFILE_END(io::paths::PATH_LOGS / "profile_engine.opt");
+
+
+    void engine::engine_loop(void) {
+        game_callbacks::pre_loop();
+
+        // TODO: Loop here!
+
+        game_callbacks::post_loop();
+    }
+
+
+    void engine::engine_exit(void) {
+        if (state == engine::UNINITIALIZED_STOP_REQUESTED) {
+            get_service<engine_logger>().warning(
+                "Engine termination requested while the engine was still uninitialized. "
+                "Normal exit procedure will be skipped and the engine will exit immediately."
+            );
+
+            goto exit_now;
+        }
+
 
         game_callbacks::pre_exit();
-        engine::event_dispatcher.dispatch_event(engine_pre_exit_event { engine::exit_code });
+        set_state(engine::STOPPING);
 
-
-        // Plugins failing to unload should not jeopardize normal cleanup;
-        // attempt to unload all plugins first, then error after cleanup if any remain loaded.
-        plugin_registry::instance().try_unload_all_plugins(false);
-
-        VE_ASSERT(
-            plugin_registry::instance().get_loaded_plugins().empty(),
-            "Some plugins failed to unload while terminating the engine.\n"
-            "Exit completed successfully otherwise."
-        );
-
-
-        SDL_Quit();
-
-
-        engine::engine_state = engine::state::EXITED;
-
-        engine::event_dispatcher.dispatch_event(engine_post_exit_event { engine::exit_code });
+        set_state(engine::STOPPED);
         game_callbacks::post_exit();
-        
-        std::exit(engine::exit_code);
+
+
+        exit_now:
+        if (exit_code) std::exit(*exit_code);
+    }
+
+
+    void engine::set_state(engine::engine_state state) {
+        this->state = state;
+        get_service<engine_logger>().info("Engine state changed to {}.", magic_enum::enum_name(state));
     }
 }

@@ -1,6 +1,0 @@
--y demo_game
--no
-    .*lambda_\d+.*
-    .*dynamic\satexit\sdestructor.*
-    .*dynamic\sinitializer.*
-    .*RTTI\sBase\sClass\sDescriptor.*
